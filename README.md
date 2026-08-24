@@ -23,9 +23,9 @@
 > add it fresh under the new domain. Per the standing pre-v1 policy above,
 > expect this kind of breaking change until v1 is actually tagged.
 
-> **⚠️ Early development — the control loop exists but hasn't been validated against
-> real or dummy hardware yet.** Configuration (Config Flow + Options Flow) and the
-> Coordinator control loop are both built. Before trusting this with real heating
+> **⚠️ Early development — the control loop has automated and deterministic
+> development-environment coverage, but ZEAL V1 is not complete.** Configuration
+> and the Coordinator are built. Before trusting this with real heating
 > equipment, test it against dummy/spare TRVs first — read "Before you trust this
 > with real heating" below. Don't remove your existing heating automation until
 > you've verified it against your own setup.
@@ -96,9 +96,10 @@ See [Roadmap](#roadmap) for what's planned and in what order.
 
 ## Before you trust this with real heating
 
-The Coordinator hasn't been run against live hardware yet — it's `py_compile`-clean
-but untested. A couple of behaviours worth checking against how you actually want
-your system to work:
+The Coordinator has automated and deterministic development-environment testing,
+but the combined V1 scheduler and HTML setup experience still requires full live
+acceptance testing. A couple of behaviours worth checking against how you actually
+want your system to work:
 
 > **📛 Pre-v1 development notice: expect to delete and recreate zones after
 > updates, repeatedly, until v1 ships.** This is still actively being designed
@@ -228,7 +229,7 @@ that instead.
 | Milestone | Status |
 |---|---|
 | 1. Skeleton integration, Config Flow, Store-backed data model | Done |
-| 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built, untested against real/dummy hardware |
+| 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
 | 3. Options Flow for zone/room/TRV/sensor management | Done |
 | 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Not started |
 | 5. Polish — diagnostics sensor, translations, entity icons | Diagnostics sensor and brand icon done; rest pending |
@@ -361,4 +362,3 @@ If you're cloning for offline use or archival purposes, clone both:
 git clone https://github.com/Buster1959/ZEAL.git
 git clone https://github.com/Buster1959/ZEAL.wiki.git
 ```
-

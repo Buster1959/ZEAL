@@ -82,6 +82,10 @@ ROOM_ACTIVE = "active"
 # per-zone, user-editable value actually used by the Coordinator.
 DEFAULT_SCAN_INTERVAL = 60  # seconds - periodic fallback poll
 DEFAULT_REENABLE_DELAY = 300  # seconds - min time OFF before allowed back ON
+MIN_TARGET_TEMPERATURE = 5.0
+MAX_TARGET_TEMPERATURE = 30.0
+OFFLINE_DEBOUNCE_SECONDS = 300
+STALE_THRESHOLD_SECONDS = 3600
 
 # Suggested re-enable delay per heat source, in seconds - a starting point
 # reflecting how each source actually behaves, not a hard rule:

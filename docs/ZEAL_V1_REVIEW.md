@@ -43,8 +43,8 @@ require `visual_climate_scheduler` at runtime.
 
 ### Versions and releases
 
-- Git history labels the current work `0.13.0`, while `manifest.json` reports
-  `0.10.0`.
+- At review, Git history labelled the current work `0.13.0` while
+  `manifest.json` reported `0.10.0`. Block 1 aligned the manifest to `0.13.0`.
 - The only GitHub release is the old `0.1.0` prerelease.
 - README statements conflict: the introduction says the Coordinator has not
   been validated, while later roadmap text says it was tested in a real dev
@@ -52,12 +52,15 @@ require `visual_climate_scheduler` at runtime.
 
 ### Tests
 
-- The declared test dependency is not installed in the current workspace, so
-  the baseline suite cannot presently be executed here.
-- `tests/test_coordinator.py` contains the normal discoverable suite, while a
-  newer, larger `custom_components/zeal/test_coordinator.py` is misplaced
-  inside production code and is not part of the documented `pytest tests/`
-  command.
+- At review, the declared test dependency was not installed in the workspace.
+  Block 1 established an isolated test environment and verified 38/38 cases.
+- At review, the newer Coordinator suite was misplaced inside production code.
+  Block 1 moved its complete byte-verified contents to
+  `tests/test_coordinator_full.py` and removed both obsolete copies.
+- The consolidated suite exposed dormant safety specifications that the current
+  Coordinator did not yet satisfy. Block 1 implemented setpoint clamping,
+  stale-reading rejection and debounced offline/recovery notifications before
+  accepting the baseline.
 - Scheduling, panel API, persistence migration, config editing and frontend
   workflows have no tests because those components do not yet exist.
 

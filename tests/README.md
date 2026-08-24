@@ -7,8 +7,10 @@ protection, the self-write recursion guard) that would take real time to
 click through by hand in a live dev environment. Runs in well under a
 second.
 
-Verified working: 21/21 passing against `pytest-homeassistant-custom-component`
-as of the 0.10.0 release, in a clean virtualenv.
+Baseline coverage: 38 collected cases against
+`pytest-homeassistant-custom-component` as of the 0.13.0 development baseline.
+The full suite is now kept in `tests/test_coordinator_full.py`; test code is not
+shipped inside `custom_components/zeal`. Verified result: 38/38 passing.
 
 ## Running
 
@@ -37,6 +39,11 @@ framework Home Assistant Core itself uses to test its own integrations.
 - The self-write loop guard — reproduces the exact incident where a
   `ZealRoomThermostat` ended up in its own room's TRV list, confirming
   propagation skips it rather than recursing.
+- Setpoint safety clamping at the physical TRV write boundary.
+- Debounced unavailable-device notifications, recovery dismissal and remaining
+  room-coverage messages.
+- Zigbee-style stale readings, including exclusion from temperature averaging
+  and conservative all-TRVs-off pump protection.
 
 ## What's NOT covered (yet)
 

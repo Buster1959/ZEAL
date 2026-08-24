@@ -51,12 +51,16 @@ from .const import (
     DEFAULT_REENABLE_DELAY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_TARGET_TEMPERATURE,
+    MIN_TARGET_TEMPERATURE,
+    OFFLINE_DEBOUNCE_SECONDS,
     ROOM_ACTIVE,
     ROOM_ID,
     ROOM_NAME,
     ROOM_SENSORS,
     ROOM_TRVS,
     RUNTIME_LAST_OFF,
+    STALE_THRESHOLD_SECONDS,
     ZONE_ID,
     ZONE_NAME,
     ZONE_REENABLE_DELAY,
@@ -118,6 +122,11 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         # the TRV's own state-change listener, which would read it back as
         # a new *external* change and re-propagate indefinitely.
         self._last_written_setpoint: dict[str, float] = {}
+
+        # entity_id -> first unhealthy observation. Notifications are
+        # debounced so a brief radio dropout does not alarm the household.
+        self._entity_unhealthy_since: dict[str, datetime] = {}
+        self._entity_offline_notified: set[str] = set()
 
         self._unsub_state_listener: Callable[[], None] | None = None
 
@@ -314,6 +323,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
     # Core evaluation loop
     # ------------------------------------------------------------------
     async def _async_update_data(self) -> dict[str, ZoneStatus]:
+        await self._async_check_entity_health()
         results: dict[str, ZoneStatus] = {}
         off_time_changed = False
         _LOGGER.debug("Evaluation cycle starting (%d zone(s) configured)", len(self.zones))
@@ -454,8 +464,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         """Highest setpoint among the room's active TRVs, or None."""
         values: list[float] = []
         for trv in room.get(ROOM_TRVS, []) or []:
-            state = self.hass.states.get(trv)
-            if state is None or state.state in UNAVAILABLE_STATES:
+            state = self._get_usable_state(trv)
+            if state is None:
                 continue
             raw = state.attributes.get("temperature")
             if raw in UNAVAILABLE_STATES:
@@ -487,8 +497,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             if not room.get(ROOM_ACTIVE, True):
                 continue
             for trv in room.get(ROOM_TRVS, []) or []:
-                state = self.hass.states.get(trv)
-                if state is None or state.state in UNAVAILABLE_STATES:
+                state = self._get_usable_state(trv)
+                if state is None:
                     return False
                 found_any = True
                 if state.state != "off":
@@ -499,8 +509,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         """Average reading among the room's active temperature sensors, or None."""
         values: list[float] = []
         for sensor in room.get(ROOM_SENSORS, []) or []:
-            state = self.hass.states.get(sensor)
-            if state is None or state.state in UNAVAILABLE_STATES:
+            state = self._get_usable_state(sensor)
+            if state is None:
                 _LOGGER.debug("    sensor %s = unavailable/missing, skipped", sensor)
                 continue
             try:
@@ -517,6 +527,89 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 "    -> averaged %d sensor(s): %s", len(values), result
             )
         return result
+
+    def _get_usable_state(self, entity_id: str):
+        """Return a present, available and recently reported HA state."""
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state in UNAVAILABLE_STATES:
+            return None
+        last_reported = getattr(state, "last_reported", state.last_updated)
+        if (dt_util.utcnow() - last_reported).total_seconds() > STALE_THRESHOLD_SECONDS:
+            return None
+        return state
+
+    def _configured_active_entities(self) -> list[tuple[str, dict[str, Any], str]]:
+        """Return (entity_id, room, kind) for monitored room equipment."""
+        entities: list[tuple[str, dict[str, Any], str]] = []
+        for zone in self.zones:
+            for room in zone.get(ZONE_ROOMS, []):
+                if not room.get(ROOM_ACTIVE, True):
+                    continue
+                entities.extend((entity_id, room, "TRV") for entity_id in room.get(ROOM_TRVS, []) or [])
+                entities.extend((entity_id, room, "sensor") for entity_id in room.get(ROOM_SENSORS, []) or [])
+        return entities
+
+    async def _async_check_entity_health(self) -> None:
+        """Debounce equipment failures, notify once, and dismiss on recovery."""
+        now = dt_util.utcnow()
+        for entity_id, room, kind in self._configured_active_entities():
+            notification_id = f"{DOMAIN}_offline_{entity_id.replace('.', '_')}"
+            if self._get_usable_state(entity_id) is not None:
+                self._entity_unhealthy_since.pop(entity_id, None)
+                if entity_id in self._entity_offline_notified:
+                    await self.hass.services.async_call(
+                        "persistent_notification",
+                        "dismiss",
+                        {"notification_id": notification_id},
+                        blocking=True,
+                    )
+                    self._entity_offline_notified.discard(entity_id)
+                continue
+
+            first_seen = self._entity_unhealthy_since.setdefault(entity_id, now)
+            if (
+                entity_id in self._entity_offline_notified
+                or (now - first_seen).total_seconds() <= OFFLINE_DEBOUNCE_SECONDS
+            ):
+                continue
+
+            if kind == "TRV":
+                usable_peers = [
+                    peer
+                    for peer in room.get(ROOM_TRVS, []) or []
+                    if peer != entity_id and self._get_usable_state(peer) is not None
+                ]
+                coverage = (
+                    "Other usable TRV coverage is still active in this room."
+                    if usable_peers
+                    else "No usable TRV coverage remains in this room."
+                )
+            else:
+                usable_peers = [
+                    peer
+                    for peer in room.get(ROOM_SENSORS, []) or []
+                    if peer != entity_id and self._get_usable_state(peer) is not None
+                ]
+                coverage = (
+                    "Other usable temperature-sensor coverage is still active in this room."
+                    if usable_peers
+                    else "No usable temperature-sensor coverage remains in this room."
+                )
+
+            await self.hass.services.async_call(
+                "persistent_notification",
+                "create",
+                {
+                    "notification_id": notification_id,
+                    "title": "ZEAL device offline",
+                    "message": (
+                        f"{entity_id} in {room.get(ROOM_NAME, room.get(ROOM_ID, 'an unknown room'))} "
+                        f"is unavailable or stale. {coverage}"
+                    ),
+                },
+                blocking=True,
+            )
+            self._entity_offline_notified.add(entity_id)
 
     def _find_room(self, room_id: str) -> dict[str, Any] | None:
         for zone in self.zones:
@@ -566,6 +659,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         setpoint, since the thermostat is the room's single source of
         truth, not any individual TRV.
         """
+        temp = min(MAX_TARGET_TEMPERATURE, max(MIN_TARGET_TEMPERATURE, float(temp)))
         room = self._find_room(room_id)
         if room is None:
             _LOGGER.debug("Can't propagate setpoint - unknown room_id %s", room_id)
