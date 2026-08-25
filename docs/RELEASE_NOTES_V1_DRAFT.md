@@ -30,3 +30,6 @@ acceptance plan before unattended use.
   translated.
 - HACS default-store submission, the final `1.0.0` manifest and GitHub release
   follow Block 10 validation.
+- PolyForm Shield remains in force during full testing. The final public-release
+  licence must be resolved before HACS default-store submission because HACS
+  does not currently identify this licence.

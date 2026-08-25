@@ -23,7 +23,9 @@ Blocks 0–8 are implemented. Block 9 adds HACS metadata, validation workflows,
 setup-flow translations and aligned repository/Wiki documentation. Actual ZEAL
 screenshots remain a privacy-review gate and must be captured from a generic
 test installation. Block 10 performs live acceptance, version finalisation,
-release notes and the reviewable merge to `main`.
+release notes and the reviewable merge to `main`. PolyForm Shield remains the
+project licence during full testing; the licence decision required for a clean
+HACS validation result is deliberately deferred until testing is complete.
 
 ## Validation commands
 
@@ -33,5 +35,7 @@ python -m compileall -q custom_components tests
 ```
 
 GitHub runs both HACS validation and Home Assistant Hassfest on pushes and pull
-requests. Passing those workflows confirms repository structure; it does not
-replace live thermostat/actuator testing.
+requests. Hassfest passes. HACS currently reports only the unrecognised
+PolyForm Shield licence, which is a recorded deferred release decision. Passing
+both workflows will still be required before a default-store request and does
+not replace live thermostat/actuator testing.
