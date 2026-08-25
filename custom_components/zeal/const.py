@@ -2,6 +2,14 @@
 
 DOMAIN = "zeal"
 
+# Admin-only Home Assistant panel. The query-string version is deliberately
+# independent of the integration version so frontend-only fixes can invalidate
+# the browser cache without changing stored data or the manifest.
+PANEL_COMPONENT = "zeal-panel"
+PANEL_URL_PATH = DOMAIN
+PANEL_STATIC_URL = f"/{DOMAIN}_static"
+PANEL_ASSET_VERSION = "1"
+
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
 SCHEDULE_STORAGE_VERSION = 1
@@ -53,7 +61,7 @@ HEAT_SOURCE_OPTIONS = [
 # Reserved schema fields for a future capability where a zone's ASHP can
 # also provide cooling (via a physical retrofit - special radiators/fan
 # coils rated for cold water without condensation risk). Not exposed in
-# the Options Flow yet and NOT acted on by the Coordinator yet - these
+# the Setup panel yet and NOT acted on by the Coordinator yet - these
 # exist purely so the schema doesn't need another breaking migration once
 # the real feature is built. See project doc for the full design
 # (capability flag, per-room cooling-capable flag, and the "actively close

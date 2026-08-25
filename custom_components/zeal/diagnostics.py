@@ -3,20 +3,16 @@
 Answers "what is currently configured" directly from the integration's own
 UI (Settings -> Devices & Services -> ZEAL HVAC System -> the "..." menu on
 the integration card -> Download diagnostics) rather than requiring anyone
-to reopen the Options Flow and click through every zone/room to piece it
-together, or dig through debug logs. This was directly motivated by a real
+to inspect each Setup card or dig through debug logs. This was directly
+motivated by a real
 debugging session where the lack of any such view made a config mistake
 (a ZealRoomThermostat entity accidentally selected as its own room's TRV,
 causing infinite propagation recursion - see the Decisions Log) much
 harder to spot than it needed to be.
 
 This is HA's standard, idiomatic mechanism for "let a user see what an
-integration currently holds" - not a custom dashboard tab (Home Assistant
-doesn't have a way to add a custom tab to an integration's Settings page),
-and lighter-weight than building a whole bespoke read-only UI. The bundled
-Lovelace card originally planned for Milestone 4 remains the fuller,
-always-visible answer to the same underlying need; this is the "right now,
-one click, structured JSON" version of it.
+integration currently holds" and complements the HTML Overview with a
+portable troubleshooting document.
 """
 from __future__ import annotations
 

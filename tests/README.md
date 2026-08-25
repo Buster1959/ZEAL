@@ -5,11 +5,11 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 94 collected cases against `pytest-homeassistant-custom-component`:
+Coverage: 97 collected cases against `pytest-homeassistant-custom-component`:
 38 Coordinator cases, 29 pure scheduler cases, 10 scheduler runtime/boundary
-cases and 17 configuration/audit/WebSocket cases. Test code is kept under
-`tests/`, not shipped inside `custom_components/zeal`. Verified result: 94/94
-passing.
+cases, 17 configuration/audit/WebSocket cases and 3 Config Flow/HTML panel
+contract cases. Test code is kept under `tests/`, not shipped inside
+`custom_components/zeal`. Verified result: 97/97 passing.
 
 ## Running
 
@@ -52,14 +52,16 @@ framework Home Assistant Core itself uses to test its own integrations.
 - Admin-only WebSocket authorization, registry-backed hierarchy validation,
   optimistic revision conflicts, reload persistence, Quick Change, bounded
   audit retention and JSON-safe configuration/audit downloads.
+- Admin-only ZEAL panel registration, integration configuration routing, static
+  asset registration, safe-save API use, responsive breakpoints and the
+  competing-scheduler warning contract.
 
 ## What's NOT covered (yet)
 
-Config Flow / Options Flow, the `switch`/`sensor`/`climate` entity
-platforms themselves (as opposed to the Coordinator logic they call
-into), the HTML interface, away mode and cooling. Contributions extending
-coverage welcome — this is meant to grow alongside the project, not stay
-fixed at this snapshot.
+Browser DOM interactions and visual rendering, the `switch`/`sensor`/`climate`
+entity platforms themselves (as opposed to the Coordinator logic they call
+into), away mode and cooling. Contributions extending coverage welcome — this
+is meant to grow alongside the project, not stay fixed at this snapshot.
 
 ## Adding a test for a new bug
 

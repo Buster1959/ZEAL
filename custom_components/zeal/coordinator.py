@@ -153,8 +153,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         this reliably marks the start of each real testing session), and
         its whole purpose is to make it visually unmistakable in a raw log
         where a session starts, and give a complete picture of what's
-        configured without needing to enable debug logging or reopen
-        Configure and click through every zone by hand.
+        configured without needing to enable debug logging or inspect every
+        card in the ZEAL Setup panel.
         """
         # Read the version straight from the loaded manifest, not a
         # hardcoded/duplicated constant - so this always reflects exactly
@@ -673,7 +673,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             _LOGGER.error(
                 "[%s] Room's TRV list includes ZEAL's own entity/entities %s - "
                 "refusing to propagate to them (this would recurse infinitely). "
-                "Reopen Configure for this room and remove them from the TRV "
+                "Open ZEAL Setup for this room and remove them from the TRV "
                 "list; they should no longer be offered as an option.",
                 room_name,
                 skipped,
@@ -804,7 +804,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 "template-platform switch that hasn't finished initialising "
                 "yet) and self-corrects on the very next state change or "
                 "poll. If it persists beyond startup, check the entity "
-                "still exists and is spelled correctly in Configure.",
+                "still exists and is selected correctly in ZEAL Setup.",
                 zone_name,
                 entity_id,
             )

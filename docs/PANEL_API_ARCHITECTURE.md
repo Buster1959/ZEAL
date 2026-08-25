@@ -1,6 +1,23 @@
 # ZEAL Panel API Architecture
 
-Status: Block 4 backend complete; HTML consumers begin in Block 5.
+Status: Block 4 backend and Block 5 Overview/Setup consumers complete.
+
+## Panel boundary
+
+The integration registers `/zeal` as a versioned custom Home Assistant panel,
+visible in the sidebar and used as the integration's Configure destination. The
+panel route and every data command require an administrator. Its Overview is
+read-only; Setup works on a browser-side copy and submits the entire hierarchy
+only when **Save setup** is selected. Existing config-entry options remain the
+source of truth, so configurations created with the retired Options Flow require
+no migration.
+
+The frontend escapes registry-derived names and entity IDs before rendering,
+retains hidden forward-compatible schema fields, filters room equipment by Area,
+prevents assigning one Area to multiple zones in the editor and relies on the
+backend to revalidate every submitted value. After a successful hierarchy save,
+it tolerates the expected short config-entry reload window and accepts the
+result only when the returned revision matches.
 
 ## Security boundary
 

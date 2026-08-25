@@ -1,59 +1,43 @@
 # ZEAL HVAC System — Test Plan
 
-*For the current build: Config Flow + Options Flow (Milestones 1 & 3, done)
-and the Coordinator control loop (Milestone 2, built, not yet run against
-hardware). Written to be usable as-is by anyone testing this from a fresh
-HA install — every step names the exact screen, tab, and field.*
+*For the current V1 feature build: minimal Config Flow, HTML Overview/Setup
+panel, Coordinator control loop and scheduler backend. Written to be usable
+as-is by anyone testing this from a fresh HA install — every step names the
+exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (94 collected cases, runs in under a
+> `tests/` has an automated pytest suite (97 collected cases, runs in under a
 > second) covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
-> *can't* cover: the actual Config Flow/Options Flow UI, real (or dummy)
+> *can't* cover: browser rendering and interactions, real (or dummy)
 > hardware behaving as expected, and anything end-to-end. Use both —
 > the automated suite for "did I break the logic," this document for
 > "does it actually work against something real."
 
 ## 0. Scope and known gaps — read first
 
-- **No multi-fuel / heat-source selector exists yet.** `heat_source` and
-  `flow_temp_source` are design-only fields for the future thermal-learning
-  feature (project doc §9.2, Milestone 7+). There is nothing to test here
-  today — the Coordinator doesn't care what's heating the room, it just
-  compares a TRV setpoint to a sensor reading and drives a switch. If a
-  step below implies a heat-source choice, that's a documentation bug —
-  flag it.
-- **No persistent "view my config" screen exists yet.** There's no
-  dashboard/overview card (that's the bundled Lovelace card in Milestone 4,
-  not built). Right now there are exactly two ways to see what's
-  configured, both covered in §1 below — neither is a permanent, glanceable
-  summary. Worth being upfront about this rather than a reader hunting for
-  a screen that isn't there.
+- **Heat source and re-enable delay are setup fields.** The heat-source choice
+  supplies a recommendation; the stored delay remains user-editable. Future
+  thermal learning is still outside V1.
+- **The ZEAL Overview is now the persistent configuration summary.** It shows
+  zones, Areas/rooms, heat source, actuator, delay and equipment counts. The
+  standard diagnostics download remains useful for portable troubleshooting.
 - **The scheduling model and runtime adapter exist, but away mode and the HTML
   scheduling interface do not yet exist** (Milestone 4). The runtime has
   automated coverage but is not exercised by this live test plan yet.
 
 ## 1. Where to see what you've configured
 
-Two places, neither of them a dedicated dashboard:
+**A. ZEAL Overview and Setup.** Open **ZEAL** from the Home Assistant sidebar,
+or choose **Configure** on the integration card. **Overview** is the glanceable
+saved summary. **Setup** displays every editable field and pre-fills it from the
+current configuration.
 
-**A. Reopen the Options Flow.**
-`Settings → Devices & Services → ZEAL HVAC System
-→ Configure`. Every screen pre-fills with your current saved values — the
-zone menu lists each zone's name and room count, and stepping into a zone
-shows its current rooms, switch, and per-room TRV/sensor picks. This is
-the closest thing to a "current state" view today; it just requires
-clicking through rather than a single glance.
+**B. Download diagnostics.** `Settings → Devices & Services → ZEAL HVAC System
+→ ⋮ → Download diagnostics` produces a structured snapshot including live
+entity state for troubleshooting.
 
-**B. The save-summary dialog.**
-After clicking through to **Done → Save** at the end of any Options Flow
-session, HA shows a one-time Markdown summary: every zone, its switch,
-every room, and every active TRV/sensor. It is **not persisted anywhere**
-— if you close that dialog without reading it, the only way to see the
-same information again is to reopen Configure (§A) or screenshot it next
-time.
-
-**C. Devices & Entities (partial — integration-created entities only).**
+**C. Devices & Entities (integration-created entities only).**
 `Settings → Devices & Services → Entities`, filtered to this integration,
 shows the two entities it creates *per zone*: the manual override switch
 and the demand sensor. It does **not** show your own TRVs/sensors — those
@@ -133,33 +117,30 @@ editing required anywhere in this section.
    entity's settings (gear icon on its more-info dialog, or via
    `Settings → Devices & Services → Entities`, click the entity, then the
    cog) and assign it to the `Test Room` Area. This is required — ZEAL's
-   Options Flow auto-discovers TRVs/sensors *by Area*, so anything not
+   ZEAL Setup lists TRVs/sensors *by Area*, so anything not
    assigned to an Area won't show up as a pick.
 
 ## 3. Configure a test zone in ZEAL
 
 1. `Settings → Devices & Services → Add Integration → ZEAL` (or "ASHP Zone
    Control" if not yet renamed). Give the instance any name and finish.
-2. On the new integration's card, click **Configure**.
-3. **Zone menu** → **+ Add a new zone**.
-4. **Pick rooms** → select the `Test Room` Area you created in §2.4.
-5. **Name & switch** → name the zone e.g. `Test Zone`, and set its switch
-   to `switch.test_zone_switch` (§2.3) — **not** the internal one from
-   §2.2.
-6. **Heat source** → pick anything (e.g. "Other / not sure" — doesn't
-   affect the demand test itself). Confirm it lands you on the next screen
-   with a pre-filled suggested delay matching whatever you picked (300s
-   for ASHP/Other, 120s for modulating boiler, 60s for non-condensing).
-7. **Re-enable delay** → accept the suggested value, or lower it (e.g. to
+2. Open **ZEAL** from the sidebar and select **Setup**.
+3. Select **+ Add zone** and name it `Test Zone`.
+4. Set **Heating actuator switch** to `switch.test_zone_switch` (§2.3) —
+   **not** the internal switch from §2.2.
+5. Set **Heat source** to any suitable value (e.g. "Other / not sure").
+   Confirm the recommendation shown below it is 300s for ASHP/Other, 120s
+   for a modulating boiler or 60s for a non-condensing boiler.
+6. Under **Rooms**, select `Test Room` from **+ Add Area as room**.
+7. **Re-enable delay** — accept the suggested value, or lower it (e.g. to
    `15`) to make §4 step 5's re-enable-delay check faster to observe
    without editing `const.py`.
-8. **Per-room entities** → you should see `climate.test_trv` and
-   `sensor.test_room_sensor` already pre-ticked as discovered. Leave
-   "Room is active" on. Confirm.
-9. **Done → Save.** Read the save-summary dialog (§1B) and confirm it
-   shows: Test Zone → switch `switch.test_zone_switch` → heat source →
-   re-enable delay → Test Room (active) → TRV `climate.test_trv` → Sensor
-   `sensor.test_room_sensor`.
+8. In the Test Room card, select `climate.test_trv` under physical climate
+   thermostats/TRVs and `sensor.test_room_sensor` under temperature sensors.
+   Leave **Room is active** on.
+9. Select **Save setup**. Wait for the saved/reloaded confirmation, then return
+   to **Overview** and confirm it shows Test Zone, the actuator, heat source,
+   delay and Test Room with one TRV and one sensor.
 
 ## 4. Run the actual demand test
 
@@ -189,8 +170,8 @@ editing required anywhere in this section.
      default if you left it) before turning on, even though the room is
      genuinely cold. This is the anti-short-cycling behaviour ported from
      the old `ashp_controller.py`, not a bug. If you didn't lower the
-     delay in §3, this step will take longer to observe — reopen
-     **Configure** on this zone and lower the re-enable delay there rather
+     delay in §3, this step will take longer to observe — open
+     **ZEAL → Setup** and lower the re-enable delay there rather
      than editing any code.
 6. **Manual override check.** With the room cold (demand present, switch
    on), find the zone's **Manual override switch** (same Entities/Device
@@ -202,8 +183,8 @@ editing required anywhere in this section.
 
 ## 5. Cleanup
 
-Once satisfied, remove the test zone via **Configure → remove Test Zone →
-Done → Save**, then delete the four Helpers (`Test Room Temp`, `Test Room
+Once satisfied, remove the test zone via **ZEAL → Setup → Remove zone →
+Save setup**, then delete the four Helpers (`Test Room Temp`, `Test Room
 Sensor`, `Test TRV Internal Heater`, `Test Zone Switch`) and the Generic
 Thermostat integration instance (`Test TRV`) from their respective
 Settings screens. None of this leaves anything behind in `configuration.yaml`
@@ -220,5 +201,6 @@ since it was all created via UI helpers/config flows.
   plan builds one isolated zone; a second pass with two zones and two
   distinct dummy switches would confirm they don't interfere with each
   other.
-- Anything in Milestone 4 (scheduling, away mode, boost) — not built yet,
-  nothing to test.
+- The visual scheduler, Quick Change interface and away mode are added in later
+  V1 blocks. Their backends have automated coverage where already present but
+  are not part of this Block 5 live test.

@@ -1,17 +1,4 @@
-"""The ZEAL HVAC System integration.
-
-Milestone 2: the Coordinator now owns the actual control loop (see
-coordinator.py) - reads TRVs/sensors, decides per-zone demand, drives the
-configured heating switches, subject to the re-enable delay and each zone's
-manual override switch (switch.py). A diagnostic demand sensor is created
-per zone too (sensor.py).
-
-entry.options remains the Options Flow's source of truth (what the user
-configured); the Store is a separate on-disk copy the Coordinator uses for
-its own runtime state (last-off timestamps for the re-enable delay) without
-writing back into config options, which would trigger the update listener
-below and reload the entry in a loop.
-"""
+"""The ZEAL HVAC System integration."""
 from __future__ import annotations
 
 import logging
@@ -34,6 +21,7 @@ from .const import (
     ZONE_ROOMS,
 )
 from .coordinator import ZealCoordinator
+from .panel import async_remove_panel, async_sync_panel
 from .scheduler.audit import AuditLog
 from .scheduler.rooms import reconcile_room_schedules
 from .scheduler.runtime import ScheduleRuntime
@@ -51,8 +39,9 @@ async def _async_cleanup_orphaned_entities(hass: HomeAssistant, entry: ConfigEnt
     Home Assistant does not automatically remove entities or devices when
     a config entry's saved options shrink - every async_add_entities call
     only ever *adds*. Without this, renaming or removing a zone/room in
-    Configure leaves the old device/entities behind permanently, silently
-    accumulating "ghost" devices - found via a real incident where two old
+    Removing a zone in the ZEAL Setup panel can otherwise leave its old
+    device/entities behind permanently, silently accumulating "ghost" devices
+    - found via a real incident where two old
     zone devices ("Ground Floor", "First Floor") persisted for good after
     the zones were rebuilt as "Zone 1"/"Zone 2".
 
@@ -108,7 +97,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store: Store = Store(
         hass, STORAGE_VERSION, STORAGE_KEY_FMT.format(entry_id=entry.entry_id)
     )
-    # Mirror the current Options Flow data into the Store. This re-runs on
+    # Mirror the current panel configuration into the Store. This re-runs on
     # every reload (see _async_update_listener), so the Store is always in
     # sync with the latest saved zones/rooms/TRVs/sensors.
     await store.async_save({CONF_ZONES: entry.options.get(CONF_ZONES, [])})
@@ -153,7 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     async_register_commands(hass)
 
-    # Re-run setup whenever the Options Flow saves changes, so anything
+    # Re-run setup whenever the HTML panel saves changes, so anything
     # reading hass.data picks up the new zones/rooms immediately.
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
@@ -179,6 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # make every room show "not yet registered" always, regardless of
     # whether anything was actually wrong - misleading noise, not signal.
     await coordinator.async_log_startup_banner()
+    await async_sync_panel(hass)
 
     return True
 
@@ -196,4 +186,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if data is not None:
             await data["schedule_runtime"].async_stop()
             data["coordinator"].async_teardown()
+        if not hass.data[DOMAIN]:
+            await async_remove_panel(hass)
     return unload_ok

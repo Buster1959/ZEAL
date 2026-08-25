@@ -83,6 +83,15 @@ The complete suite passes 94/94.
 Acceptance: a fresh installation can be fully configured without the existing
 multi-page Options Flow and existing configuration can be modified safely.
 
+Status: complete. ZEAL now registers a versioned admin-only Home Assistant panel
+as both a sidebar and integration configuration route. Overview summarizes the
+configured heating system; Setup edits the complete zone/Area/room hierarchy,
+Area-scoped physical TRVs and sensors, active state, heat source, actuator and
+re-enable delay through the Block 4 validated API. Optimistic concurrency,
+reload recovery, responsive layouts and the competing-scheduler warning are
+included. The former multi-page Options Flow has been retired without changing
+stored configuration. The complete suite passes 97/97.
+
 ## Block 6 — Visual scheduling
 
 - Adapt the seven-day timeline editor to ZEAL rooms and zone navigation.

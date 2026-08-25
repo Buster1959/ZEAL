@@ -86,11 +86,11 @@
 
 ## What it doesn't do yet
 
-- No scheduling (day/time/setpoint grid) yet — TRV setpoints are only ever *read*,
-  never written by an automated timer.
+- The scheduler runtime and persistence boundary are built, but the seven-day
+  visual schedule editor is not available in the panel until Block 6.
 - No "away mode" / holiday calendar integration yet.
-- No dashboard card yet — all configuration happens through Settings → Devices &
-  Services → ZEAL HVAC System → Configure.
+- No dashboard card yet — administration happens in ZEAL's own Home Assistant
+  panel.
 
 See [Roadmap](#roadmap) for what's planned and in what order.
 
@@ -108,7 +108,7 @@ want your system to work:
 > needs to change (see the switch-field example just below, and the Decisions
 > Log in the project definition doc for the full history). Some of these changes
 > are backward-compatible (existing zones keep working with sensible defaults);
-> others are breaking and require reopening **Configure** to reassign a field or
+> others are breaking and require reopening **ZEAL → Setup** to reassign a field or
 > just deleting and recreating the zone from scratch. **Assume the breaking kind
 > until v1 is actually tagged** — don't treat a forced reconfiguration as a bug,
 > and don't build anything you depend on around a specific schema shape until
@@ -125,10 +125,10 @@ want your system to work:
 - **Switch field changed 16 Aug 2026 (breaking).** From a list (`switches: [...]`,
   supporting multiple switches per zone) to a single value (`switch: <entity_id>`)
   once it was confirmed a zone only ever has one heating actuator switch in
-  practice. The old list key isn't read by the new code — reopen **Configure**
+  practice. The old list key isn't read by the new code — open **ZEAL → Setup**
   and reassign each zone's switch after updating.
 - **Heat-source and re-enable-delay fields added 16 Aug 2026 (non-breaking).** An
-  existing zone just behaves as ASHP-with-300s-delay until you reopen Configure
+  existing zone just behaves as ASHP-with-300s-delay until you open ZEAL → Setup
   and change it.
 - **First run drives real switches.** The moment this integration is reloaded with
   zones configured, the Coordinator evaluates and acts — it doesn't wait for you to
@@ -158,26 +158,28 @@ All configuration is done via the UI — no YAML.
 
 1. **Settings → Devices & Services → Add Integration → ZEAL HVAC System.**
    Give the integration instance a name (e.g. "ZEAL HVAC System").
-2. Open **Configure** on the integration card. You'll land on the zone menu:
-   - **+ Add a new zone** — creates a zone (default name "Zone N").
-   - **Pick rooms** — choose which HA Areas belong to this zone.
-   - **Name the zone and pick its heating switch** — rename it to something
-     meaningful (e.g. "Ground Floor") and select the single switch entity it
-     should control.
-   - **Heat source** — pick the option that matches this zone's heating
-     equipment. Not sure? See
-     [Heat sources and heating profiles](#heat-sources-and-heating-profiles)
-     below, or just pick "Other / not sure" — it's editable later and only
-     affects the suggested value on the next screen.
-   - **Re-enable delay** — pre-filled with a suggested value based on the
-     heat source you just picked. Change it to whatever you want; it's your
-     equipment, not a fixed rule.
-   - **Per room** — review the TRVs and temperature sensors already discovered for
-     that Area, untick any that shouldn't count, and toggle the room off entirely
-     if it shouldn't take part in heating demand (e.g. a guest room while empty).
-   - Repeat for as many zones as you have, then choose **Done → Save**.
-3. Reopen **Configure** at any time to add, edit, or remove zones and rooms — every
-   field is pre-filled with your current configuration.
+2. Open **ZEAL** from the Home Assistant sidebar (or **Configure** on the
+   integration card). The admin-only **Overview** shows the current zones,
+   rooms, actuators, heat sources and equipment counts.
+3. Select **Setup**, then:
+   - add a zone and give it a descriptive name (e.g. "Ground Floor");
+   - select its single heating actuator switch and heat source;
+   - review or change the suggested re-enable delay;
+   - add Home Assistant Areas as rooms (an Area can belong to one ZEAL zone);
+   - select the physical climate thermostats/TRVs and temperature sensors already
+     assigned to each Area, and choose whether the room is active;
+   - select **Save setup**. The complete hierarchy is validated against Home
+     Assistant before it is saved, and stale browser edits are rejected safely.
+
+Return to **ZEAL → Setup** at any time to modify the configuration. Existing
+configurations created with the former multi-page flow load into this panel
+without conversion or re-entry.
+
+> **Avoid competing schedulers:** do not assign a thermostat to more than one
+> thermostat setpoint scheduler. If ZEAL and another integration, automation,
+> blueprint or schedule both change the same thermostat's target temperature,
+> they may repeatedly overwrite each other. Before enabling ZEAL scheduling,
+> disable any other setpoint scheduler controlling those thermostat entities.
 
 ## Heat sources and heating profiles
 
@@ -230,8 +232,8 @@ that instead.
 |---|---|
 | 1. Skeleton integration, Config Flow, Store-backed data model | Done |
 | 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
-| 3. Options Flow for zone/room/TRV/sensor management | Done |
-| 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Model, runtime, secure panel API, Quick Change backend and audit complete; HTML UI and away mode pending |
+| 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
+| 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Model, runtime, secure panel API, HTML Overview/Setup, Quick Change backend and audit complete; visual schedule, Quick Change UI and away mode pending |
 | 5. Polish — diagnostics sensor, translations, entity icons | Diagnostics sensor and brand icon done; rest pending |
 | 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Pending |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
@@ -250,20 +252,20 @@ edge value, not the bad one.
 
 **Old zone/room devices or entities still showing after a rename or removal.**
 Fixed as of version 0.10.0 - versions before that never cleaned up a
-device/entity when a zone or room was removed via Configure, so
+device/entity when a zone or room was removed via the old Configure flow, so
 renaming-by-recreating (rather than editing in place) left the old one
 behind permanently. Update and restart once; existing ghost
 devices/entities get cleaned up automatically on that first restart, no
 manual deletion needed. If it persists on 0.10.0+, check `Settings →
 Devices & Services → ZEAL HVAC System` shows exactly as many devices as
-zones actually configured in Configure — if not, that's worth reporting.
+zones actually shown in ZEAL → Setup — if not, that's worth reporting.
 
 **A room's Thermostat entity is stuck, or logs show a repeating stack trace
 between `climate.py` and `coordinator.py`.** Fixed as of version 0.9.0 - this
 was a real bug where a `ZealRoomThermostat` could end up selected as one of
 its own room's TRVs (most likely if you'd assigned the thermostat entity
 itself to that room's HA Area), causing it to propagate a setpoint to
-itself infinitely. Update to 0.9.0+, then reopen **Configure** for the
+itself infinitely. Update to 0.9.0+, then open **ZEAL → Setup** for the
 affected room and re-save its TRV list — the entity will no longer be
 offered as an option. Check `Settings → Devices & Services → ZEAL HVAC
 System → ⋮ → Download diagnostics` afterward to confirm; it flags directly
@@ -274,12 +276,11 @@ distinguishable from a same-named real/dummy TRV in any entity picker —
 though the actual protection against this mix-up doesn't rely on that
 suffix; it's a separate, more reliable check under the hood.
 
-**Want to see everything currently configured at a glance, not just one
-zone/room at a time in Configure.** `Settings → Devices & Services → ZEAL
-HVAC System → ⋮ → Download diagnostics` — a structured JSON dump of every
+**Want to see everything currently configured at a glance.** Open the
+**ZEAL → Overview** panel. `Settings → Devices & Services → ZEAL HVAC System
+→ ⋮ → Download diagnostics` also provides a structured JSON dump of every
 zone, room, TRV/sensor with live state, and each room's thermostat target
-and mode. A fuller always-visible dashboard card is still planned (Milestone
-4); this is the one-click version available now.
+and mode for troubleshooting.
 
 **Seeing no log output at all, even though the integration is running.** This
 is expected, not broken — almost everything ZEAL logs is at `debug` level, and
@@ -311,9 +312,8 @@ Runs once per HA restart, right after everything's finished loading — reload
 the integration or restart Core, then search your log for `ZEAL starting up`
 to jump straight to it.
 
-**Options Flow shows raw keys (e.g. "name" instead of "Zone name"), stale text,
-or a `formatjs MISSING_VALUE` error after an update.** Two separate issues, both
-in the same area:
+**The initial setup form shows raw keys or stale text after an update.** Custom
+integration translations have two relevant caching details:
 
 1. Custom integrations load `translations/en.json` at runtime, **not**
    `strings.json` — `strings.json` is just the editable source. If you edit
