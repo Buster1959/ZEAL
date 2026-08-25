@@ -1,16 +1,15 @@
 # ZEAL automated tests
 
-Unit tests against the Coordinator's actual demand logic — the
-combination matrix (room satisfied/demanding, inactive rooms, thermostat
-off, multiple sensors, unavailable entities, the all-TRVs-off pump
-protection, the self-write recursion guard) that would take real time to
-click through by hand in a live dev environment. Runs in well under a
-second.
+Automated tests for the Coordinator's demand/safety logic and the pure ZEAL
+scheduler domain. The suite covers combinations that would take substantial
+time to click through by hand in a live development environment and runs in
+well under a second.
 
-Baseline coverage: 38 collected cases against
-`pytest-homeassistant-custom-component` as of the 0.13.0 development baseline.
-The full suite is now kept in `tests/test_coordinator_full.py`; test code is not
-shipped inside `custom_components/zeal`. Verified result: 38/38 passing.
+Coverage: 63 collected cases against `pytest-homeassistant-custom-component`:
+38 Coordinator cases and 25 pure scheduler cases. Coordinator tests are kept
+in `tests/test_coordinator_full.py`; scheduler tests are in
+`tests/test_scheduler.py`. Test code is not shipped inside
+`custom_components/zeal`. Verified result: 63/63 passing.
 
 ## Running
 
@@ -44,13 +43,17 @@ framework Home Assistant Core itself uses to test its own integrations.
   room-coverage messages.
 - Zigbee-style stale readings, including exclusion from temperature averaging
   and conservative all-TRVs-off pump protection.
+- Versioned ZEAL schedule serialization and migration, exact time validation,
+  stable room-ID reconciliation and a separate Store boundary.
+- Active/next-period calculation across midnight and empty days, schedule copy
+  isolation, and temporary override targets/expiry without editing schedules.
 
 ## What's NOT covered (yet)
 
 Config Flow / Options Flow, the `switch`/`sensor`/`climate` entity
 platforms themselves (as opposed to the Coordinator logic they call
-into), and anything from Milestone 4 onward (scheduling, away mode,
-boost/cooling) since that code doesn't exist yet. Contributions extending
+into), scheduler runtime/service calls, the HTML interface, away mode and
+cooling. Contributions extending
 coverage welcome — this is meant to grow alongside the project, not stay
 fixed at this snapshot.
 

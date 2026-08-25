@@ -34,7 +34,9 @@ require `visual_climate_scheduler` at runtime.
 
 ### Product functionality
 
-- No time-based scheduler is implemented.
+- At review, no time-based scheduler was implemented. Block 2 has since added
+  the ZEAL-owned pure schedule model, engine and storage boundary; runtime and
+  UI work remain for later blocks.
 - No calendar-driven away mode is implemented.
 - No HTML configuration or overview panel exists; setup is a long native
   Options Flow.
@@ -61,8 +63,9 @@ require `visual_climate_scheduler` at runtime.
   Coordinator did not yet satisfy. Block 1 implemented setpoint clamping,
   stale-reading rejection and debounced offline/recovery notifications before
   accepting the baseline.
-- Scheduling, panel API, persistence migration, config editing and frontend
-  workflows have no tests because those components do not yet exist.
+- Block 2 added 25 pure tests for schedule persistence/migration, selection,
+  editing, room reconciliation and overrides. Panel API, runtime execution,
+  config editing and frontend workflows still await later blocks.
 
 ### HACS and repository packaging
 

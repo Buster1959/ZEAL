@@ -35,6 +35,11 @@ notifications.
 
 Acceptance: pure scheduler tests pass without Home Assistant runtime objects.
 
+Status: complete. ZEAL now owns its scheduler model, migration, engine, editor
+copy semantics, room reconciliation, temporary-override calculations and a
+separate versioned Store adapter. The 25 scheduler cases pass; the complete
+suite passes 63/63.
+
 ## Block 3 — ZEAL scheduler adapter and runtime
 
 - Map zones/rooms to canonical ZEAL room thermostats.

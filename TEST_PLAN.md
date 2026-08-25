@@ -6,7 +6,7 @@ hardware). Written to be usable as-is by anyone testing this from a fresh
 HA install — every step names the exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (38 collected cases, runs in under a
+> `tests/` has an automated pytest suite (63 collected cases, runs in under a
 > second) covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
 > *can't* cover: the actual Config Flow/Options Flow UI, real (or dummy)
@@ -29,8 +29,9 @@ HA install — every step names the exact screen, tab, and field.*
   configured, both covered in §1 below — neither is a permanent, glanceable
   summary. Worth being upfront about this rather than a reader hunting for
   a screen that isn't there.
-- **Scheduling, away mode, and the boost/propagation mechanic don't exist
-  yet** (Milestone 4). Nothing in this test plan exercises them.
+- **The pure scheduling model exists, but schedule execution, away mode, and
+  the HTML scheduling interface do not yet exist** (Milestone 4). Nothing in
+  this live test plan exercises them yet.
 
 ## 1. Where to see what you've configured
 

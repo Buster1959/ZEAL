@@ -4,6 +4,8 @@ DOMAIN = "zeal"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
+SCHEDULE_STORAGE_VERSION = 1
+SCHEDULE_STORAGE_KEY_FMT = f"{DOMAIN}.scheduler.{{entry_id}}"
 
 # Keys used inside config_entry.options
 CONF_ZONES = "zones"
