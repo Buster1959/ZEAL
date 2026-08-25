@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     CONF_ZONES,
@@ -35,6 +36,7 @@ from ..const import (
     ZONE_ROOMS,
     ZONE_SWITCH,
 )
+from .away import AwayModeConfiguration, with_away_mode
 from .models import ScheduleConfiguration
 from .rooms import reconcile_room_schedules
 
@@ -92,6 +94,7 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
         "revision": configuration_revision(zones, schedule),
         "zones": zones,
         "schedule": schedule.to_dict(),
+        "away_mode": data["schedule_runtime"].away_mode_state(),
         "quick_change": data["schedule_runtime"].quick_change_state(),
         "catalog": configuration_catalog(hass, entry_id),
     }
@@ -118,6 +121,7 @@ def configuration_catalog(
     )
     catalog: dict[str, list[dict[str, Any]]] = {
         "areas": areas,
+        "calendars": [],
         "switches": [],
         "zeal_room_thermostats": [],
         "physical_room_thermostats": [],
@@ -137,6 +141,8 @@ def configuration_catalog(
         }
         if entity.domain == "switch":
             catalog["switches"].append(item)
+        elif entity.domain == "calendar":
+            catalog["calendars"].append(item)
         elif entity.domain == "climate":
             catalog["physical_room_thermostats"].append(item)
         elif entity.domain == "sensor" and (
@@ -168,6 +174,7 @@ def configuration_catalog(
                 }
             )
     for key in (
+        "calendars",
         "switches",
         "zeal_room_thermostats",
         "physical_room_thermostats",
@@ -177,6 +184,47 @@ def configuration_catalog(
             key=lambda item: (str(item["name"]).casefold(), item["entity_id"])
         )
     return catalog
+
+
+def validate_away_mode(
+    hass: HomeAssistant,
+    *,
+    mode: str,
+    calendar_entity_id: str | None,
+    starts_at: str | None,
+    ends_at: str | None,
+    temperature: float,
+) -> AwayModeConfiguration:
+    """Validate one mutually-exclusive Away activation source."""
+
+    def normalize_timestamp(value: str | None, field: str) -> str | None:
+        if not value:
+            return None
+        parsed = dt_util.parse_datetime(value)
+        if parsed is None:
+            raise ValueError(f"{field} must be a valid date and time")
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        return dt_util.as_utc(parsed).isoformat()
+
+    away_mode = AwayModeConfiguration(
+        mode=mode,
+        calendar_entity_id=calendar_entity_id or None,
+        starts_at=normalize_timestamp(starts_at, "Away start"),
+        ends_at=normalize_timestamp(ends_at, "Away end"),
+        temperature=temperature,
+    )
+    if away_mode.mode == "calendar":
+        entity = er.async_get(hass).async_get(away_mode.calendar_entity_id)
+        if entity is None or entity.domain != "calendar":
+            raise ValueError(
+                f"Unknown Away calendar: {away_mode.calendar_entity_id}"
+            )
+        if entity.disabled_by is not None:
+            raise ValueError(
+                f"Away calendar is disabled: {away_mode.calendar_entity_id}"
+            )
+    return away_mode
 
 
 def export_configuration(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
@@ -361,6 +409,40 @@ async def async_save_schedule(
     await data["schedule_storage"].async_save(configuration)
     await data["schedule_runtime"].async_set_configuration(configuration)
     return current_revision(hass, entry_id)
+
+
+async def async_save_away_mode(
+    hass: HomeAssistant,
+    entry_id: str,
+    *,
+    expected_revision: str,
+    mode: str,
+    calendar_entity_id: str | None,
+    starts_at: str | None,
+    ends_at: str | None,
+    temperature: float,
+) -> tuple[AwayModeConfiguration, str]:
+    """Validate and persist global Away settings through the schedule Store."""
+    away_mode = validate_away_mode(
+        hass,
+        mode=mode,
+        calendar_entity_id=calendar_entity_id,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        temperature=temperature,
+    )
+    data = _entry_data(hass, entry_id)
+    updated = with_away_mode(
+        data["schedule_runtime"].configuration,
+        away_mode,
+    )
+    revision = await async_save_schedule(
+        hass,
+        entry_id,
+        updated,
+        expected_revision=expected_revision,
+    )
+    return away_mode, revision
 
 
 async def async_save_hierarchy(

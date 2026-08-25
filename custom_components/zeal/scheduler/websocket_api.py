@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from ..const import DOMAIN
 from .configuration import (
     ConfigurationConflictError,
+    async_save_away_mode,
     async_save_hierarchy,
     async_save_schedule,
     configuration_snapshot,
@@ -32,6 +33,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_get_configuration,
         ws_update_room_days,
         ws_copy_room_schedule,
+        ws_save_away_mode,
         ws_save_hierarchy,
         ws_get_quick_change,
         ws_set_temporary_override,
@@ -159,6 +161,46 @@ async def ws_copy_room_schedule(hass, connection, msg) -> None:
         return
     except KeyError:
         connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "Unknown room")
+        return
+    except ValueError as err:
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err))
+        return
+    connection.send_result(
+        msg["id"], configuration_snapshot(hass, msg["entry_id"])
+    )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "zeal/save_away_mode",
+        vol.Required("entry_id"): str,
+        vol.Required("expected_revision"): str,
+        vol.Required("mode"): vol.In(["off", "calendar", "date_range"]),
+        vol.Required("calendar_entity_id"): vol.Any(None, str),
+        vol.Required("starts_at"): vol.Any(None, str),
+        vol.Required("ends_at"): vol.Any(None, str),
+        vol.Required("temperature"): vol.Coerce(float),
+    }
+)
+@websocket_api.async_response
+async def ws_save_away_mode(hass, connection, msg) -> None:
+    if _loaded_entry(hass, msg["entry_id"]) is None:
+        _send_not_found(connection, msg)
+        return
+    try:
+        await async_save_away_mode(
+            hass,
+            msg["entry_id"],
+            expected_revision=msg["expected_revision"],
+            mode=msg["mode"],
+            calendar_entity_id=msg["calendar_entity_id"],
+            starts_at=msg["starts_at"],
+            ends_at=msg["ends_at"],
+            temperature=msg["temperature"],
+        )
+    except ConfigurationConflictError as err:
+        connection.send_error(msg["id"], ERR_CONFLICT, str(err))
         return
     except ValueError as err:
         connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err))

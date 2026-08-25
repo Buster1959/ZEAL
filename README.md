@@ -90,12 +90,13 @@
   a Zone/Floor selection, any group of rooms or the whole house for two hours,
   four hours or until the next scheduled change. Weekly schedules are not
   edited.
+- **Away mode** can follow a Home Assistant calendar or one exact start/end
+  period and applies one safe global target to every active room.
 - **Setup → Downloads** exports the saved configuration/schedules and the most
   recent 500 canonical thermostat application outcomes as readable JSON files.
 
 ## What it doesn't do yet
 
-- No "away mode" / holiday calendar integration yet.
 - No dashboard card yet — administration happens in ZEAL's own Home Assistant
   panel.
 
@@ -215,6 +216,38 @@ to its current scheduled target. Applying and cancelling holds is recorded in
 the audit trail. A relative adjustment requires an active scheduled target;
 an exact target can also be used when no period is currently active.
 
+### Away mode
+
+Open **ZEAL → Setup → Away mode** and choose exactly one activation method:
+
+- **Off** keeps the normal weekly schedule and Quick Change behaviour.
+- **Home Assistant Calendar** activates Away whenever the selected `calendar`
+  entity is `on`. A dedicated Local Calendar or holiday calendar is recommended
+  so unrelated appointments cannot activate it.
+- **Start and end date/time** activates Away for one exact period. Times are
+  interpreted in Home Assistant's configured time zone; the start is included
+  and normal control resumes at the end.
+
+Choose the global Away target (12°C by default) and save. Only active rooms are
+changed. The setting, selected source and date range are persisted in the ZEAL
+schedule document, included in the configuration download and reconciled when
+Home Assistant restarts.
+
+If you return early, select **End Away now** in the active Away banner. This
+switches Away to Off immediately and resumes the next eligible control source;
+you do not need to edit or wait for the calendar event or saved end time.
+
+While Away is active, it controls active-room setpoints and new Quick Change
+requests are blocked. A hold that already exists is paused and resumes when
+Away ends if its expiry has not passed. A manual change to a ZEAL room
+thermostat is reasserted to the Away target; under normal schedule control, a
+manual thermostat change is respected until the next scheduled transition.
+
+Control priority is deliberate: the per-zone **Manual override** remains the
+highest actuator authority and leaves that zone's pump/relay untouched. For
+room targets the order is **Away → Quick Change → manual thermostat change
+until the next transition → weekly schedule**.
+
 ### Configuration and audit downloads
 
 Open **ZEAL → Setup → Downloads** to download either JSON file:
@@ -298,7 +331,7 @@ that instead.
 | 1. Skeleton integration, Config Flow, Store-backed data model | Done |
 | 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
 | 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
-| 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change and JSON downloads complete; away mode pending |
+| 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
 | 5. Polish — diagnostics sensor, translations, entity icons | Diagnostics sensor and brand icon done; rest pending |
 | 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Pending |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |

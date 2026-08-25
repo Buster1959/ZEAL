@@ -6,7 +6,7 @@ as-is by anyone testing this from a fresh HA install — every step names the
 exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (98 collected cases, runs in under a
+> `tests/` has an automated pytest suite (118 collected cases, runs in seconds)
 > second) covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
 > *can't* cover: browser rendering and interactions, real (or dummy)
@@ -22,9 +22,9 @@ exact screen, tab, and field.*
 - **The ZEAL Overview is now the persistent configuration summary.** It shows
   zones, Areas/rooms, heat source, actuator, delay and equipment counts. The
   standard diagnostics download remains useful for portable troubleshooting.
-- **The scheduling model and runtime adapter exist, but away mode and the HTML
-  scheduling interface do not yet exist** (Milestone 4). The runtime has
-  automated coverage but is not exercised by this live test plan yet.
+- **Scheduling, Quick Change, downloads and Away mode are built.** Their pure,
+  runtime, security and persistence contracts have automated coverage; §5 adds
+  the essential browser/live checks.
 
 ## 1. Where to see what you've configured
 
@@ -181,7 +181,31 @@ editing required anywhere in this section.
      on, even as you move `number.test_room_temp` up and down. Turn the
      override back off afterward and confirm normal control resumes.
 
-## 5. Cleanup
+## 5. Check Schedule, Quick Change and Away mode
+
+1. Open **ZEAL → Schedule**, select the test room, add at least two changes a
+   few minutes apart and save. Confirm the ZEAL room thermostat and dummy TRV
+   receive each target at the displayed time.
+2. Open **Quick Change**, select the test room, apply an exact target for two
+   hours, then cancel it. Confirm the room first uses the hold and then returns
+   to its current scheduled target.
+3. In **Setup → Away mode**, choose **Start and end date/time** with a start a
+   few minutes ahead, an end a few minutes after that and a distinctive safe
+   target such as 12°C. Save. Confirm normal control continues before the start,
+   the target changes at the start and normal control resumes at the end.
+4. Repeat with **Home Assistant Calendar** using a dedicated short test event.
+   Confirm Away is active only while the calendar entity is `on`.
+5. During either active test, confirm Quick Change is disabled and select
+   **End Away now**. Confirm control resumes immediately without waiting for the
+   event/end time.
+6. Optional restart check: restart Home Assistant during an active date period
+   or calendar event. Confirm the Away banner and target are restored after
+   startup.
+7. Download the configuration and audit trail from Setup. Confirm the Away
+   settings and `away_mode_activated` / `away_mode_ended` application causes
+   are present and no credentials or tokens appear.
+
+## 6. Cleanup
 
 Once satisfied, remove the test zone via **ZEAL → Setup → Remove zone →
 Save setup**, then delete the four Helpers (`Test Room Temp`, `Test Room
@@ -190,7 +214,7 @@ Thermostat integration instance (`Test TRV`) from their respective
 Settings screens. None of this leaves anything behind in `configuration.yaml`
 since it was all created via UI helpers/config flows.
 
-## 6. Open items this test plan does not cover
+## 7. Open items this test plan does not cover
 
 - Multiple TRVs/sensors in one room (average sensor / highest-setpoint
   logic) — repeat §2 twice more with a second dummy TRV/sensor pair in the
@@ -201,6 +225,3 @@ since it was all created via UI helpers/config flows.
   plan builds one isolated zone; a second pass with two zones and two
   distinct dummy switches would confirm they don't interfere with each
   other.
-- The visual scheduler, Quick Change interface and away mode are added in later
-  V1 blocks. Their backends have automated coverage where already present but
-  are not part of this Block 5 live test.

@@ -64,6 +64,13 @@ class ZealPanel extends HTMLElement {
     this._quickExactTarget = "";
     this._quickLoading = false;
     this._quickSaving = false;
+    this._awayMode = "off";
+    this._awayCalendarId = "";
+    this._awayStartsAt = "";
+    this._awayEndsAt = "";
+    this._awayTemperature = 12;
+    this._awayDirty = false;
+    this._awaySaving = false;
     this._downloadBusy = false;
     this._notice = "";
     this._error = "";
@@ -133,6 +140,7 @@ class ZealPanel extends HTMLElement {
     this._configuration = configuration;
     this._draft = this._copy(configuration.zones || []);
     this._dirty = false;
+    this._loadAwayDraft();
     this._loadScheduleRoom({ keepSelection: true });
     this._acceptQuickChange(configuration.quick_change || { rooms: [] });
     this._loading = false;
@@ -197,6 +205,7 @@ class ZealPanel extends HTMLElement {
       <div class="shell">
         ${this._header()}
         ${this._messages()}
+        ${this._renderAwayBanner()}
         ${
           this._view === "setup"
             ? this._renderSetup()
@@ -249,6 +258,81 @@ class ZealPanel extends HTMLElement {
         ? `<section class="message error" role="alert">${this._escape(this._error)}</section>`
         : ""
     }`;
+  }
+
+  _loadAwayDraft() {
+    const away = this._configuration?.away_mode || {};
+    this._awayMode = away.mode || "off";
+    this._awayCalendarId = away.calendar_entity_id || "";
+    this._awayStartsAt = this._toHaLocalInput(away.starts_at);
+    this._awayEndsAt = this._toHaLocalInput(away.ends_at);
+    this._awayTemperature = Number(away.temperature ?? 12);
+    this._awayDirty = false;
+    this._awaySaving = false;
+  }
+
+  _toHaLocalInput(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: this._hass?.config?.time_zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+  }
+
+  _formatAwayDateTime(value) {
+    if (!value) return "Not set";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString([], {
+      timeZone: this._hass?.config?.time_zone,
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }
+
+  _awayStatusText(away = this._configuration?.away_mode || {}) {
+    if (away.status === "active") {
+      return `Active now at ${this._formatScheduleTemperature(away.temperature)}`;
+    }
+    if (away.status === "calendar_unavailable") {
+      return "The selected Home Assistant calendar is unavailable";
+    }
+    if (away.status === "scheduled") {
+      return `Scheduled from ${this._formatAwayDateTime(away.starts_at)} to ${this._formatAwayDateTime(
+        away.ends_at
+      )}`;
+    }
+    if (away.status === "finished") return "The saved date range has finished";
+    if (away.status === "waiting") return "Waiting for the selected calendar to turn on";
+    return "Away mode is off";
+  }
+
+  _renderAwayBanner() {
+    const away = this._configuration?.away_mode;
+    if (!away || away.mode === "off") return "";
+    const active = Boolean(away.active);
+    return `<aside class="away-banner ${active ? "active" : ""}"><ha-icon icon="mdi:bag-suitcase"></ha-icon><div><strong>Away mode${
+      active ? " is active" : ""
+    }</strong><p>${this._escape(this._awayStatusText(away))}. ${
+      active
+        ? `${away.active_room_ids?.length || 0} active room${
+            away.active_room_ids?.length === 1 ? " is" : "s are"
+          } using the Away target; weekly schedules and temporary holds are paused.`
+        : "Weekly schedules continue until Away activates."
+    }</p></div>${
+      active
+        ? `<button class="primary compact" data-away-action="end">End Away now</button>`
+        : `<button class="secondary compact" data-view="setup">Away settings</button>`
+    }</aside>`;
   }
 
   _warning() {
@@ -330,6 +414,9 @@ class ZealPanel extends HTMLElement {
     this._quickChange = this._copy(state || { rooms: [] });
     if (this._configuration) {
       this._configuration.quick_change = this._copy(this._quickChange);
+      if (this._quickChange.away_mode) {
+        this._configuration.away_mode = this._copy(this._quickChange.away_mode);
+      }
     }
     const available = new Set(
       (this._quickChange.rooms || []).map((room) => room.room_id)
@@ -389,6 +476,7 @@ class ZealPanel extends HTMLElement {
       return `<div class="center-state quick-loading"><div class="spinner"></div><p>Refreshing current targets…</p></div>`;
     }
     const rooms = this._quickRooms();
+    const awayActive = Boolean(this._quickChange?.away_mode?.active);
     if (!rooms.length) {
       return `<section class="page-heading"><div><h2>Quick Change</h2><p>Apply temporary changes without editing weekly schedules.</p></div><button class="secondary" data-view="setup">Open setup</button></section>
         <section class="empty-card"><ha-icon icon="mdi:thermostat-auto"></ha-icon><h3>No schedulable rooms yet</h3><p>Save a room with at least one physical thermostat before applying a temporary hold.</p></section>`;
@@ -411,7 +499,7 @@ class ZealPanel extends HTMLElement {
           zoneRoomIds.length === 1 ? "" : "s"
         }</span></div><button class="text-button compact" data-quick-action="toggle-zone" data-zone-id="${this._escape(
           zone.zone_id
-        )}">${allSelected ? "Clear zone" : "Select zone"}</button></div><div class="quick-room-grid">${zoneRoomIds
+        )}" ${awayActive ? "disabled" : ""}>${allSelected ? "Clear zone" : "Select zone"}</button></div><div class="quick-room-grid">${zoneRoomIds
           .map((roomId) => this._renderQuickRoom(this._quickRoom(roomId)))
           .join("")}</div></section>`;
       })
@@ -421,11 +509,18 @@ class ZealPanel extends HTMLElement {
     return `
       <section class="page-heading quick-heading">
         <div><h2>Quick Change</h2><p>Temporary changes only. Saved weekly schedules are never edited.</p></div>
-        <div class="quick-heading-actions"><button class="secondary" data-quick-action="refresh">Refresh</button><button class="primary" data-quick-action="whole-house">${
+        <div class="quick-heading-actions"><button class="secondary" data-quick-action="refresh">Refresh</button><button class="primary" data-quick-action="whole-house" ${awayActive ? "disabled" : ""}>${
           wholeHouseSelected ? "Clear selection" : "Select whole house"
         }</button></div>
       </section>
       ${this._warning()}
+      ${
+        awayActive
+          ? `<section class="away-quick-notice"><strong>Away mode controls room targets now</strong><p>Quick Change is paused while active rooms use ${this._escape(
+              this._formatScheduleTemperature(this._quickChange.away_mode.temperature)
+            )}. Existing holds remain saved and resume after Away ends if they have not expired.</p></section>`
+          : ""
+      }
       <section class="quick-summary" aria-label="Quick Change summary">
         <span><strong>${selectedCount}</strong> selected</span>
         <span><strong>${activeHolds}</strong> active hold${activeHolds === 1 ? "" : "s"}</span>
@@ -436,28 +531,28 @@ class ZealPanel extends HTMLElement {
         <div><h3>Temporary change</h3><p>Choose an adjustment or an exact target, then choose how long it should last.</p></div>
         <div class="quick-control-grid">
           <div class="quick-temperature-actions">
-            <button class="secondary" data-quick-action="delta" data-value="-1">−1${this._scheduleTemperatureUnit()}</button>
-            <button class="secondary" data-quick-action="delta" data-value="1">+1${this._scheduleTemperatureUnit()}</button>
+            <button class="secondary" data-quick-action="delta" data-value="-1" ${awayActive ? "disabled" : ""}>−1${this._scheduleTemperatureUnit()}</button>
+            <button class="secondary" data-quick-action="delta" data-value="1" ${awayActive ? "disabled" : ""}>+1${this._scheduleTemperatureUnit()}</button>
             <label>Exact target (${this._scheduleTemperatureUnit()})<input type="number" min="${MIN_SCHEDULE_TEMPERATURE}" max="${MAX_SCHEDULE_TEMPERATURE}" step="0.1" data-quick-action="temperature" value="${this._escape(
               this._quickExactTarget
-            )}" placeholder="20" /></label>
+            )}" placeholder="20" ${awayActive ? "disabled" : ""} /></label>
           </div>
           <fieldset class="quick-durations"><legend>Duration</legend>
             <label><input type="radio" name="quick-duration" data-quick-action="duration" value="2h" ${
               this._quickDuration === "2h" ? "checked" : ""
-            } /> 2 hours</label>
+            } ${awayActive ? "disabled" : ""} /> 2 hours</label>
             <label><input type="radio" name="quick-duration" data-quick-action="duration" value="4h" ${
               this._quickDuration === "4h" ? "checked" : ""
-            } /> 4 hours</label>
+            } ${awayActive ? "disabled" : ""} /> 4 hours</label>
             <label><input type="radio" name="quick-duration" data-quick-action="duration" value="next_change" ${
               this._quickDuration === "next_change" ? "checked" : ""
-            } /> Until next scheduled change</label>
+            } ${awayActive ? "disabled" : ""} /> Until next scheduled change</label>
           </fieldset>
         </div>
         <div class="quick-apply-row"><span class="quick-action-state">${this._escape(
           actionDescription || "Choose a temperature change."
         )}</span><button class="primary" data-quick-action="apply" ${
-          !selectedCount || !this._quickAction || this._quickSaving ? "disabled" : ""
+          awayActive || !selectedCount || !this._quickAction || this._quickSaving ? "disabled" : ""
         }>${this._quickSaving ? "Applying…" : "Apply temporary hold"}</button></div>
       </section>`;
   }
@@ -468,7 +563,10 @@ class ZealPanel extends HTMLElement {
     const override = room.override;
     const scheduled = this._formatScheduleTemperature(room.scheduled_temperature);
     const effective = this._formatScheduleTemperature(room.effective_temperature);
-    const status = override
+    const awayActive = room.effective_source === "away";
+    const status = awayActive
+      ? `Away ${effective}; scheduled ${scheduled}`
+      : override
       ? `Holding ${effective} until ${this._formatLocalDateTime(override.expires_at)}`
       : room.scheduled_temperature === null
         ? "No active scheduled target"
@@ -477,10 +575,18 @@ class ZealPanel extends HTMLElement {
       override ? "holding" : ""
     }"><label><input type="checkbox" data-quick-action="room" value="${this._escape(
       room.room_id
-    )}" ${selected ? "checked" : ""} /><span><strong>${this._escape(
+    )}" ${selected ? "checked" : ""} ${awayActive ? "disabled" : ""} /><span><strong>${this._escape(
       room.room_name
     )}</strong><small>${this._escape(status)}</small></span></label><div class="quick-room-state">${
-      override
+      awayActive
+        ? `<span class="hold-pill">Away target</span>${
+            override
+              ? `<button class="text-button compact" data-quick-action="clear-hold" data-room-id="${this._escape(
+                  room.room_id
+                )}" ${this._quickSaving ? "disabled" : ""}>Cancel paused hold</button>`
+              : ""
+          }`
+        : override
         ? `<span class="hold-pill">Temporary hold</span><button class="text-button compact" data-quick-action="clear-hold" data-room-id="${this._escape(
             room.room_id
           )}" ${this._quickSaving ? "disabled" : ""}>Cancel hold</button>`
@@ -530,6 +636,11 @@ class ZealPanel extends HTMLElement {
   }
 
   async _applyQuickChange() {
+    if (this._quickChange?.away_mode?.active) {
+      this._error = "Quick Change is unavailable while Away mode is active.";
+      this._render();
+      return;
+    }
     if (!this._quickSelected.size) {
       this._error = "Choose one or more rooms, a Zone/Floor, or the whole house.";
       this._render();
@@ -1218,6 +1329,7 @@ class ZealPanel extends HTMLElement {
             : `<div class="empty-card"><h3>Add your first heating zone</h3><p>A zone normally represents a floor, heating circuit or other group sharing one heating actuator.</p><button class="primary" data-action="add-zone">+ Add zone</button></div>`
         }
       </section>
+      ${this._renderAwaySettings()}
       ${this._renderDownloads()}
       <div class="save-bar">
         <span class="save-state">${this._dirty ? "Unsaved setup changes" : "Setup is up to date"}</span>
@@ -1231,12 +1343,71 @@ class ZealPanel extends HTMLElement {
 
   _renderDownloads() {
     return `<section class="download-card"><div><h3>Downloads</h3><p>Export the saved ZEAL setup and schedules, or the recent canonical thermostat application history, as readable JSON files.</p><small>Downloads contain entity IDs, room and zone names, schedules, targets and outcomes. They do not contain Home Assistant credentials or tokens.${
-      this._dirty ? " Unsaved setup edits are not included." : ""
+      this._dirty || this._awayDirty ? " Unsaved edits are not included." : ""
     }</small></div><div class="download-actions"><button class="secondary" data-download-action="configuration" ${
       this._downloadBusy ? "disabled" : ""
     }>Download configuration</button><button class="secondary" data-download-action="audit" ${
       this._downloadBusy ? "disabled" : ""
     }>Download audit trail</button></div></section>`;
+  }
+
+  _renderAwaySettings() {
+    const calendars = this._configuration?.catalog?.calendars || [];
+    const saved = this._configuration?.away_mode || {};
+    return `<section class="away-settings">
+      <div class="away-settings-heading"><div><h3>Away mode</h3><p>Temporarily use one global target for every active room without changing weekly schedules.</p></div><span class="state ${saved.active ? "away-active" : ""}">${this._escape(
+        this._awayStatusText(saved)
+      )}</span></div>
+      <fieldset class="away-source"><legend>How should Away mode activate?</legend>
+        <label><input type="radio" name="away-mode" data-away-field="mode" value="off" ${
+          this._awayMode === "off" ? "checked" : ""
+        } /> <span><strong>Off</strong><small>Use weekly schedules and Quick Change normally.</small></span></label>
+        <label><input type="radio" name="away-mode" data-away-field="mode" value="calendar" ${
+          this._awayMode === "calendar" ? "checked" : ""
+        } /> <span><strong>Home Assistant Calendar</strong><small>Away is active whenever the selected calendar entity is on.</small></span></label>
+        <label><input type="radio" name="away-mode" data-away-field="mode" value="date_range" ${
+          this._awayMode === "date_range" ? "checked" : ""
+        } /> <span><strong>Start and end date/time</strong><small>Choose one exact period using Home Assistant's configured time zone.</small></span></label>
+      </fieldset>
+      <div class="away-fields">
+        ${
+          this._awayMode === "calendar"
+            ? `<label>Calendar<select data-away-field="calendar_entity_id"><option value="">Choose a calendar</option>${calendars
+                .map(
+                  (calendar) =>
+                    `<option value="${this._escape(calendar.entity_id)}" ${
+                      calendar.entity_id === this._awayCalendarId ? "selected" : ""
+                    }>${this._escape(this._entityLabel(calendar))}</option>`
+                )
+                .join("")}</select><small>${
+                  calendars.length
+                    ? "A dedicated holiday calendar avoids unrelated events activating Away mode."
+                    : "No calendar entities were found. Create a Home Assistant Local Calendar first."
+                }</small></label>`
+            : ""
+        }
+        ${
+          this._awayMode === "date_range"
+            ? `<label>Away starts<input type="datetime-local" data-away-field="starts_at" value="${this._escape(
+                this._awayStartsAt
+              )}" /></label><label>Away ends<input type="datetime-local" data-away-field="ends_at" value="${this._escape(
+                this._awayEndsAt
+              )}" /><small>The start is included; the end is the moment normal control resumes.</small></label>`
+            : ""
+        }
+        <label>Away target (${this._scheduleTemperatureUnit()})<input type="number" min="${MIN_SCHEDULE_TEMPERATURE}" max="${MAX_SCHEDULE_TEMPERATURE}" step="0.5" data-away-field="temperature" value="${this._escape(
+          this._awayTemperature
+        )}" /><small>Default 12°C. Only active rooms receive this target.</small></label>
+      </div>
+      <aside class="away-precedence"><strong>Control priority</strong><p>Zone Manual Override remains the highest authority for heating actuators. For room temperatures: Away mode, then Quick Change, then a manual thermostat adjustment until the next transition, then the weekly schedule.</p></aside>
+      <div class="away-save-row"><span class="away-save-state">${
+        this._awayDirty ? "Unsaved Away changes" : "Away settings are up to date"
+      }</span><div><button class="text-button" data-away-action="discard" ${
+        !this._awayDirty || this._awaySaving ? "disabled" : ""
+      }>Discard</button><button class="primary" data-away-action="save" ${
+        !this._awayDirty || this._awaySaving ? "disabled" : ""
+      }>${this._awaySaving ? "Saving…" : "Save Away settings"}</button></div></div>
+    </section>`;
   }
 
   _setupZone(zone, zoneIndex, unassignedAreas) {
@@ -1385,11 +1556,12 @@ class ZealPanel extends HTMLElement {
       button.addEventListener("click", async () => {
         const next = button.dataset.view;
         if (next === this._view) return;
-        if (this._dirty && this._view === "setup" && !window.confirm("Discard unsaved setup changes?")) return;
+        if ((this._dirty || this._awayDirty) && this._view === "setup" && !window.confirm("Discard unsaved setup or Away changes?")) return;
         if (this._scheduleDirty && this._view === "schedule" && !window.confirm("Discard unsaved schedule changes?")) return;
         this._view = next;
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
+        this._loadAwayDraft();
         if (next === "schedule") this._loadScheduleRoom({ keepSelection: true });
         else this._scheduleDirty = false;
         this._notice = "";
@@ -1406,7 +1578,7 @@ class ZealPanel extends HTMLElement {
       this._initialLoad();
     });
     this.shadowRoot.querySelector('[data-action="select-entry"]')?.addEventListener("change", async (event) => {
-      if ((this._dirty || this._scheduleDirty) && !window.confirm("Discard unsaved changes?")) {
+      if ((this._dirty || this._scheduleDirty || this._awayDirty) && !window.confirm("Discard unsaved changes?")) {
         event.target.value = this._entryId;
         return;
       }
@@ -1568,6 +1740,28 @@ class ZealPanel extends HTMLElement {
     this.shadowRoot.querySelectorAll('[data-quick-action="clear-hold"]').forEach((button) => {
       button.addEventListener("click", () => this._clearQuickHold(button.dataset.roomId));
     });
+    this.shadowRoot.querySelectorAll("[data-away-field]").forEach((control) => {
+      control.addEventListener("change", () => {
+        const field = control.dataset.awayField;
+        if (field === "mode") this._awayMode = control.value;
+        else if (field === "calendar_entity_id") this._awayCalendarId = control.value;
+        else if (field === "starts_at") this._awayStartsAt = control.value;
+        else if (field === "ends_at") this._awayEndsAt = control.value;
+        else if (field === "temperature") this._awayTemperature = Number(control.value);
+        this._markAwayChanged();
+      });
+    });
+    this.shadowRoot.querySelector('[data-away-action="discard"]')?.addEventListener("click", () => {
+      this._loadAwayDraft();
+      this._notice = "";
+      this._error = "";
+      this._render();
+    });
+    this.shadowRoot.querySelector('[data-away-action="save"]')?.addEventListener("click", () => this._saveAwayMode());
+    this.shadowRoot.querySelector('[data-away-action="end"]')?.addEventListener("click", async () => {
+      if (!window.confirm("End Away mode now and resume normal temperature control?")) return;
+      await this._saveAwayMode({ forceOff: true });
+    });
     this.shadowRoot.querySelector('[data-download-action="configuration"]')?.addEventListener("click", () => this._downloadConfiguration());
     this.shadowRoot.querySelector('[data-download-action="audit"]')?.addEventListener("click", () => this._downloadAuditTrail());
     this.shadowRoot.querySelectorAll("[data-zone-field]").forEach((control) => {
@@ -1614,6 +1808,78 @@ class ZealPanel extends HTMLElement {
     this._dirty = true;
     this._notice = "";
     this._error = "";
+    this._render();
+  }
+
+  _markAwayChanged() {
+    this._awayDirty = true;
+    this._notice = "";
+    this._error = "";
+    this._render();
+  }
+
+  async _saveAwayMode({ forceOff = false } = {}) {
+    if (this._awaySaving || (!this._awayDirty && !forceOff)) return;
+    if (this._dirty && !forceOff) {
+      this._error = "Save or discard the room and zone setup changes before saving Away settings.";
+      this._render();
+      return;
+    }
+    const mode = forceOff ? "off" : this._awayMode;
+    const temperature = forceOff
+      ? Number(this._configuration?.away_mode?.temperature ?? 12)
+      : this._awayTemperature;
+    const hierarchyDraft = forceOff && this._dirty ? this._copy(this._draft) : null;
+    if (mode === "calendar" && !this._awayCalendarId) {
+      this._error = "Choose a Home Assistant calendar for Away mode.";
+      this._render();
+      return;
+    }
+    if (mode === "date_range" && (!this._awayStartsAt || !this._awayEndsAt)) {
+      this._error = "Choose both the Away start and end date/time.";
+      this._render();
+      return;
+    }
+    if (
+      !Number.isFinite(temperature) ||
+      temperature < MIN_SCHEDULE_TEMPERATURE ||
+      temperature > MAX_SCHEDULE_TEMPERATURE
+    ) {
+      this._error = `Away target must be from ${MIN_SCHEDULE_TEMPERATURE} to ${MAX_SCHEDULE_TEMPERATURE}${this._scheduleTemperatureUnit()}.`;
+      this._render();
+      return;
+    }
+    this._awaySaving = true;
+    this._notice = "";
+    this._error = "";
+    this._render();
+    try {
+      const response = await this._hass.callWS({
+        type: "zeal/save_away_mode",
+        entry_id: this._entryId,
+        expected_revision: this._configuration.revision,
+        mode,
+        calendar_entity_id: mode === "calendar" ? this._awayCalendarId : null,
+        starts_at: mode === "date_range" ? this._awayStartsAt : null,
+        ends_at: mode === "date_range" ? this._awayEndsAt : null,
+        temperature,
+      });
+      this._configuration = response;
+      this._draft = hierarchyDraft || this._copy(response.zones || []);
+      this._acceptQuickChange(response.quick_change || { rooms: [] });
+      this._loadAwayDraft();
+      this._notice = forceOff
+        ? "Away ended. Normal temperature control has resumed."
+        : response.away_mode?.active
+        ? "Away settings saved and the Away target is active."
+        : "Away settings saved.";
+    } catch (error) {
+      this._awaySaving = false;
+      const conflict = error?.code === "conflict" || error?.body?.code === "conflict";
+      this._error = conflict
+        ? "ZEAL changed in another browser or process. Reload the latest settings before trying again."
+        : this._message(error, "Away settings could not be saved.");
+    }
     this._render();
   }
 
@@ -1667,6 +1933,11 @@ class ZealPanel extends HTMLElement {
 
   async _save() {
     if (this._saving || !this._dirty) return;
+    if (this._awayDirty) {
+      this._error = "Save or discard the Away settings before saving room and zone setup changes.";
+      this._render();
+      return;
+    }
     const invalidName = this._draft.find((zone) => !String(zone.name || "").trim());
     if (invalidName) {
       this._error = "Every zone needs a name.";
@@ -1757,6 +2028,11 @@ class ZealPanel extends HTMLElement {
       .safety-warning { display:flex; gap:13px; padding:16px; margin:0 0 20px; border:1px solid var(--warning-color, #f4b400); border-radius:10px; background:color-mix(in srgb, var(--warning-color, #f4b400) 12%, var(--card-background-color)); }
       .safety-warning p { margin:5px 0 0; line-height:1.45; color:var(--secondary-text-color); }
       .warning-icon { flex:0 0 26px; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-weight:800; color:#111; background:var(--warning-color, #f4b400); }
+      .away-banner { display:flex; align-items:center; gap:13px; padding:14px 16px; margin:0 0 18px; border:1px solid var(--divider-color); border-radius:10px; background:var(--card-background-color); }
+      .away-banner.active { border-color:var(--primary-color); background:color-mix(in srgb, var(--primary-color) 10%, var(--card-background-color)); }
+      .away-banner ha-icon { flex:none; color:var(--primary-color); --mdc-icon-size:28px; }
+      .away-banner div { flex:1; }
+      .away-banner p { margin:4px 0 0; color:var(--secondary-text-color); }
       .summary-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:18px; }
       .summary-card, .zone-card, .setup-zone, .empty-card, .setup-help { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; }
       .summary-card { display:flex; align-items:center; gap:14px; padding:18px; }
@@ -1859,6 +2135,8 @@ class ZealPanel extends HTMLElement {
       .quick-apply-row { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:16px; padding-top:14px; border-top:1px solid var(--divider-color); }
       .quick-apply-row span { color:var(--secondary-text-color); }
       .quick-loading { min-height:38vh; }
+      .away-quick-notice { margin:0 0 18px; padding:14px 16px; border-left:5px solid var(--primary-color); border-radius:8px; background:color-mix(in srgb, var(--primary-color) 10%, var(--card-background-color)); }
+      .away-quick-notice p { margin:4px 0 0; color:var(--secondary-text-color); }
       .setup-help { padding:16px; margin-bottom:16px; }
       .setup-help p { margin:5px 0 0; color:var(--secondary-text-color); }
       .setup-zones { display:grid; gap:18px; }
@@ -1892,6 +2170,23 @@ class ZealPanel extends HTMLElement {
       .download-card p { margin:0 0 5px; color:var(--secondary-text-color); }
       .download-card small { display:block; }
       .download-actions { flex:none; }
+      .away-settings { margin-top:18px; padding:18px; background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; }
+      .away-settings-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+      .away-settings-heading h3 { margin-bottom:5px; }
+      .away-settings-heading p { margin:0; color:var(--secondary-text-color); }
+      .state.away-active { color:var(--primary-color); font-weight:700; }
+      .away-source { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin:18px 0 14px; padding:0; border:0; }
+      .away-source legend { margin-bottom:9px; font-weight:700; }
+      .away-source label { display:flex; flex-direction:row; align-items:flex-start; gap:9px; padding:13px; border:1px solid var(--divider-color); border-radius:8px; cursor:pointer; }
+      .away-source input { flex:none; width:19px; min-height:19px; margin:1px 0 0; }
+      .away-source span, .away-source strong, .away-source small { display:block; }
+      .away-source small { margin-top:4px; }
+      .away-fields { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px; }
+      .away-precedence { margin-top:15px; padding:13px; border-radius:8px; background:var(--secondary-background-color); }
+      .away-precedence p { margin:4px 0 0; color:var(--secondary-text-color); }
+      .away-save-row { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:15px; padding-top:14px; border-top:1px solid var(--divider-color); }
+      .away-save-row > div { display:flex; gap:8px; }
+      .away-save-state { color:var(--secondary-text-color); }
       .save-bar { position:sticky; bottom:12px; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 14px; margin-top:18px; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.18); }
       .save-bar > div { display:flex; gap:8px; }
       .save-state, .schedule-save-state { color:var(--secondary-text-color); }
@@ -1915,6 +2210,10 @@ class ZealPanel extends HTMLElement {
         .schedule-actions-card > button { width:100%; }
         .quick-control-grid { grid-template-columns:1fr; }
         .download-card { align-items:stretch; flex-direction:column; }
+        .away-banner, .away-settings-heading, .away-save-row { align-items:stretch; flex-direction:column; }
+        .away-banner button { width:100%; }
+        .away-source { grid-template-columns:1fr; }
+        .away-save-row > div { display:grid; grid-template-columns:1fr 1fr; }
         .download-actions button { flex:1; }
         .summary-grid { grid-template-columns:repeat(3, 1fr); }
         .summary-card { display:block; padding:12px; text-align:center; }

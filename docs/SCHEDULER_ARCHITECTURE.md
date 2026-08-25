@@ -1,6 +1,7 @@
 # ZEAL Scheduler Architecture
 
-Status: Block 2 model, Block 3 runtime and Block 6 visual editor complete.
+Status: Block 2 model, Block 3 runtime, Block 6 visual editor, Block 7 Quick
+Change/audit and Block 8 Away mode complete.
 
 ## Independence boundary
 
@@ -42,6 +43,8 @@ unknown future versions fail closed.
 - `overrides.py`: temporary absolute/delta targets lasting two hours, four
   hours or until the next scheduled change. Calculations never modify the
   saved weekly schedule.
+- `away.py`: validates the mutually exclusive Off, Home Assistant Calendar and
+  date-range sources, the global Away target and persisted schedule settings.
 - `storage.py`: the only Home Assistant-facing module in this package; adapts
   the pure document to a separate versioned `Store`.
 
@@ -115,3 +118,34 @@ Store with timestamp, stable room identity, canonical ZEAL thermostat,
 previous/requested target, cause and outcome. It records successful and skipped
 unavailable outcomes, contains no credentials or physical-TRV service payloads,
 survives integration restarts and retains only the newest 500 entries.
+
+## Away mode and precedence
+
+Away settings live in `ScheduleConfiguration.settings.away_mode`, so they share
+the scheduler's versioned persistence, optimistic revision and configuration
+export. The activation source is exactly one of `off`, `calendar` or
+`date_range`. Date/time values entered without an offset are interpreted in
+Home Assistant's configured time zone and persisted as UTC ISO timestamps. A
+date range is start-inclusive and end-exclusive.
+
+The runtime listens to the selected calendar entity or adds the next date
+boundary to its existing nearest-transition timer. Startup always calculates
+the current state before applying targets, so a restart during an Away period
+immediately restores the global Away target. Calendar unavailability is shown
+to the administrator and does not activate Away. Only configured active rooms
+are included.
+
+Room-target precedence is:
+
+1. active global Away target;
+2. an unexpired Quick Change hold;
+3. a manual thermostat change, respected until the next schedule transition;
+4. the active weekly schedule period.
+
+Away and Quick Change targets are reasserted if their canonical ZEAL room
+thermostat is manually changed. A normal scheduled target is deliberately not
+reasserted until the next transition. Quick Change cannot create a new hold
+while Away is active; a pre-existing hold remains in memory and resumes when
+Away ends if it has not expired. The separate per-zone Manual Override remains
+the highest actuator authority: it prevents ZEAL from changing that zone's
+pump/relay and is not bypassed by Away.

@@ -1,7 +1,7 @@
 # ZEAL Panel API Architecture
 
-Status: Block 4 backend, Block 5 Overview/Setup, Block 6 Schedule and Block 7
-Quick Change/download consumers complete.
+Status: Block 4 backend, Block 5 Overview/Setup, Block 6 Schedule, Block 7
+Quick Change/download and Block 8 Away consumers complete.
 
 ## Panel boundary
 
@@ -40,6 +40,13 @@ Quick Change uses the same stable room IDs and supports room, Zone/Floor,
 arbitrary multi-room and whole-house selection. Its responses distinguish the
 saved scheduled target, effective target, expiry and active override. Holds are
 runtime-only and never share a write path with the schedule document.
+
+Setup's Away card selects one of Off, a registry-backed Home Assistant calendar
+or one start/end period and a 5–30°C global target. The backend validates the
+calendar owner/domain and disabled state, interprets offset-free browser values
+in Home Assistant's configured time zone, and returns live activation status in
+configuration and Quick Change responses. The frontend blocks Quick Change
+application while Away is active and displays the current authority globally.
 
 ## Security boundary
 
@@ -80,6 +87,8 @@ overwritten.
   periods to selected rooms.
 - `zeal/get_quick_change`, `zeal/set_temporary_override` and
   `zeal/clear_temporary_override`: transient targets that never edit schedules.
+- `zeal/save_away_mode`: revision-protected persisted activation source and
+  global Away target.
 - `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.
 - `zeal/get_audit_log`: JSON-ready bounded application history.
 

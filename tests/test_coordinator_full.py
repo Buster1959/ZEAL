@@ -214,6 +214,29 @@ async def test_thermostat_hvac_off_skips_room_regardless_of_temperature(hass, co
     assert needs_heat is False
 
 
+async def test_zone_manual_override_remains_highest_actuator_authority(
+    hass, coordinator, floor1_zone
+):
+    """Setpoint demand cannot move a zone actuator while hands-off is active."""
+    zone_id = floor1_zone[ZONE_ID]
+    switch_id = floor1_zone[ZONE_SWITCH]
+    coordinator.override_switches[zone_id] = SimpleNamespace(is_on=True)
+    hass.states.async_set(switch_id, "off")
+    service_calls = []
+
+    async def capture_turn_on(call):
+        service_calls.append(dict(call.data))
+
+    hass.services.async_register("switch", "turn_on", capture_turn_on)
+    available, off_time_changed = await coordinator._async_apply_zone_switches(
+        floor1_zone, True
+    )
+    assert available is True
+    assert off_time_changed is False
+    assert service_calls == []
+    assert hass.states.get(switch_id).state == "off"
+
+
 async def test_missing_thermostat_falls_back_to_highest_trv_setpoint(hass, coordinator, floor1_zone):
     """If a room's ZealRoomThermostat hasn't registered yet (e.g. right
     after a restart), the old highest-TRV-setpoint default should be used

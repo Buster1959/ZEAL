@@ -58,7 +58,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=4"
+        "/zeal-panel.js?v=5"
     )
 
     static_routes = {
@@ -125,3 +125,19 @@ def test_frontend_contains_quick_change_and_download_contracts():
     assert 'this._downloadJson("zeal-audit"' in source
     assert "do not contain Home Assistant credentials or tokens" in source
     assert "new Blob" in source
+
+
+def test_frontend_contains_away_mode_and_precedence_contracts():
+    """Protect Block 8's mutually exclusive sources and safety messaging."""
+    source = PANEL_FILE.read_text()
+    assert 'type: "zeal/save_away_mode"' in source
+    assert 'value="off"' in source
+    assert 'value="calendar"' in source
+    assert 'value="date_range"' in source
+    assert 'type="datetime-local"' in source
+    assert "Home Assistant's configured time zone" in source
+    assert "Only active rooms receive this target" in source
+    assert "Zone Manual Override remains the highest authority" in source
+    assert "Use weekly schedules and Quick Change normally" in source
+    assert "Quick Change is unavailable while Away mode is active" in source
+    assert "End Away now" in source

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.zeal.const import (
@@ -20,6 +21,7 @@ from custom_components.zeal.const import (
     ZONE_SWITCH,
 )
 from custom_components.zeal.coordinator import ZealCoordinator
+from custom_components.zeal.scheduler.away import AwayModeConfiguration, with_away_mode
 from custom_components.zeal.scheduler.models import (
     WEEKDAYS,
     RoomSchedule,
@@ -45,8 +47,14 @@ def schedule_room(
     )
 
 
-def schedule_configuration(*rooms: RoomSchedule) -> ScheduleConfiguration:
-    return ScheduleConfiguration(rooms={room.room_id: room for room in rooms})
+def schedule_configuration(
+    *rooms: RoomSchedule,
+    away_mode: AwayModeConfiguration | None = None,
+) -> ScheduleConfiguration:
+    configuration = ScheduleConfiguration(
+        rooms={room.room_id: room for room in rooms}
+    )
+    return with_away_mode(configuration, away_mode) if away_mode else configuration
 
 
 class FakeCoordinator:
@@ -56,6 +64,7 @@ class FakeCoordinator:
         self.listener = None
         self.listener_removed = False
         self.refreshes = 0
+        self.room_thermostats = {}
 
     def async_add_listener(self, listener):
         self.listener = listener
@@ -67,7 +76,11 @@ class FakeCoordinator:
 
     async def async_set_room_target(self, room_id, temperature, *, source):
         self.calls.append((room_id, temperature, source))
-        return room_id in self.available
+        applied = room_id in self.available
+        thermostat = self.room_thermostats.get(room_id)
+        if applied and thermostat is not None:
+            thermostat.target_temperature = temperature
+        return applied
 
     async def async_request_refresh(self):
         self.refreshes += 1
@@ -264,6 +277,197 @@ async def test_transition_applies_changed_period_and_reschedules(hass, monkeypat
         "living_room",
         21.0,
         "scheduled_transition",
+    )
+
+
+async def test_calendar_away_overrides_only_active_rooms_at_startup(hass, monkeypatch):
+    now = datetime(2026, 8, 24, 12, 0)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: now
+    )
+    install_timer_capture(monkeypatch)
+    coordinator = FakeCoordinator()
+    coordinator.available = {"living_room", "guest_room"}
+    coordinator.zones = [
+        {
+            ZONE_ROOMS: [
+                {ROOM_ID: "living_room", ROOM_ACTIVE: True},
+                {ROOM_ID: "guest_room", ROOM_ACTIVE: False},
+            ]
+        }
+    ]
+    hass.states.async_set("calendar.holidays", "on")
+    runtime = ScheduleRuntime(hass, coordinator)
+    await runtime.async_start(
+        schedule_configuration(
+            schedule_room(
+                "living_room",
+                "Living Room",
+                (SchedulePeriod("morning", "morning", "Morning", "07:00", 20),),
+            ),
+            schedule_room(
+                "guest_room",
+                "Guest Room",
+                (SchedulePeriod("morning", "morning", "Morning", "07:00", 18),),
+            ),
+            away_mode=AwayModeConfiguration(
+                mode="calendar",
+                calendar_entity_id="calendar.holidays",
+                temperature=12,
+            ),
+        )
+    )
+    assert coordinator.calls == [
+        ("living_room", 12.0, "away_mode_active"),
+        ("guest_room", 18.0, "startup_reconciliation"),
+    ]
+    assert runtime.away_mode_state(now)["active_room_ids"] == ["living_room"]
+
+
+async def test_away_suppresses_holds_and_manual_changes_then_resumes_hold(
+    hass, monkeypatch
+):
+    now = datetime(2026, 8, 24, 12, 0)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: now
+    )
+    install_timer_capture(monkeypatch)
+    coordinator = FakeCoordinator()
+    coordinator.available = {"living_room"}
+    thermostat = FakeCanonicalThermostat()
+    coordinator.room_thermostats["living_room"] = thermostat
+    hass.states.async_set("calendar.holidays", "off")
+    runtime = ScheduleRuntime(hass, coordinator)
+    await runtime.async_start(
+        schedule_configuration(
+            schedule_room(
+                "living_room",
+                "Living Room",
+                (
+                    SchedulePeriod("morning", "morning", "Morning", "07:00", 20),
+                    SchedulePeriod("night", "night", "Night", "22:00", 17),
+                ),
+            ),
+            away_mode=AwayModeConfiguration(
+                mode="calendar",
+                calendar_entity_id="calendar.holidays",
+                temperature=12,
+            ),
+        )
+    )
+    await runtime.async_set_temporary_override(
+        ["living_room"], duration="4h", operation="temperature", value=22
+    )
+    assert coordinator.calls[-1] == (
+        "living_room",
+        22.0,
+        "temporary_override_applied",
+    )
+
+    hass.states.async_set("calendar.holidays", "on")
+    await hass.async_block_till_done()
+    assert coordinator.calls[-1] == ("living_room", 12.0, "away_mode_activated")
+    with pytest.raises(ValueError, match="unavailable while global Away"):
+        await runtime.async_set_temporary_override(
+            ["living_room"], duration="2h", operation="temperature", value=21
+        )
+
+    thermostat.target_temperature = 24
+    coordinator.listener()
+    await hass.async_block_till_done()
+    assert coordinator.calls[-1] == ("living_room", 12.0, "away_reasserted")
+
+    hass.states.async_set("calendar.holidays", "off")
+    await hass.async_block_till_done()
+    assert coordinator.calls[-1] == (
+        "living_room",
+        22.0,
+        "temporary_override_resumed_after_away",
+    )
+
+
+async def test_manual_change_persists_until_next_schedule_without_higher_mode(
+    hass, monkeypatch
+):
+    now = datetime(2026, 8, 24, 12, 0)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: now
+    )
+    install_timer_capture(monkeypatch)
+    coordinator = FakeCoordinator()
+    coordinator.available = {"living_room"}
+    thermostat = FakeCanonicalThermostat()
+    coordinator.room_thermostats["living_room"] = thermostat
+    runtime = ScheduleRuntime(hass, coordinator)
+    await runtime.async_start(
+        schedule_configuration(
+            schedule_room(
+                "living_room",
+                "Living Room",
+                (SchedulePeriod("morning", "morning", "Morning", "07:00", 20),),
+            )
+        )
+    )
+    calls_before_manual_refresh = len(coordinator.calls)
+    thermostat.target_temperature = 23
+    coordinator.listener()
+    await hass.async_block_till_done()
+    assert len(coordinator.calls) == calls_before_manual_refresh
+    assert thermostat.target_temperature == 23
+
+
+async def test_date_range_activates_ends_and_reconciles_inside_range_on_restart(
+    hass, monkeypatch
+):
+    before = datetime(2026, 8, 24, 12, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: before
+    )
+    scheduled, _ = install_timer_capture(monkeypatch)
+    coordinator = FakeCoordinator()
+    coordinator.available = {"living_room"}
+    away_mode = AwayModeConfiguration(
+        mode="date_range",
+        starts_at="2026-08-24T13:00:00+00:00",
+        ends_at="2026-08-24T15:00:00+00:00",
+        temperature=11,
+    )
+    configuration = schedule_configuration(
+        schedule_room(
+            "living_room",
+            "Living Room",
+            (
+                SchedulePeriod("morning", "morning", "Morning", "07:00", 20),
+                SchedulePeriod("night", "night", "Night", "18:00", 17),
+            ),
+        ),
+        away_mode=away_mode,
+    )
+    runtime = ScheduleRuntime(hass, coordinator)
+    await runtime.async_start(configuration)
+    assert scheduled[-1][0] == datetime(2026, 8, 24, 13, 0, tzinfo=timezone.utc)
+
+    scheduled[-1][1](datetime(2026, 8, 24, 13, 0, tzinfo=timezone.utc))
+    await hass.async_block_till_done()
+    assert coordinator.calls[-1] == ("living_room", 11.0, "away_mode_activated")
+    assert scheduled[-1][0] == datetime(2026, 8, 24, 15, 0, tzinfo=timezone.utc)
+
+    scheduled[-1][1](datetime(2026, 8, 24, 15, 0, tzinfo=timezone.utc))
+    await hass.async_block_till_done()
+    assert coordinator.calls[-1] == ("living_room", 20.0, "away_mode_ended")
+
+    inside = datetime(2026, 8, 24, 14, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: inside
+    )
+    restarted_coordinator = FakeCoordinator()
+    restarted_coordinator.available = {"living_room"}
+    restarted = ScheduleRuntime(hass, restarted_coordinator)
+    await restarted.async_start(configuration)
+    assert restarted_coordinator.calls[0] == (
+        "living_room",
+        11.0,
+        "away_mode_active",
     )
 
 

@@ -132,13 +132,25 @@ survive a new runtime instance, contain no secrets and retain only the newest
 
 ## Block 8 — Away mode and precedence
 
-- Add the agreed calendar-driven global away mode and temperature.
+- Add a mutually exclusive calendar-driven or start/end global Away mode and
+  temperature.
 - Define and test precedence among away mode, temporary holds, schedules,
   manual thermostat changes and zone manual override.
 - Reconcile correctly when modes begin, end or Home Assistant restarts.
 
 Acceptance: every precedence transition has automated coverage and no unsafe
 setpoint can bypass ZEAL's clamp.
+
+Status: complete. Setup provides Off, Home Assistant Calendar and one exact
+start/end period as mutually exclusive activation sources, with a global 12°C
+default target for active rooms only. Calendar changes and date boundaries are
+tracked without polling; persisted UTC timestamps are interpreted from Home
+Assistant's configured time zone and reconciled on restart. The panel exposes
+live/waiting/scheduled/finished/unavailable status and blocks competing Quick
+Change requests while Away is active. Tests cover activation/end, active-room
+scope, existing-hold pause/resume/expiry, manual-change reassertion, normal
+manual-change persistence, restart reconciliation and the unchanged Zone Manual
+Override actuator authority. The complete suite passes 118/118.
 
 ## Block 9 — Documentation, Wiki, languages and HACS packaging
 

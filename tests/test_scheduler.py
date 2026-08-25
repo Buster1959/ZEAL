@@ -7,6 +7,10 @@ import json
 
 import pytest
 
+from custom_components.zeal.scheduler.away import (
+    AwayModeConfiguration,
+    with_away_mode,
+)
 from custom_components.zeal.scheduler.editor import (
     copy_room_schedule,
     update_room_days,
@@ -281,6 +285,85 @@ def test_temporary_override_cannot_exceed_zeal_safety_range():
             operation="delta",
             value=1,
         )
+
+
+def test_away_modes_are_mutually_exclusive_and_timezone_aware():
+    calendar = AwayModeConfiguration(
+        mode="calendar",
+        calendar_entity_id="calendar.holidays",
+        temperature=12,
+    )
+    assert calendar.active_at(
+        datetime(2026, 8, 24, 12, 0, tzinfo=timezone.utc),
+        calendar_is_on=True,
+    )
+    assert not calendar.active_at(
+        datetime(2026, 8, 24, 12, 0, tzinfo=timezone.utc),
+        calendar_is_on=False,
+    )
+
+    date_range = AwayModeConfiguration(
+        mode="date_range",
+        starts_at="2026-08-24T13:00:00+00:00",
+        ends_at="2026-08-26T11:30:00+00:00",
+        temperature=11.5,
+    )
+    assert not date_range.active_at(
+        datetime(2026, 8, 24, 12, 59, tzinfo=timezone.utc)
+    )
+    assert date_range.active_at(
+        datetime(2026, 8, 24, 13, 0, tzinfo=timezone.utc)
+    )
+    assert not date_range.active_at(
+        datetime(2026, 8, 26, 11, 30, tzinfo=timezone.utc)
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs,match",
+    [
+        ({"mode": "calendar"}, "Choose a Home Assistant calendar"),
+        (
+            {
+                "mode": "date_range",
+                "starts_at": "2026-08-25T10:00:00+00:00",
+                "ends_at": "2026-08-24T10:00:00+00:00",
+            },
+            "later than",
+        ),
+        (
+            {
+                "mode": "date_range",
+                "starts_at": "2026-08-24T10:00:00",
+                "ends_at": "2026-08-25T10:00:00",
+            },
+            "timezone",
+        ),
+        ({"mode": "off", "temperature": 31}, "between 5.0 and 30.0"),
+    ],
+)
+def test_away_configuration_rejects_ambiguous_or_unsafe_values(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        AwayModeConfiguration(**kwargs)
+
+
+def test_away_settings_round_trip_without_editing_room_schedules():
+    configuration = ScheduleConfiguration(
+        rooms={"living_room": room(room_days=days(monday=(period(),)))},
+        settings={"preserved": True},
+        temperature_unit="°C",
+    )
+    away = AwayModeConfiguration(
+        mode="date_range",
+        starts_at="2026-08-24T13:00:00+00:00",
+        ends_at="2026-08-26T11:30:00+00:00",
+        temperature=12,
+    )
+    updated = with_away_mode(configuration, away)
+    loaded = ScheduleConfiguration.from_dict(updated.to_dict())
+    assert AwayModeConfiguration.from_settings(loaded.settings) == away
+    assert loaded.settings["preserved"] is True
+    assert loaded.rooms == configuration.rooms
 
 
 async def test_storage_empty_load_save_and_reload():

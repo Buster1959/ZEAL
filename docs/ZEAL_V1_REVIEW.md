@@ -38,7 +38,8 @@ require `visual_climate_scheduler` at runtime.
   the ZEAL-owned pure schedule model, engine and storage boundary. Block 3 has
   since added canonical-room execution, and Block 6 has added the seven-day
   visual editor.
-- No calendar-driven away mode is implemented.
+- Block 8 has since added persisted calendar-driven or exact-date-range Away
+  mode, active-room scoping, restart reconciliation and explicit precedence.
 - At review, setup used the native Options Flow. Blocks 4 and 5 have since added
   the secure panel API and HTML Overview/Setup experience, and retired the
   multi-page Options Flow.
@@ -69,8 +70,9 @@ require `visual_climate_scheduler` at runtime.
 - Block 2 added 25 pure tests for schedule persistence/migration, selection,
   editing, room reconciliation and overrides. Blocks 3–6 added runtime,
   configuration/audit API, catalog separation and HTML panel contracts.
-  Block 7 added restart-persistence and Quick Change/download contracts,
-  bringing the complete suite to 102 cases.
+  Block 7 added restart-persistence and Quick Change/download contracts.
+  Block 8 added Away validation, runtime transitions, precedence, API and panel
+  contracts, bringing the complete suite to 118 cases.
 
 ### HACS and repository packaging
 
@@ -152,7 +154,8 @@ Do not transplant unchanged:
    audit storage.
 5. Add a single admin-only ZEAL panel for overview, setup, scheduling, Quick
    Change and downloads; retain only the minimal initial Config Flow.
-6. Add calendar-driven away mode and its safety/precedence tests.
+6. ~~Add calendar/date-range Away mode and its safety/precedence tests.~~ Done
+   in Block 8.
 7. Standardize repository docs, Wiki, screenshots, manifests, actions and V1
    release materials.
 8. Run automated and live Home Assistant acceptance tests before V1 release.

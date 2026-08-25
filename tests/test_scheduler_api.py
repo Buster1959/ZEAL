@@ -196,6 +196,13 @@ def test_hierarchy_rejects_zeal_owned_thermostat_as_physical_trv(hass):
 async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass):
     """Selectors cannot mix canonical ZEAL targets with physical devices."""
     area, _, trv, sensor, zone = create_registry_fixture(hass)
+    calendar = er.async_get(hass).async_get_or_create(
+        "calendar",
+        "test",
+        "holidays",
+        suggested_object_id="holidays",
+        original_name="Holidays",
+    )
     entry = await setup_loaded_entry(hass, [zone])
 
     catalog = configuration_snapshot(hass, entry.entry_id)["catalog"]
@@ -204,9 +211,11 @@ async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass)
     }
     zeal_targets = catalog["zeal_room_thermostats"]
     sensor_ids = {item["entity_id"] for item in catalog["temperature_sensors"]}
+    calendar_ids = {item["entity_id"] for item in catalog["calendars"]}
 
     assert trv.entity_id in physical_ids
     assert sensor.entity_id in sensor_ids
+    assert calendar.entity_id in calendar_ids
     assert len(zeal_targets) == 1
     assert zeal_targets[0]["room_id"] == area.id
     assert zeal_targets[0]["zone_id"] == "ground_floor"
@@ -573,3 +582,119 @@ async def test_websocket_saves_editor_days_and_copies_only_the_schedule(
     bedroom_configuration = copied["zones"][0][ZONE_ROOMS][1]
     assert bedroom_configuration[ROOM_TRVS] == [bedroom_trv.entity_id]
     assert bedroom_configuration[ROOM_SENSORS] == [bedroom_sensor.entity_id]
+
+
+async def test_websocket_saves_calendar_and_date_range_away_modes_across_reload(
+    hass, hass_ws_client
+):
+    """Both mutually-exclusive activation choices use persisted schedule settings."""
+    _, _, _, _, zone = create_registry_fixture(hass)
+    calendar = er.async_get(hass).async_get_or_create(
+        "calendar",
+        "test",
+        "holidays",
+        suggested_object_id="holidays",
+        original_name="Holidays",
+    )
+    hass.states.async_set(calendar.entity_id, "on")
+    entry = await setup_loaded_entry(hass, [zone])
+    client = await hass_ws_client()
+    snapshot = configuration_snapshot(hass, entry.entry_id)
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/save_away_mode",
+            "entry_id": entry.entry_id,
+            "expected_revision": snapshot["revision"],
+            "mode": "calendar",
+            "calendar_entity_id": calendar.entity_id,
+            "starts_at": None,
+            "ends_at": None,
+            "temperature": 12,
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    saved = response["result"]
+    assert saved["away_mode"]["mode"] == "calendar"
+    assert saved["away_mode"]["active"] is True
+    assert saved["quick_change"]["away_mode"]["active"] is True
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/save_away_mode",
+            "entry_id": entry.entry_id,
+            "expected_revision": saved["revision"],
+            "mode": "date_range",
+            "calendar_entity_id": calendar.entity_id,
+            # datetime-local browser values are interpreted in HA's time zone.
+            "starts_at": "2030-08-24T13:00",
+            "ends_at": "2030-08-30T11:30",
+            "temperature": 11.5,
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    date_saved = response["result"]
+    assert date_saved["away_mode"]["mode"] == "date_range"
+    assert date_saved["away_mode"]["status"] == "scheduled"
+    assert date_saved["schedule"]["settings"]["away_mode"]["temperature"] == 11.5
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    reloaded = configuration_snapshot(hass, entry.entry_id)
+    assert reloaded["away_mode"]["mode"] == "date_range"
+    assert reloaded["away_mode"]["starts_at"] == date_saved["away_mode"][
+        "starts_at"
+    ]
+    assert reloaded["away_mode"]["starts_at"].endswith("+00:00")
+    assert reloaded["away_mode"]["temperature"] == 11.5
+    assert export_configuration(hass, entry.entry_id)["away_mode"] == reloaded[
+        "away_mode"
+    ]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "mode": "calendar",
+            "calendar_entity_id": "calendar.missing",
+            "starts_at": None,
+            "ends_at": None,
+            "temperature": 12,
+        },
+        {
+            "mode": "date_range",
+            "calendar_entity_id": None,
+            "starts_at": "2026-08-26T10:00:00+00:00",
+            "ends_at": "2026-08-25T10:00:00+00:00",
+            "temperature": 12,
+        },
+        {
+            "mode": "off",
+            "calendar_entity_id": None,
+            "starts_at": None,
+            "ends_at": None,
+            "temperature": 31,
+        },
+    ],
+)
+async def test_websocket_rejects_invalid_or_unsafe_away_settings(
+    hass, hass_ws_client, payload
+):
+    _, _, _, _, zone = create_registry_fixture(hass)
+    entry = await setup_loaded_entry(hass, [zone])
+    client = await hass_ws_client()
+    snapshot = configuration_snapshot(hass, entry.entry_id)
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/save_away_mode",
+            "entry_id": entry.entry_id,
+            "expected_revision": snapshot["revision"],
+            **payload,
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is False
+    assert response["error"]["code"] == "invalid_format"
