@@ -93,3 +93,25 @@ schedule. Successful writes persist first, update the running scheduler and
 return a fresh complete configuration snapshot. The page is responsive across
 desktop, tablet and narrow mobile layouts and warns before discarding unsaved
 room or schedule changes.
+
+## Quick Change and audit
+
+The **Quick Change** page is a frontend over `ScheduleRuntime`'s ephemeral
+override map. It accepts stable room IDs selected individually, by configured
+Zone/Floor or as the whole house. A request contains either a relative delta or
+an exact target and one of three durations: two hours, four hours or the next
+scheduled transition. The pure override calculator resolves and validates the
+entire batch before the runtime changes any room.
+
+An override replaces only the effective runtime target. The immutable
+`ScheduleConfiguration` and its Store document are never changed. Clearing or
+expiring a hold immediately re-evaluates the active schedule through the same
+canonical room boundary. Relative changes require an active scheduled target;
+an exact target remains available for an otherwise empty schedule. Every result
+still passes ZEAL's 5–30°C safety range.
+
+Each canonical application attempt is appended to a separate versioned audit
+Store with timestamp, stable room identity, canonical ZEAL thermostat,
+previous/requested target, cause and outcome. It records successful and skipped
+unavailable outcomes, contains no credentials or physical-TRV service payloads,
+survives integration restarts and retains only the newest 500 entries.

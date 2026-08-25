@@ -309,6 +309,30 @@ async def test_audit_load_record_export_and_retention():
     assert len(store.data["entries"]) == AUDIT_MAX_ENTRIES
 
 
+async def test_audit_records_survive_a_fresh_runtime_instance():
+    """A download after restart sees the same bounded persisted history."""
+    store = MemoryStore()
+    first = AuditLog(None, "entry", store=store)
+    await first.async_load()
+    await first.async_record(
+        timestamp=datetime(2026, 8, 24, 22, 30, tzinfo=timezone.utc),
+        room_id="bedroom",
+        room_name="Bedroom",
+        canonical_entity_id="climate.zeal_bedroom",
+        previous_temperature=20,
+        requested_temperature=17,
+        cause="scheduled_transition",
+        outcome="applied",
+    )
+
+    restarted = AuditLog(None, "entry", store=store)
+    await restarted.async_load()
+    exported = restarted.export()
+    assert len(exported["entries"]) == 1
+    assert exported["entries"][0]["room_id"] == "bedroom"
+    assert exported["entries"][0]["requested_temperature"] == 17.0
+
+
 async def test_admin_websocket_reads_configuration_and_downloads(
     hass, hass_ws_client
 ):
@@ -352,6 +376,9 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
         schedule,
         expected_revision=snapshot["revision"],
     )
+    saved_schedule = hass.data[DOMAIN][entry.entry_id][
+        "schedule_runtime"
+    ].configuration
     client = await hass_ws_client()
     await client.send_json_auto_id(
         {
@@ -368,6 +395,10 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
     room_state = response["result"]["rooms"][0]
     assert room_state["effective_temperature"] == 22
     assert room_state["override"]["duration"] == "2h"
+    assert (
+        hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
+        == saved_schedule
+    )
 
     await client.send_json_auto_id(
         {
@@ -379,7 +410,18 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
     response = await client.receive_json()
     assert response["success"] is True
     assert response["result"]["rooms"][0]["override"] is None
-    assert hass.data[DOMAIN][entry.entry_id]["audit_log"].export()["entries"]
+    assert (
+        hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
+        == saved_schedule
+    )
+    audit_entries = hass.data[DOMAIN][entry.entry_id]["audit_log"].export()[
+        "entries"
+    ]
+    assert audit_entries
+    assert {entry["cause"] for entry in audit_entries} >= {
+        "temporary_override_applied",
+        "temporary_override_cleared",
+    }
 
 
 async def test_non_admin_websocket_is_rejected(

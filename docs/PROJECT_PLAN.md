@@ -122,6 +122,14 @@ complete suite passes 100/100.
 Acceptance: holds never edit saved schedules; downloads are complete and
 restart-safe; audit retention is bounded.
 
+Status: complete. Quick Change supports individual rooms, complete Zone/Floor
+groups, arbitrary selections and the whole house, with relative or exact
+targets lasting two hours, four hours or until the next schedule transition.
+Holds remain transient and never mutate weekly schedules. Setup provides fresh
+JSON configuration and audit downloads; audit outcomes persist separately,
+survive a new runtime instance, contain no secrets and retain only the newest
+500 records. The complete suite passes 102/102.
+
 ## Block 8 — Away mode and precedence
 
 - Add the agreed calendar-driven global away mode and temperature.

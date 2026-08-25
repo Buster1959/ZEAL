@@ -5,11 +5,11 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 100 collected cases against `pytest-homeassistant-custom-component`:
+Coverage: 102 collected cases against `pytest-homeassistant-custom-component`:
 38 Coordinator cases, 29 pure scheduler cases, 10 scheduler runtime/boundary
-cases, 19 configuration/audit/WebSocket cases and 4 Config Flow/HTML panel
+cases, 20 configuration/audit/WebSocket cases and 5 Config Flow/HTML panel
 contract cases. Test code is kept under `tests/`, not shipped inside
-`custom_components/zeal`. Verified result: 100/100 passing.
+`custom_components/zeal`. Verified result: 102/102 passing.
 
 ## Running
 
@@ -61,6 +61,9 @@ framework Home Assistant Core itself uses to test its own integrations.
   cross-midnight carry, source-day application and room copying, plus a live
   WebSocket save/copy cycle proving destination identity and equipment remain
   unchanged.
+- Quick Change selection/duration/hold/cancel contracts, proof that runtime
+  holds do not mutate the saved schedule, timestamped JSON download wiring and
+  persisted audit recovery through a fresh runtime instance.
 
 ## What's NOT covered (yet)
 

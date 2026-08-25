@@ -42,8 +42,8 @@ require `visual_climate_scheduler` at runtime.
 - At review, setup used the native Options Flow. Blocks 4 and 5 have since added
   the secure panel API and HTML Overview/Setup experience, and retired the
   multi-page Options Flow.
-- Configuration-export and bounded schedule-application audit backends now
-  exist; their panel downloads remain Block 7 work.
+- Configuration export, bounded schedule-application audit storage, Quick
+  Change and both panel downloads are complete through Block 7.
 - No migration/import path exists for a Visual Climate Scheduler export.
 
 ### Versions and releases
@@ -68,8 +68,9 @@ require `visual_climate_scheduler` at runtime.
   accepting the baseline.
 - Block 2 added 25 pure tests for schedule persistence/migration, selection,
   editing, room reconciliation and overrides. Blocks 3–6 added runtime,
-  configuration/audit API, catalog separation and HTML panel contracts,
-  bringing the complete suite to 100 cases.
+  configuration/audit API, catalog separation and HTML panel contracts.
+  Block 7 added restart-persistence and Quick Change/download contracts,
+  bringing the complete suite to 102 cases.
 
 ### HACS and repository packaging
 

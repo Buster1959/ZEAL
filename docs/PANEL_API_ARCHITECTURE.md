@@ -1,7 +1,7 @@
 # ZEAL Panel API Architecture
 
-Status: Block 4 backend, Block 5 Overview/Setup and Block 6 Schedule consumers
-complete.
+Status: Block 4 backend, Block 5 Overview/Setup, Block 6 Schedule and Block 7
+Quick Change/download consumers complete.
 
 ## Panel boundary
 
@@ -35,6 +35,11 @@ The Schedule consumer navigates the hierarchy but sends only a stable ZEAL
 room ID and validated daily lists. It names and displays the canonical ZEAL room
 thermostat for clarity; physical thermostat entity IDs never enter a schedule
 write or copy request.
+
+Quick Change uses the same stable room IDs and supports room, Zone/Floor,
+arbitrary multi-room and whole-house selection. Its responses distinguish the
+saved scheduled target, effective target, expiry and active override. Holds are
+runtime-only and never share a write path with the schedule document.
 
 ## Security boundary
 
@@ -94,5 +99,8 @@ room ID/name, canonical ZEAL thermostat ID, previous/requested temperature,
 cause and outcome. They do not contain credentials, tokens, location coordinates
 or physical-TRV service payloads.
 
-Block 7 will turn the returned export objects into browser downloads; the
-backend does not write files into Home Assistant's configuration directory.
+The Setup consumer turns fresh export responses into timestamped JSON browser
+downloads. The backend does not write files into Home Assistant's configuration
+directory. Configuration exports contain the saved hierarchy, schedule,
+revision, current runtime view and eligible entity catalog. Audit downloads
+contain the bounded persisted outcome history.

@@ -58,7 +58,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=3"
+        "/zeal-panel.js?v=4"
     )
 
     static_routes = {
@@ -106,3 +106,22 @@ def test_frontend_contains_visual_scheduler_contracts():
     assert "Apply to selected days" in source
     assert "Copy this seven-day schedule to other rooms" in source
     assert "Their zone, Area, physical equipment and ZEAL thermostat remain unchanged" in source
+
+
+def test_frontend_contains_quick_change_and_download_contracts():
+    """Protect Block 7 selection, hold and browser-download interactions."""
+    source = PANEL_FILE.read_text()
+    assert 'data-view="quick"' in source
+    assert 'type: "zeal/get_quick_change"' in source
+    assert 'type: "zeal/set_temporary_override"' in source
+    assert 'type: "zeal/clear_temporary_override"' in source
+    assert "Select whole house" in source
+    assert "Select zone" in source
+    assert "Saved weekly schedules are never edited" in source
+    assert "Until next scheduled change" in source
+    assert 'type: "zeal/export_configuration"' in source
+    assert 'type: "zeal/get_audit_log"' in source
+    assert 'this._downloadJson("zeal-configuration"' in source
+    assert 'this._downloadJson("zeal-audit"' in source
+    assert "do not contain Home Assistant credentials or tokens" in source
+    assert "new Blob" in source

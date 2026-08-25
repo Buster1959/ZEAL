@@ -57,6 +57,14 @@ class ZealPanel extends HTMLElement {
     this._scheduleDirty = false;
     this._scheduleSaving = false;
     this._drag = null;
+    this._quickChange = { rooms: [] };
+    this._quickSelected = new Set();
+    this._quickDuration = "2h";
+    this._quickAction = null;
+    this._quickExactTarget = "";
+    this._quickLoading = false;
+    this._quickSaving = false;
+    this._downloadBusy = false;
     this._notice = "";
     this._error = "";
     this.shadowRoot.addEventListener("pointerdown", (event) => this._onPointerDown(event));
@@ -126,6 +134,7 @@ class ZealPanel extends HTMLElement {
     this._draft = this._copy(configuration.zones || []);
     this._dirty = false;
     this._loadScheduleRoom({ keepSelection: true });
+    this._acceptQuickChange(configuration.quick_change || { rooms: [] });
     this._loading = false;
     this._error = "";
     this._render();
@@ -193,6 +202,8 @@ class ZealPanel extends HTMLElement {
             ? this._renderSetup()
             : this._view === "schedule"
               ? this._renderSchedule()
+              : this._view === "quick"
+                ? this._renderQuickChange()
               : this._renderOverview()
         }
       </div>`;
@@ -223,6 +234,7 @@ class ZealPanel extends HTMLElement {
       <nav aria-label="ZEAL sections">
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
         <button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>
+        <button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>
         <button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>
       </nav>`;
   }
@@ -312,6 +324,318 @@ class ZealPanel extends HTMLElement {
         room.active === false ? "Inactive" : "Active"
       }</span>
     </div>`;
+  }
+
+  _acceptQuickChange(state) {
+    this._quickChange = this._copy(state || { rooms: [] });
+    if (this._configuration) {
+      this._configuration.quick_change = this._copy(this._quickChange);
+    }
+    const available = new Set(
+      (this._quickChange.rooms || []).map((room) => room.room_id)
+    );
+    this._quickSelected = new Set(
+      [...this._quickSelected].filter((roomId) => available.has(roomId))
+    );
+    this._quickSaving = false;
+    this._syncQuickExactTarget();
+  }
+
+  async _loadQuickChange() {
+    this._quickLoading = true;
+    this._error = "";
+    this._render();
+    try {
+      const state = await this._hass.callWS({
+        type: "zeal/get_quick_change",
+        entry_id: this._entryId,
+      });
+      this._acceptQuickChange(state);
+    } catch (error) {
+      this._error = this._message(error, "Quick Change could not be refreshed.");
+    }
+    this._quickLoading = false;
+    this._render();
+  }
+
+  _quickRooms() {
+    return this._quickChange?.rooms || [];
+  }
+
+  _quickRoom(roomId) {
+    return this._quickRooms().find((room) => room.room_id === roomId);
+  }
+
+  _quickRoomIdsInZone(zone) {
+    const available = new Set(this._quickRooms().map((room) => room.room_id));
+    return (zone.rooms || [])
+      .map((room) => room.room_id)
+      .filter((roomId) => available.has(roomId));
+  }
+
+  _formatLocalDateTime(value) {
+    if (!value) return "the scheduled change";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString([], {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  _renderQuickChange() {
+    if (this._quickLoading) {
+      return `<div class="center-state quick-loading"><div class="spinner"></div><p>Refreshing current targets…</p></div>`;
+    }
+    const rooms = this._quickRooms();
+    if (!rooms.length) {
+      return `<section class="page-heading"><div><h2>Quick Change</h2><p>Apply temporary changes without editing weekly schedules.</p></div><button class="secondary" data-view="setup">Open setup</button></section>
+        <section class="empty-card"><ha-icon icon="mdi:thermostat-auto"></ha-icon><h3>No schedulable rooms yet</h3><p>Save a room with at least one physical thermostat before applying a temporary hold.</p></section>`;
+    }
+    const roomIds = rooms.map((room) => room.room_id);
+    const wholeHouseSelected = roomIds.every((roomId) =>
+      this._quickSelected.has(roomId)
+    );
+    const activeHolds = rooms.filter((room) => room.override).length;
+    const groups = (this._configuration?.zones || [])
+      .map((zone) => {
+        const zoneRoomIds = this._quickRoomIdsInZone(zone);
+        if (!zoneRoomIds.length) return "";
+        const allSelected = zoneRoomIds.every((roomId) =>
+          this._quickSelected.has(roomId)
+        );
+        return `<section class="quick-zone"><div class="quick-zone-heading"><div><h3>${this._escape(
+          zone.name
+        )}</h3><span>${zoneRoomIds.length} room${
+          zoneRoomIds.length === 1 ? "" : "s"
+        }</span></div><button class="text-button compact" data-quick-action="toggle-zone" data-zone-id="${this._escape(
+          zone.zone_id
+        )}">${allSelected ? "Clear zone" : "Select zone"}</button></div><div class="quick-room-grid">${zoneRoomIds
+          .map((roomId) => this._renderQuickRoom(this._quickRoom(roomId)))
+          .join("")}</div></section>`;
+      })
+      .join("");
+    const selectedCount = this._quickSelected.size;
+    const actionDescription = this._quickActionDescription();
+    return `
+      <section class="page-heading quick-heading">
+        <div><h2>Quick Change</h2><p>Temporary changes only. Saved weekly schedules are never edited.</p></div>
+        <div class="quick-heading-actions"><button class="secondary" data-quick-action="refresh">Refresh</button><button class="primary" data-quick-action="whole-house">${
+          wholeHouseSelected ? "Clear selection" : "Select whole house"
+        }</button></div>
+      </section>
+      ${this._warning()}
+      <section class="quick-summary" aria-label="Quick Change summary">
+        <span><strong>${selectedCount}</strong> selected</span>
+        <span><strong>${activeHolds}</strong> active hold${activeHolds === 1 ? "" : "s"}</span>
+        <span>Holds automatically return to the saved schedule.</span>
+      </section>
+      <section class="quick-zones">${groups}</section>
+      <section class="quick-controls">
+        <div><h3>Temporary change</h3><p>Choose an adjustment or an exact target, then choose how long it should last.</p></div>
+        <div class="quick-control-grid">
+          <div class="quick-temperature-actions">
+            <button class="secondary" data-quick-action="delta" data-value="-1">−1${this._scheduleTemperatureUnit()}</button>
+            <button class="secondary" data-quick-action="delta" data-value="1">+1${this._scheduleTemperatureUnit()}</button>
+            <label>Exact target (${this._scheduleTemperatureUnit()})<input type="number" min="${MIN_SCHEDULE_TEMPERATURE}" max="${MAX_SCHEDULE_TEMPERATURE}" step="0.1" data-quick-action="temperature" value="${this._escape(
+              this._quickExactTarget
+            )}" placeholder="20" /></label>
+          </div>
+          <fieldset class="quick-durations"><legend>Duration</legend>
+            <label><input type="radio" name="quick-duration" data-quick-action="duration" value="2h" ${
+              this._quickDuration === "2h" ? "checked" : ""
+            } /> 2 hours</label>
+            <label><input type="radio" name="quick-duration" data-quick-action="duration" value="4h" ${
+              this._quickDuration === "4h" ? "checked" : ""
+            } /> 4 hours</label>
+            <label><input type="radio" name="quick-duration" data-quick-action="duration" value="next_change" ${
+              this._quickDuration === "next_change" ? "checked" : ""
+            } /> Until next scheduled change</label>
+          </fieldset>
+        </div>
+        <div class="quick-apply-row"><span class="quick-action-state">${this._escape(
+          actionDescription || "Choose a temperature change."
+        )}</span><button class="primary" data-quick-action="apply" ${
+          !selectedCount || !this._quickAction || this._quickSaving ? "disabled" : ""
+        }>${this._quickSaving ? "Applying…" : "Apply temporary hold"}</button></div>
+      </section>`;
+  }
+
+  _renderQuickRoom(room) {
+    if (!room) return "";
+    const selected = this._quickSelected.has(room.room_id);
+    const override = room.override;
+    const scheduled = this._formatScheduleTemperature(room.scheduled_temperature);
+    const effective = this._formatScheduleTemperature(room.effective_temperature);
+    const status = override
+      ? `Holding ${effective} until ${this._formatLocalDateTime(override.expires_at)}`
+      : room.scheduled_temperature === null
+        ? "No active scheduled target"
+        : `Scheduled ${scheduled}`;
+    return `<article class="quick-room ${selected ? "selected" : ""} ${
+      override ? "holding" : ""
+    }"><label><input type="checkbox" data-quick-action="room" value="${this._escape(
+      room.room_id
+    )}" ${selected ? "checked" : ""} /><span><strong>${this._escape(
+      room.room_name
+    )}</strong><small>${this._escape(status)}</small></span></label><div class="quick-room-state">${
+      override
+        ? `<span class="hold-pill">Temporary hold</span><button class="text-button compact" data-quick-action="clear-hold" data-room-id="${this._escape(
+            room.room_id
+          )}" ${this._quickSaving ? "disabled" : ""}>Cancel hold</button>`
+        : `<span>Current target: ${effective}</span>`
+    }</div></article>`;
+  }
+
+  _quickReferenceTarget() {
+    if (this._quickSelected.size !== 1) return null;
+    const room = this._quickRoom([...this._quickSelected][0]);
+    return room?.effective_temperature ?? room?.scheduled_temperature ?? null;
+  }
+
+  _syncQuickExactTarget() {
+    const reference = this._quickReferenceTarget();
+    if (this._quickAction?.operation === "temperature") {
+      this._quickExactTarget = this._quickAction.value;
+    } else if (this._quickAction?.operation === "delta") {
+      this._quickExactTarget =
+        reference === null ? "" : Number(reference) + this._quickAction.value;
+    } else {
+      this._quickExactTarget = reference ?? "";
+    }
+  }
+
+  _quickActionDescription() {
+    if (!this._quickAction) return "";
+    if (this._quickAction.operation === "temperature") {
+      return `Exact target ${this._formatScheduleTemperature(
+        this._quickAction.value
+      )}`;
+    }
+    const sign = this._quickAction.value > 0 ? "+" : "";
+    return `Adjust each selected room by ${sign}${this._quickAction.value}${this._scheduleTemperatureUnit()}`;
+  }
+
+  _toggleQuickSelection(roomIds) {
+    const allSelected = roomIds.every((roomId) =>
+      this._quickSelected.has(roomId)
+    );
+    for (const roomId of roomIds) {
+      if (allSelected) this._quickSelected.delete(roomId);
+      else this._quickSelected.add(roomId);
+    }
+    this._syncQuickExactTarget();
+    this._render();
+  }
+
+  async _applyQuickChange() {
+    if (!this._quickSelected.size) {
+      this._error = "Choose one or more rooms, a Zone/Floor, or the whole house.";
+      this._render();
+      return;
+    }
+    if (!this._quickAction || !Number.isFinite(this._quickAction.value)) {
+      this._error = "Choose a +/− adjustment or enter an exact target temperature.";
+      this._render();
+      return;
+    }
+    this._quickSaving = true;
+    this._error = "";
+    this._notice = "";
+    this._render();
+    try {
+      const state = await this._hass.callWS({
+        type: "zeal/set_temporary_override",
+        entry_id: this._entryId,
+        room_ids: [...this._quickSelected],
+        duration: this._quickDuration,
+        ...this._quickAction,
+      });
+      const count = this._quickSelected.size;
+      this._quickAction = null;
+      this._acceptQuickChange(state);
+      this._notice = `Temporary hold applied to ${count} room${
+        count === 1 ? "" : "s"
+      }. Saved weekly schedules were not changed.`;
+    } catch (error) {
+      this._quickSaving = false;
+      this._error = this._message(error, "The temporary hold could not be applied.");
+    }
+    this._render();
+  }
+
+  async _clearQuickHold(roomId) {
+    this._quickSaving = true;
+    this._error = "";
+    this._notice = "";
+    this._render();
+    try {
+      const state = await this._hass.callWS({
+        type: "zeal/clear_temporary_override",
+        entry_id: this._entryId,
+        room_id: roomId,
+      });
+      const roomName = this._quickRoom(roomId)?.room_name || "The room";
+      this._acceptQuickChange(state);
+      this._notice = `${roomName}'s temporary hold was cancelled. Its saved schedule has resumed.`;
+    } catch (error) {
+      this._quickSaving = false;
+      this._error = this._message(error, "The temporary hold could not be cancelled.");
+    }
+    this._render();
+  }
+
+  _downloadJson(prefix, data) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${prefix}-${stamp}.json`;
+    link.hidden = true;
+    this.shadowRoot.append(link);
+    link.click();
+    link.remove();
+    globalThis.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async _downloadConfiguration() {
+    if (this._downloadBusy) return;
+    this._downloadBusy = true;
+    this._error = "";
+    try {
+      const configuration = await this._hass.callWS({
+        type: "zeal/export_configuration",
+        entry_id: this._entryId,
+      });
+      this._downloadJson("zeal-configuration", configuration);
+      this._notice = "Saved ZEAL configuration downloaded as JSON.";
+    } catch (error) {
+      this._error = this._message(error, "The configuration download failed.");
+    }
+    this._downloadBusy = false;
+    this._render();
+  }
+
+  async _downloadAuditTrail() {
+    if (this._downloadBusy) return;
+    this._downloadBusy = true;
+    this._error = "";
+    try {
+      const audit = await this._hass.callWS({
+        type: "zeal/get_audit_log",
+        entry_id: this._entryId,
+      });
+      this._downloadJson("zeal-audit", audit);
+      this._notice = `Audit trail downloaded (${audit.entries?.length || 0} entries).`;
+    } catch (error) {
+      this._error = this._message(error, "The audit-trail download failed.");
+    }
+    this._downloadBusy = false;
+    this._render();
   }
 
   _scheduleRooms() {
@@ -894,6 +1218,7 @@ class ZealPanel extends HTMLElement {
             : `<div class="empty-card"><h3>Add your first heating zone</h3><p>A zone normally represents a floor, heating circuit or other group sharing one heating actuator.</p><button class="primary" data-action="add-zone">+ Add zone</button></div>`
         }
       </section>
+      ${this._renderDownloads()}
       <div class="save-bar">
         <span class="save-state">${this._dirty ? "Unsaved setup changes" : "Setup is up to date"}</span>
         <div><button class="text-button" data-action="reset" ${
@@ -902,6 +1227,16 @@ class ZealPanel extends HTMLElement {
           !this._dirty || this._saving ? "disabled" : ""
         }>${this._saving ? "Saving…" : "Save setup"}</button></div>
       </div>`;
+  }
+
+  _renderDownloads() {
+    return `<section class="download-card"><div><h3>Downloads</h3><p>Export the saved ZEAL setup and schedules, or the recent canonical thermostat application history, as readable JSON files.</p><small>Downloads contain entity IDs, room and zone names, schedules, targets and outcomes. They do not contain Home Assistant credentials or tokens.${
+      this._dirty ? " Unsaved setup edits are not included." : ""
+    }</small></div><div class="download-actions"><button class="secondary" data-download-action="configuration" ${
+      this._downloadBusy ? "disabled" : ""
+    }>Download configuration</button><button class="secondary" data-download-action="audit" ${
+      this._downloadBusy ? "disabled" : ""
+    }>Download audit trail</button></div></section>`;
   }
 
   _setupZone(zone, zoneIndex, unassignedAreas) {
@@ -1047,7 +1382,7 @@ class ZealPanel extends HTMLElement {
 
   _bindEvents() {
     this.shadowRoot.querySelectorAll("[data-view]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const next = button.dataset.view;
         if (next === this._view) return;
         if (this._dirty && this._view === "setup" && !window.confirm("Discard unsaved setup changes?")) return;
@@ -1059,6 +1394,10 @@ class ZealPanel extends HTMLElement {
         else this._scheduleDirty = false;
         this._notice = "";
         this._error = "";
+        if (next === "quick") {
+          await this._loadQuickChange();
+          return;
+        }
         this._render();
       });
     });
@@ -1161,6 +1500,76 @@ class ZealPanel extends HTMLElement {
       this._render();
     });
     this.shadowRoot.querySelector('[data-schedule-action="save"]')?.addEventListener("click", () => this._saveSchedule());
+    this.shadowRoot.querySelectorAll('[data-quick-action="room"]').forEach((control) => {
+      control.addEventListener("change", () => {
+        if (control.checked) this._quickSelected.add(control.value);
+        else this._quickSelected.delete(control.value);
+        this._syncQuickExactTarget();
+        this._render();
+      });
+    });
+    this.shadowRoot.querySelectorAll('[data-quick-action="duration"]').forEach((control) => {
+      control.addEventListener("change", () => {
+        this._quickDuration = control.value;
+      });
+    });
+    this.shadowRoot.querySelector('[data-quick-action="temperature"]')?.addEventListener("change", (event) => {
+      this._quickExactTarget = event.target.value;
+      this._quickAction = event.target.value === ""
+        ? null
+        : { operation: "temperature", value: Number(event.target.value) };
+      const applyButton = this.shadowRoot.querySelector(
+        '[data-quick-action="apply"]'
+      );
+      const actionState = this.shadowRoot.querySelector(".quick-action-state");
+      if (applyButton) {
+        applyButton.disabled =
+          !this._quickSelected.size || !this._quickAction || this._quickSaving;
+      }
+      if (actionState) {
+        actionState.textContent =
+          this._quickActionDescription() || "Choose a temperature change.";
+      }
+    });
+    this.shadowRoot.querySelectorAll('[data-quick-action="delta"]').forEach((button) => {
+      button.addEventListener("click", () => {
+        const step = Number(button.dataset.value);
+        if (this._quickAction?.operation === "temperature") {
+          this._quickAction = {
+            operation: "temperature",
+            value: this._quickAction.value + step,
+          };
+        } else {
+          this._quickAction = {
+            operation: "delta",
+            value:
+              (this._quickAction?.operation === "delta"
+                ? this._quickAction.value
+                : 0) + step,
+          };
+        }
+        this._syncQuickExactTarget();
+        this._render();
+      });
+    });
+    this.shadowRoot.querySelector('[data-quick-action="whole-house"]')?.addEventListener("click", () => {
+      this._toggleQuickSelection(this._quickRooms().map((room) => room.room_id));
+    });
+    this.shadowRoot.querySelectorAll('[data-quick-action="toggle-zone"]').forEach((button) => {
+      button.addEventListener("click", () => {
+        const zone = (this._configuration?.zones || []).find(
+          (candidate) => candidate.zone_id === button.dataset.zoneId
+        );
+        this._toggleQuickSelection(zone ? this._quickRoomIdsInZone(zone) : []);
+      });
+    });
+    this.shadowRoot.querySelector('[data-quick-action="refresh"]')?.addEventListener("click", () => this._loadQuickChange());
+    this.shadowRoot.querySelector('[data-quick-action="apply"]')?.addEventListener("click", () => this._applyQuickChange());
+    this.shadowRoot.querySelectorAll('[data-quick-action="clear-hold"]').forEach((button) => {
+      button.addEventListener("click", () => this._clearQuickHold(button.dataset.roomId));
+    });
+    this.shadowRoot.querySelector('[data-download-action="configuration"]')?.addEventListener("click", () => this._downloadConfiguration());
+    this.shadowRoot.querySelector('[data-download-action="audit"]')?.addEventListener("click", () => this._downloadAuditTrail());
     this.shadowRoot.querySelectorAll("[data-zone-field]").forEach((control) => {
       control.addEventListener("change", () => {
         const zone = this._draft[Number(control.dataset.zone)];
@@ -1417,6 +1826,39 @@ class ZealPanel extends HTMLElement {
       .copy-targets legend { color:var(--secondary-text-color); font-size:12px; }
       .copy-targets label { flex-direction:row; align-items:center; gap:5px; font-weight:400; }
       .schedule-save-bar { margin-top:18px; }
+      .quick-heading { align-items:flex-end; }
+      .quick-heading-actions, .download-actions { display:flex; gap:9px; flex-wrap:wrap; }
+      .quick-summary { display:flex; align-items:center; gap:12px 24px; flex-wrap:wrap; margin:0 0 18px; padding:13px 15px; border-radius:10px; background:var(--secondary-background-color); color:var(--secondary-text-color); }
+      .quick-summary strong { color:var(--primary-text-color); }
+      .quick-zones { display:grid; gap:16px; }
+      .quick-zone, .quick-controls, .download-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:16px; }
+      .quick-zone-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+      .quick-zone-heading h3 { margin:0 0 3px; }
+      .quick-zone-heading span { color:var(--secondary-text-color); font-size:12px; }
+      .quick-room-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(275px, 1fr)); gap:10px; }
+      .quick-room { display:grid; gap:9px; padding:13px; border:1px solid var(--divider-color); border-radius:9px; background:var(--primary-background-color); }
+      .quick-room.selected { border-color:var(--primary-color); box-shadow:0 0 0 1px var(--primary-color); }
+      .quick-room.holding { border-left:5px solid var(--primary-color); }
+      .quick-room > label { display:flex; flex-direction:row; align-items:flex-start; gap:9px; cursor:pointer; }
+      .quick-room > label input { width:20px; min-height:20px; margin:1px 0 0; }
+      .quick-room > label span, .quick-room > label strong, .quick-room > label small { display:block; }
+      .quick-room > label small { margin-top:4px; }
+      .quick-room-state { display:flex; justify-content:space-between; align-items:center; gap:8px; padding-left:29px; color:var(--secondary-text-color); font-size:12px; }
+      .hold-pill { color:var(--primary-color); font-weight:700; }
+      .quick-controls { max-width:900px; margin-top:18px; }
+      .quick-controls h3 { margin-bottom:4px; }
+      .quick-controls > div > p { color:var(--secondary-text-color); margin:0; }
+      .quick-control-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.8fr); gap:18px; margin-top:16px; }
+      .quick-temperature-actions { display:flex; gap:9px; align-items:flex-end; flex-wrap:wrap; }
+      .quick-temperature-actions label { min-width:160px; }
+      .quick-temperature-actions button { min-width:76px; }
+      .quick-durations { display:flex; gap:9px 16px; align-items:center; flex-wrap:wrap; margin:0; padding:11px; border:1px solid var(--divider-color); border-radius:8px; }
+      .quick-durations legend { padding:0 5px; color:var(--secondary-text-color); }
+      .quick-durations label { flex-direction:row; align-items:center; gap:4px; font-weight:400; }
+      .quick-durations input { width:auto; min-height:auto; margin:0; }
+      .quick-apply-row { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:16px; padding-top:14px; border-top:1px solid var(--divider-color); }
+      .quick-apply-row span { color:var(--secondary-text-color); }
+      .quick-loading { min-height:38vh; }
       .setup-help { padding:16px; margin-bottom:16px; }
       .setup-help p { margin:5px 0 0; color:var(--secondary-text-color); }
       .setup-zones { display:grid; gap:18px; }
@@ -1445,6 +1887,11 @@ class ZealPanel extends HTMLElement {
       .canonical-target strong, .canonical-target span, .canonical-target small { display:block; }
       .canonical-target span { margin:3px 0; overflow-wrap:anywhere; }
       .room-empty { padding:18px; text-align:center; color:var(--secondary-text-color); border:1px dashed var(--divider-color); border-radius:8px; }
+      .download-card { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-top:18px; }
+      .download-card h3 { margin-bottom:5px; }
+      .download-card p { margin:0 0 5px; color:var(--secondary-text-color); }
+      .download-card small { display:block; }
+      .download-actions { flex:none; }
       .save-bar { position:sticky; bottom:12px; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 14px; margin-top:18px; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.18); }
       .save-bar > div { display:flex; gap:8px; }
       .save-state, .schedule-save-state { color:var(--secondary-text-color); }
@@ -1460,12 +1907,15 @@ class ZealPanel extends HTMLElement {
         header, .page-heading { align-items:stretch; flex-direction:column; }
         .identity img { width:46px; height:46px; }
         .entry-picker { min-width:0; }
-        nav { display:grid; grid-template-columns:repeat(3, 1fr); }
+        nav { display:grid; grid-template-columns:repeat(4, 1fr); }
         .tab { padding:12px 8px; }
         .summary-grid, .zone-grid, .form-grid, .equipment-grid { grid-template-columns:1fr; }
         .schedule-navigation { min-width:0; }
         .schedule-actions-card { grid-template-columns:1fr; }
         .schedule-actions-card > button { width:100%; }
+        .quick-control-grid { grid-template-columns:1fr; }
+        .download-card { align-items:stretch; flex-direction:column; }
+        .download-actions button { flex:1; }
         .summary-grid { grid-template-columns:repeat(3, 1fr); }
         .summary-card { display:block; padding:12px; text-align:center; }
         .summary-card ha-icon { margin-bottom:6px; }
@@ -1492,6 +1942,10 @@ class ZealPanel extends HTMLElement {
         .timeline-title span { display:block; text-align:left; margin-top:3px; }
         .period-labels, .period-row { grid-template-columns:minmax(72px,1fr) 76px 61px 12px 28px; gap:3px; }
         .period-row input { padding:5px 4px; }
+        .quick-heading-actions, .download-actions { display:grid; grid-template-columns:1fr; }
+        .quick-room-grid { grid-template-columns:1fr; }
+        .quick-apply-row { align-items:stretch; flex-direction:column; }
+        .quick-apply-row button { width:100%; }
       }
     </style>`;
   }

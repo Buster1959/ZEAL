@@ -83,11 +83,18 @@
 - Each zone gets a **Demand sensor** showing `Demand` / `No demand`, with which
   rooms are asking for heat as an attribute — a quick way to see what the
   Coordinator is doing without digging through logs.
+- The admin-only **Schedule** page provides seven independent daily timelines
+  per room, with draggable points, exact entry, source-day application and
+  room-to-room schedule copying.
+- **Quick Change** applies a temporary adjustment or exact target to one room,
+  a Zone/Floor selection, any group of rooms or the whole house for two hours,
+  four hours or until the next scheduled change. Weekly schedules are not
+  edited.
+- **Setup → Downloads** exports the saved configuration/schedules and the most
+  recent 500 canonical thermostat application outcomes as readable JSON files.
 
 ## What it doesn't do yet
 
-- The Quick Change, configuration-download and audit-download backends are
-  built, but their panel controls are not available until Block 7.
 - No "away mode" / holiday calendar integration yet.
 - No dashboard card yet — administration happens in ZEAL's own Home Assistant
   panel.
@@ -194,6 +201,36 @@ Schedule edits are held in the browser until **Save schedule** is selected.
 ZEAL detects if another browser or process has saved newer data and refuses to
 overwrite it. The saved schedule is immediately handed to the running scheduler.
 
+### Quick Change
+
+Open **ZEAL → Quick Change** when you need a temporary target without changing
+the saved week. Select individual rooms, a complete Zone/Floor, any mixture of
+rooms or **Select whole house**. Then choose −1°C, +1°C or enter an exact target
+from 5–30°C and choose **2 hours**, **4 hours** or **Until next scheduled
+change**.
+
+The room cards distinguish the scheduled target from an active temporary hold
+and show when that hold will end. **Cancel hold** immediately returns one room
+to its current scheduled target. Applying and cancelling holds is recorded in
+the audit trail. A relative adjustment requires an active scheduled target;
+an exact target can also be used when no period is currently active.
+
+### Configuration and audit downloads
+
+Open **ZEAL → Setup → Downloads** to download either JSON file:
+
+- **Download configuration** contains the saved zones, Areas, physical
+  equipment assignments, canonical ZEAL targets, seven-day schedules and a
+  generated-at timestamp. Unsaved Setup edits are deliberately excluded.
+- **Download audit trail** contains up to the most recent 500 canonical room
+  target attempts, including time, room, previous/requested target, cause and
+  outcome. It survives Home Assistant and integration restarts.
+
+The files necessarily contain the entity IDs, room/zone names and temperatures
+needed to diagnose the system. They do not contain Home Assistant credentials,
+tokens or physical-TRV service payloads. Review them before sharing publicly if
+your entity or room names reveal personal information.
+
 ZEAL keeps two thermostat roles deliberately separate. Each saved room with a
 physical thermostat receives one automatically generated **ZEAL room
 thermostat**, shown in the Zone/Floor scheduling-target summary; this is the
@@ -261,7 +298,7 @@ that instead.
 | 1. Skeleton integration, Config Flow, Store-backed data model | Done |
 | 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
 | 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
-| 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Model, runtime, secure panel API and seven-day visual Schedule panel complete; Quick Change UI and away mode pending |
+| 4. Scheduling (day/time/setpoint grid), calendar-driven away mode, multi-TRV boost/propagation on manual overrides | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change and JSON downloads complete; away mode pending |
 | 5. Polish — diagnostics sensor, translations, entity icons | Diagnostics sensor and brand icon done; rest pending |
 | 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Pending |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
