@@ -12,6 +12,8 @@ import math
 import re
 from typing import Any, Iterable, Mapping
 
+from ..const import MAX_TARGET_TEMPERATURE, MIN_TARGET_TEMPERATURE
+
 SCHEMA_VERSION = 1
 WEEKDAYS = (
     "monday",
@@ -84,6 +86,11 @@ class SchedulePeriod:
         temperature = float(self.temperature)
         if not math.isfinite(temperature):
             raise ValueError("period.temperature must be finite")
+        if not MIN_TARGET_TEMPERATURE <= temperature <= MAX_TARGET_TEMPERATURE:
+            raise ValueError(
+                "period.temperature must be between "
+                f"{MIN_TARGET_TEMPERATURE} and {MAX_TARGET_TEMPERATURE}°C"
+            )
         object.__setattr__(self, "temperature", temperature)
 
     @classmethod

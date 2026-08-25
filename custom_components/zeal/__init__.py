@@ -34,9 +34,11 @@ from .const import (
     ZONE_ROOMS,
 )
 from .coordinator import ZealCoordinator
+from .scheduler.audit import AuditLog
 from .scheduler.rooms import reconcile_room_schedules
 from .scheduler.runtime import ScheduleRuntime
 from .scheduler.storage import ScheduleStorage
+from .scheduler.websocket_api import async_register_commands
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -125,9 +127,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     schedule_configuration = reconcile_room_schedules(
         stored_schedule, configured_rooms
     )
+    if schedule_configuration.temperature_unit is None:
+        schedule_configuration = schedule_configuration.with_temperature_unit("°C")
+    elif schedule_configuration.temperature_unit != "°C":
+        from homeassistant.exceptions import ConfigEntryError
+
+        raise ConfigEntryError(
+            "ZEAL room thermostats use Celsius but the stored schedule uses "
+            f"{schedule_configuration.temperature_unit}. Remove and re-add ZEAL "
+            "before creating schedules in a different unit."
+        )
     if schedule_configuration != stored_schedule:
         await schedule_storage.async_save(schedule_configuration)
-    schedule_runtime = ScheduleRuntime(hass, coordinator)
+    audit_log = AuditLog(hass, entry.entry_id)
+    await audit_log.async_load()
+    schedule_runtime = ScheduleRuntime(hass, coordinator, audit_log)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -135,7 +149,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "schedule_storage": schedule_storage,
         "schedule_runtime": schedule_runtime,
+        "audit_log": audit_log,
     }
+    async_register_commands(hass)
 
     # Re-run setup whenever the Options Flow saves changes, so anything
     # reading hass.data picks up the new zones/rooms immediately.

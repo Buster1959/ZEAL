@@ -5,10 +5,11 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 73 collected cases against `pytest-homeassistant-custom-component`:
-38 Coordinator cases, 25 pure scheduler cases and 10 scheduler runtime/boundary
-cases. Test code is kept under `tests/`, not shipped inside
-`custom_components/zeal`. Verified result: 73/73 passing.
+Coverage: 94 collected cases against `pytest-homeassistant-custom-component`:
+38 Coordinator cases, 29 pure scheduler cases, 10 scheduler runtime/boundary
+cases and 17 configuration/audit/WebSocket cases. Test code is kept under
+`tests/`, not shipped inside `custom_components/zeal`. Verified result: 94/94
+passing.
 
 ## Running
 
@@ -48,13 +49,15 @@ framework Home Assistant Core itself uses to test its own integrations.
   isolation, and temporary override targets/expiry without editing schedules.
 - Startup reconciliation, nearest-transition timing, unavailable-room retry,
   unload cleanup and exclusive use of ZEAL's clamped canonical room boundary.
+- Admin-only WebSocket authorization, registry-backed hierarchy validation,
+  optimistic revision conflicts, reload persistence, Quick Change, bounded
+  audit retention and JSON-safe configuration/audit downloads.
 
 ## What's NOT covered (yet)
 
 Config Flow / Options Flow, the `switch`/`sensor`/`climate` entity
 platforms themselves (as opposed to the Coordinator logic they call
-into), the HTML interface, runtime temporary-override wiring, away mode and
-cooling. Contributions extending
+into), the HTML interface, away mode and cooling. Contributions extending
 coverage welcome — this is meant to grow alongside the project, not stay
 fixed at this snapshot.
 

@@ -115,6 +115,12 @@ def test_periods_must_be_ordered_and_have_unique_times_and_ids():
         room(room_days=days(monday=(period("same", "07:00"), period("same", "08:00"))))
 
 
+@pytest.mark.parametrize("temperature", [4.9, 30.1, 95])
+def test_schedule_temperature_must_be_within_zeal_safety_range(temperature):
+    with pytest.raises(ValueError, match="between 5.0 and 30.0"):
+        period(temperature=temperature)
+
+
 def test_active_period_selects_latest_change_on_same_day():
     scheduled = room(
         room_days=days(
@@ -259,6 +265,22 @@ def test_exact_override_until_next_change():
     )
     assert overrides[0].temperature == 21
     assert overrides[0].expires_at == datetime(2026, 8, 24, 22, 0)
+
+
+def test_temporary_override_cannot_exceed_zeal_safety_range():
+    scheduled = room(
+        room_days=days(monday=(period("morning", "07:00", 30),))
+    )
+    configuration = ScheduleConfiguration(rooms={scheduled.room_id: scheduled})
+    with pytest.raises(ValueError, match="between 5.0 and 30.0"):
+        create_temporary_overrides(
+            configuration,
+            [scheduled.room_id],
+            now=datetime(2026, 8, 24, 12, 0),
+            duration="2h",
+            operation="delta",
+            value=1,
+        )
 
 
 async def test_storage_empty_load_save_and_reload():

@@ -38,8 +38,8 @@ require `visual_climate_scheduler` at runtime.
   the ZEAL-owned pure schedule model, engine and storage boundary. Block 3 has
   since added canonical-room execution; UI work remains for later blocks.
 - No calendar-driven away mode is implemented.
-- No HTML configuration or overview panel exists; setup is a long native
-  Options Flow.
+- No HTML configuration or overview panel exists yet; setup remains the native
+  Options Flow. Block 4 has added the secure backend contract for the panel.
 - No built-in configuration download or schedule-application audit exists.
 - No migration/import path exists for a Visual Climate Scheduler export.
 

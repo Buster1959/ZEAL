@@ -60,15 +60,22 @@ the nearest transition is timed. The complete suite passes 73/73.
 
 - Add validated admin-only read/write APIs for ZEAL configuration, schedules,
   hierarchy, Quick Change, downloads and audit.
-- Keep the initial Config Flow minimal; make Configure open the ZEAL panel.
 - Preserve versioned persistence and reload safety.
 
 Acceptance: malformed, unauthorized and conflicting updates fail safely; valid
 updates survive reloads.
 
+Status: complete. The API validates hierarchy against Home Assistant registries,
+uses deterministic revision tokens to reject stale writes, updates schedule
+runtime immediately, survives hierarchy reloads, and exposes bounded audit and
+configuration export documents. Admin/read-only WebSocket behavior is tested.
+The complete suite passes 94/94.
+
 ## Block 5 — HTML Overview and Setup
 
 - Add a versioned admin-only ZEAL panel using the established VCS visual system.
+- Keep the initial Config Flow minimal and replace the existing multi-page
+  Configure experience with the ZEAL panel once that route exists.
 - Build Overview and Setup views for zones, Areas, rooms, switches, heat source,
   re-enable delay, TRVs, sensors and active state.
 - Include the competing-setpoint-scheduler safety warning.

@@ -401,7 +401,10 @@ async def test_config_entry_setup_and_unload_own_scheduler_runtime(hass):
     entry_data = hass.data[DOMAIN][entry.entry_id]
     assert "schedule_storage" in entry_data
     assert isinstance(entry_data["schedule_runtime"], ScheduleRuntime)
-    assert entry_data["schedule_runtime"].configuration == ScheduleConfiguration.empty()
+    assert (
+        entry_data["schedule_runtime"].configuration
+        == ScheduleConfiguration.empty().with_temperature_unit("°C")
+    )
 
     assert await hass.config_entries.async_unload(entry.entry_id) is True
     await hass.async_block_till_done()

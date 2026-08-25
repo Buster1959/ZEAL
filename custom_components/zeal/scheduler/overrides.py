@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import math
 from typing import Literal, Mapping
 
+from ..const import MAX_TARGET_TEMPERATURE, MIN_TARGET_TEMPERATURE
 from .engine import active_period_at, next_transition_after
 from .models import ScheduleConfiguration
 
@@ -59,6 +60,11 @@ def create_temporary_overrides(
             ) + value
         else:
             target = value
+        if not MIN_TARGET_TEMPERATURE <= target <= MAX_TARGET_TEMPERATURE:
+            raise ValueError(
+                "Temporary target must be between "
+                f"{MIN_TARGET_TEMPERATURE} and {MAX_TARGET_TEMPERATURE}°C"
+            )
         if duration == "2h":
             expires_at = now + timedelta(hours=2)
         elif duration == "4h":
