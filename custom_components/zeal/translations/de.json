@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZEAL HVAC System einrichten",
+        "description": "Benennen Sie diese Integrationsinstanz. Verwenden Sie nach der Erstellung das ZEAL-Panel, um Zonen, Räume, Thermostatventile und Sensoren zu konfigurieren.",
+        "data": {
+          "name": "Name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Eine Instanz mit diesem Namen ist bereits vorhanden."
+    }
+  }
+}

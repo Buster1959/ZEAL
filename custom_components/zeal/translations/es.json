@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar ZEAL HVAC System",
+        "description": "Asigne un nombre a esta instancia de la integración. Después de crearla, use el panel de ZEAL para configurar zonas, habitaciones, válvulas termostáticas y sensores.",
+        "data": {
+          "name": "Nombre"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Ya existe una instancia con este nombre."
+    }
+  }
+}

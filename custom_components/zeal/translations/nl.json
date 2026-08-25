@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZEAL HVAC System instellen",
+        "description": "Geef deze integratie-instantie een naam. Gebruik na het aanmaken het ZEAL-paneel om zones, kamers, thermostaatkranen en sensoren te configureren.",
+        "data": {
+          "name": "Naam"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Er bestaat al een instantie met deze naam."
+    }
+  }
+}

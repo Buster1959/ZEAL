@@ -99,6 +99,10 @@
 
 - No dashboard card yet — administration happens in ZEAL's own Home Assistant
   panel.
+- The ZEAL panel is currently English. The standard Home Assistant setup flow
+  includes ten European-language files.
+- Default HACS-store inclusion and the final V1 release still require Block 10
+  live acceptance and release preparation.
 
 See [Roadmap](#roadmap) for what's planned and in what order.
 
@@ -159,6 +163,17 @@ This integration isn't in the default HACS store yet. Add it as a custom reposit
 1. Copy `custom_components/zeal` into your Home Assistant
    `config/custom_components/` directory.
 2. Restart Home Assistant.
+
+## Documentation
+
+- [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) — installation, Setup,
+  Schedule, Quick Change, Away, downloads and mobile use
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Live test plan](TEST_PLAN.md) and [UI acceptance tests](docs/UI_ACCEPTANCE_TESTS.md)
+- [Architecture](docs/ARCHITECTURE.md) and [data model](docs/DATA_MODEL.md)
+- [Decision summary](docs/DECISIONS.md) and [V1 block plan](docs/PROJECT_PLAN.md)
+- [Internationalisation roadmap](docs/I18N_ROADMAP.md)
+- [Draft V1 release notes](docs/RELEASE_NOTES_V1_DRAFT.md)
 
 ## Configuration
 
@@ -332,8 +347,8 @@ that instead.
 | 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
 | 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
-| 5. Polish — diagnostics sensor, translations, entity icons | Diagnostics sensor and brand icon done; rest pending |
-| 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Pending |
+| 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed ZEAL screenshots pending |
+| 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Repository metadata and validation workflows done; default-store submission follows Block 10 |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |
 

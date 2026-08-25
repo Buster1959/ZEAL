@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurera ZEAL HVAC System",
+        "description": "Namnge den här integrationsinstansen. När den har skapats använder du ZEAL-panelen för att konfigurera zoner, rum, termostatventiler och sensorer.",
+        "data": {
+          "name": "Namn"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Det finns redan en instans med det här namnet."
+    }
+  }
+}

@@ -1,5 +1,9 @@
 # ZEAL V1 Repository Review
 
+> Historical Block 0 baseline. Later blocks have resolved several gaps recorded
+> here; use [PROJECT_PLAN.md](PROJECT_PLAN.md) and
+> [PROJECT_MANIFEST.md](PROJECT_MANIFEST.md) for current status.
+
 Review date: 24 August 2026  
 Source branch: `main` at `505a9ca`  
 Implementation branch: `feature/v1-scheduler-html-ui`

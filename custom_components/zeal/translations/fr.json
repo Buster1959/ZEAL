@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer ZEAL HVAC System",
+        "description": "Nommez cette instance de l’intégration. Une fois créée, utilisez le panneau ZEAL pour configurer les zones, les pièces, les vannes thermostatiques et les capteurs.",
+        "data": {
+          "name": "Nom"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Une instance portant ce nom existe déjà."
+    }
+  }
+}

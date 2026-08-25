@@ -163,6 +163,13 @@ Override actuator authority. The complete suite passes 118/118.
 Acceptance: repository and Wiki agree, validation actions pass, and documentation
 contains no personal installation details.
 
+Status: in progress. HACS metadata, HACS/Hassfest workflows, ten setup-flow
+language files, repository/Wiki user and technical guides, release draft,
+privacy rules and UI acceptance tests are implemented. The complete automated
+suite passes 119/119. Actual ZEAL desktop/mobile screenshots remain the final
+Block 9 gate and must be captured from a generic test installation before this
+block is marked complete.
+
 ## Block 10 — V1 validation and release preparation
 
 - Run the full automated suite and live Home Assistant acceptance plan.

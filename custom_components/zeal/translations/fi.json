@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Määritä ZEAL HVAC System",
+        "description": "Nimeä tämä integraatioesiintymä. Kun se on luotu, määritä vyöhykkeet, huoneet, termostaattiventtiilit ja anturit ZEAL-paneelissa.",
+        "data": {
+          "name": "Nimi"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Tällä nimellä on jo olemassa esiintymä."
+    }
+  }
+}

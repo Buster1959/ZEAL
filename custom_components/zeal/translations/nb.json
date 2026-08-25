@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurer ZEAL HVAC System",
+        "description": "Gi denne integrasjonsforekomsten et navn. Når den er opprettet, bruker du ZEAL-panelet til å konfigurere soner, rom, termostatventiler og sensorer.",
+        "data": {
+          "name": "Navn"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Det finnes allerede en forekomst med dette navnet."
+    }
+  }
+}
