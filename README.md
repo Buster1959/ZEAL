@@ -175,6 +175,15 @@ Return to **ZEAL → Setup** at any time to modify the configuration. Existing
 configurations created with the former multi-page flow load into this panel
 without conversion or re-entry.
 
+ZEAL keeps two thermostat roles deliberately separate. Each saved room with a
+physical thermostat receives one automatically generated **ZEAL room
+thermostat**, shown in the Zone/Floor scheduling-target summary; this is the
+canonical target used by ZEAL scheduling. The room equipment picker shows only
+non-ZEAL physical thermostats/TRVs assigned to that Area. ZEAL-owned entities
+are also excluded from the temperature-sensor list. Filtering uses Home
+Assistant's entity-registry owner (`platform`), not names such as `[ZEAL]`, so a
+renamed entity cannot bypass the safety boundary.
+
 > **Avoid competing schedulers:** do not assign a thermostat to more than one
 > thermostat setpoint scheduler. If ZEAL and another integration, automation,
 > blueprint or schedule both change the same thermostat's target temperature,

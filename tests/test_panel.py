@@ -58,7 +58,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=1"
+        "/zeal-panel.js?v=2"
     )
 
     static_routes = {
@@ -77,6 +77,11 @@ def test_frontend_contains_setup_safety_and_responsive_contracts():
     assert 'type: "zeal/list_entries"' in source
     assert 'type: "zeal/get_configuration"' in source
     assert 'type: "zeal/save_hierarchy"' in source
+    assert "zeal_room_thermostats" in source
+    assert "catalog.physical_room_thermostats" in source
+    assert "catalog.climate_entities" not in source
+    assert "Zone/Floor scheduling targets" in source
+    assert "It is never offered below as a physical thermostat" in source
     assert "expected_revision: this._configuration.revision" in source
     assert "Every zone needs a name" in source
     assert "Do not assign a thermostat to more than one thermostat setpoint scheduler" in source

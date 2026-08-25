@@ -90,7 +90,10 @@ Area-scoped physical TRVs and sensors, active state, heat source, actuator and
 re-enable delay through the Block 4 validated API. Optimistic concurrency,
 reload recovery, responsive layouts and the competing-scheduler warning are
 included. The former multi-page Options Flow has been retired without changing
-stored configuration. The complete suite passes 97/97.
+stored configuration. Canonical ZEAL scheduling thermostats and physical room
+equipment use separate registry-owner-filtered catalogs, preventing a ZEAL
+thermostat from being selected as its own physical TRV. The complete suite
+passes 98/98.
 
 ## Block 6 — Visual scheduling
 

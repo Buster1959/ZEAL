@@ -193,6 +193,31 @@ def test_hierarchy_rejects_zeal_owned_thermostat_as_physical_trv(hass):
         validate_hierarchy(hass, [zone])
 
 
+async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass):
+    """Selectors cannot mix canonical ZEAL targets with physical devices."""
+    area, _, trv, sensor, zone = create_registry_fixture(hass)
+    entry = await setup_loaded_entry(hass, [zone])
+
+    catalog = configuration_snapshot(hass, entry.entry_id)["catalog"]
+    physical_ids = {
+        item["entity_id"] for item in catalog["physical_room_thermostats"]
+    }
+    zeal_targets = catalog["zeal_room_thermostats"]
+    sensor_ids = {item["entity_id"] for item in catalog["temperature_sensors"]}
+
+    assert trv.entity_id in physical_ids
+    assert sensor.entity_id in sensor_ids
+    assert len(zeal_targets) == 1
+    assert zeal_targets[0]["room_id"] == area.id
+    assert zeal_targets[0]["zone_id"] == "ground_floor"
+    assert zeal_targets[0]["entity_id"].startswith("climate.")
+    assert zeal_targets[0]["entity_id"] not in physical_ids
+    assert all(
+        er.async_get(hass).async_get(entity_id).platform != DOMAIN
+        for entity_id in (*physical_ids, *sensor_ids)
+    )
+
+
 async def test_schedule_save_updates_store_runtime_and_rejects_stale_revision(hass):
     area, _, _, _, zone = create_registry_fixture(hass)
     entry = await setup_loaded_entry(hass, [zone])

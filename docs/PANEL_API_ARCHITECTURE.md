@@ -19,6 +19,17 @@ backend to revalidate every submitted value. After a successful hierarchy save,
 it tolerates the expected short config-entry reload window and accepts the
 result only when the returned revision matches.
 
+The catalog has two non-overlapping thermostat collections:
+
+- `zeal_room_thermostats` contains only live ZEAL-owned canonical room targets,
+  identified by registry ownership and mapped to stable room/zone IDs;
+- `physical_room_thermostats` contains only non-ZEAL climate entities available
+  to the Area-scoped equipment picker.
+
+Temperature sensors and actuator switches also exclude ZEAL-owned entities. The
+frontend never derives ownership from a display name, and the hierarchy writer
+independently rejects a ZEAL-owned entity submitted as physical equipment.
+
 ## Security boundary
 
 Every `zeal/*` WebSocket command is protected by Home Assistant's admin-user

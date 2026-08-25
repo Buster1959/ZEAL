@@ -5,11 +5,11 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 97 collected cases against `pytest-homeassistant-custom-component`:
+Coverage: 98 collected cases against `pytest-homeassistant-custom-component`:
 38 Coordinator cases, 29 pure scheduler cases, 10 scheduler runtime/boundary
-cases, 17 configuration/audit/WebSocket cases and 3 Config Flow/HTML panel
+cases, 18 configuration/audit/WebSocket cases and 3 Config Flow/HTML panel
 contract cases. Test code is kept under `tests/`, not shipped inside
-`custom_components/zeal`. Verified result: 97/97 passing.
+`custom_components/zeal`. Verified result: 98/98 passing.
 
 ## Running
 
@@ -52,6 +52,8 @@ framework Home Assistant Core itself uses to test its own integrations.
 - Admin-only WebSocket authorization, registry-backed hierarchy validation,
   optimistic revision conflicts, reload persistence, Quick Change, bounded
   audit retention and JSON-safe configuration/audit downloads.
+- Separate entity catalogs prove ZEAL-owned canonical scheduling thermostats
+  cannot appear in the physical room thermostat or temperature-sensor pickers.
 - Admin-only ZEAL panel registration, integration configuration routing, static
   asset registration, safe-save API use, responsive breakpoints and the
   competing-scheduler warning contract.

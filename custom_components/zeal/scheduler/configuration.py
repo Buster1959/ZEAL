@@ -93,12 +93,19 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
         "zones": zones,
         "schedule": schedule.to_dict(),
         "quick_change": data["schedule_runtime"].quick_change_state(),
-        "catalog": configuration_catalog(hass),
+        "catalog": configuration_catalog(hass, entry_id),
     }
 
 
-def configuration_catalog(hass: HomeAssistant) -> dict[str, list[dict[str, Any]]]:
-    """Return eligible Areas/equipment for the admin-only Setup interface."""
+def configuration_catalog(
+    hass: HomeAssistant, entry_id: str
+) -> dict[str, list[dict[str, Any]]]:
+    """Return separate canonical and physical equipment catalogs.
+
+    ZEAL's generated room thermostats are the only climate entities exposed as
+    scheduling targets. They are deliberately kept out of the physical room
+    thermostat catalog, where selecting one would make ZEAL drive itself.
+    """
     area_registry = ar.async_get(hass)
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
@@ -112,7 +119,8 @@ def configuration_catalog(hass: HomeAssistant) -> dict[str, list[dict[str, Any]]
     catalog: dict[str, list[dict[str, Any]]] = {
         "areas": areas,
         "switches": [],
-        "climate_entities": [],
+        "zeal_room_thermostats": [],
+        "physical_room_thermostats": [],
         "temperature_sensors": [],
     }
     for entity in entity_registry.entities.values():
@@ -130,12 +138,41 @@ def configuration_catalog(hass: HomeAssistant) -> dict[str, list[dict[str, Any]]
         if entity.domain == "switch":
             catalog["switches"].append(item)
         elif entity.domain == "climate":
-            catalog["climate_entities"].append(item)
+            catalog["physical_room_thermostats"].append(item)
         elif entity.domain == "sensor" and (
             entity.device_class or entity.original_device_class
         ) == "temperature":
             catalog["temperature_sensors"].append(item)
-    for key in ("switches", "climate_entities", "temperature_sensors"):
+    data = _entry_data(hass, entry_id)
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        raise KeyError(entry_id)
+    for zone in entry.options.get(CONF_ZONES, []):
+        for room in zone.get(ZONE_ROOMS, []):
+            thermostat = data["coordinator"].room_thermostats.get(room[ROOM_ID])
+            entity_id = getattr(thermostat, "entity_id", None)
+            if not entity_id:
+                continue
+            registry_entry = entity_registry.async_get(entity_id)
+            catalog["zeal_room_thermostats"].append(
+                {
+                    "entity_id": entity_id,
+                    "name": (
+                        (registry_entry.name or registry_entry.original_name)
+                        if registry_entry
+                        else getattr(thermostat, "name", entity_id)
+                    )
+                    or entity_id,
+                    "room_id": room[ROOM_ID],
+                    "zone_id": zone[ZONE_ID],
+                }
+            )
+    for key in (
+        "switches",
+        "zeal_room_thermostats",
+        "physical_room_thermostats",
+        "temperature_sensors",
+    ):
         catalog[key].sort(
             key=lambda item: (str(item["name"]).casefold(), item["entity_id"])
         )

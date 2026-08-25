@@ -6,7 +6,7 @@ as-is by anyone testing this from a fresh HA install — every step names the
 exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (97 collected cases, runs in under a
+> `tests/` has an automated pytest suite (98 collected cases, runs in under a
 > second) covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
 > *can't* cover: browser rendering and interactions, real (or dummy)

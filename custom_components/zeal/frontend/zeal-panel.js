@@ -134,6 +134,12 @@ class ZealPanel extends HTMLElement {
     return area?.name || areaId;
   }
 
+  _zealThermostat(roomId) {
+    return (this._configuration?.catalog?.zeal_room_thermostats || []).find(
+      (thermostat) => thermostat.room_id === roomId
+    );
+  }
+
   _render() {
     if (!this.shadowRoot) return;
     this.shadowRoot.innerHTML = `${this._styles()}<main>${this._content()}</main>`;
@@ -257,12 +263,15 @@ class ZealPanel extends HTMLElement {
   }
 
   _overviewRoom(room) {
+    const zealThermostat = this._zealThermostat(room.room_id);
     return `<div class="room-summary">
       <div><strong>${this._escape(room.name || this._areaName(room.room_id))}</strong><span>${this._escape(
         this._areaName(room.room_id)
       )} · ${(room.trvs || []).length} TRV${(room.trvs || []).length === 1 ? "" : "s"} · ${
         (room.sensors || []).length
-      } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span></div>
+      } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span><span>ZEAL target: ${this._escape(
+        zealThermostat ? this._entityLabel(zealThermostat) : "Not created"
+      )}</span></div>
       <span class="state ${room.active === false ? "inactive" : ""}">${
         room.active === false ? "Inactive" : "Active"
       }</span>
@@ -357,6 +366,7 @@ class ZealPanel extends HTMLElement {
           )
           .join("")}</select>
       </div>
+      ${this._zoneThermostatBoundary(zone)}
       <div class="room-editors">${
         (zone.rooms || []).length
           ? zone.rooms
@@ -367,13 +377,35 @@ class ZealPanel extends HTMLElement {
     </article>`;
   }
 
+  _zoneThermostatBoundary(zone) {
+    const targets = (zone.rooms || [])
+      .map((room) => ({ room, thermostat: this._zealThermostat(room.room_id) }))
+      .filter(({ thermostat }) => thermostat);
+    return `<aside class="control-boundary">
+      <div><strong>Zone/Floor scheduling targets</strong><p>ZEAL schedules only its own canonical room thermostats. These are created automatically and cannot be selected as physical room equipment.</p></div>
+      ${
+        targets.length
+          ? `<ul>${targets
+              .map(
+                ({ room, thermostat }) =>
+                  `<li><span>${this._escape(room.name || this._areaName(room.room_id))}</span><code>${this._escape(
+                    thermostat.entity_id
+                  )}</code></li>`
+              )
+              .join("")}</ul>`
+          : `<p class="muted">ZEAL room thermostats appear here after rooms with physical thermostats are saved.</p>`
+      }
+    </aside>`;
+  }
+
   _setupRoom(room, zoneIndex, roomIndex) {
-    const trvs = (this._configuration.catalog.climate_entities || []).filter(
+    const trvs = (this._configuration.catalog.physical_room_thermostats || []).filter(
       (item) => item.area_id === room.room_id
     );
     const sensors = (this._configuration.catalog.temperature_sensors || []).filter(
       (item) => item.area_id === room.room_id
     );
+    const zealThermostat = this._zealThermostat(room.room_id);
     return `<section class="room-editor">
       <div class="room-editor-title"><div><h4>${this._escape(
         this._areaName(room.room_id)
@@ -381,9 +413,14 @@ class ZealPanel extends HTMLElement {
       <label class="active-toggle"><input type="checkbox" data-zone="${zoneIndex}" data-room="${roomIndex}" data-room-field="active" ${
         room.active === false ? "" : "checked"
       } /><span><strong>Room is active</strong><small>Inactive rooms do not request heat.</small></span></label>
+      <div class="canonical-target"><ha-icon icon="mdi:thermostat"></ha-icon><div><strong>ZEAL room thermostat</strong><span>${this._escape(
+        zealThermostat
+          ? this._entityLabel(zealThermostat)
+          : "Created automatically after this room is saved with a physical thermostat"
+      )}</span><small>This is the room's canonical scheduling target. It is never offered below as a physical thermostat.</small></div></div>
       <div class="equipment-grid">
         ${this._multiSelect(
-          "Physical climate thermostats / TRVs",
+          "Physical room thermostats / TRVs",
           trvs,
           room.trvs || [],
           zoneIndex,
@@ -672,9 +709,18 @@ class ZealPanel extends HTMLElement {
       .add-room { width:auto; min-width:230px; }
       .room-editors { display:grid; gap:12px; }
       .room-editor { border:1px solid var(--divider-color); border-radius:10px; padding:15px; }
+      .control-boundary { margin:0 0 14px; padding:13px; border-left:4px solid var(--primary-color); border-radius:6px; background:var(--secondary-background-color); }
+      .control-boundary p { margin:4px 0 0; color:var(--secondary-text-color); }
+      .control-boundary ul { display:grid; gap:5px; padding:0; margin:10px 0 0; list-style:none; }
+      .control-boundary li { display:flex; justify-content:space-between; gap:12px; }
+      .control-boundary code { color:var(--secondary-text-color); overflow-wrap:anywhere; text-align:right; }
       .active-toggle { flex-direction:row; align-items:flex-start; margin:12px 0; }
       .active-toggle input { width:20px; min-height:20px; margin:1px 2px 0 0; }
       .active-toggle span, .active-toggle strong, .active-toggle small { display:block; }
+      .canonical-target { display:flex; align-items:flex-start; gap:10px; padding:12px; margin:0 0 14px; border-radius:8px; background:var(--secondary-background-color); }
+      .canonical-target ha-icon { color:var(--primary-color); margin-top:1px; }
+      .canonical-target strong, .canonical-target span, .canonical-target small { display:block; }
+      .canonical-target span { margin:3px 0; overflow-wrap:anywhere; }
       .room-empty { padding:18px; text-align:center; color:var(--secondary-text-color); border:1px dashed var(--divider-color); border-radius:8px; }
       .save-bar { position:sticky; bottom:12px; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 14px; margin-top:18px; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.18); }
       .save-bar > div { display:flex; gap:8px; }
@@ -700,6 +746,8 @@ class ZealPanel extends HTMLElement {
         .summary-card strong { font-size:22px; }
         .summary-card span { font-size:12px; }
         .zone-facts div { grid-template-columns:1fr; gap:2px; }
+        .control-boundary li { align-items:flex-start; flex-direction:column; }
+        .control-boundary code { text-align:left; }
         .room-summary { align-items:flex-start; }
         .rooms-heading { align-items:stretch; flex-direction:column; }
         .add-room { width:100%; }
