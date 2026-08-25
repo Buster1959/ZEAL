@@ -1,6 +1,6 @@
 # ZEAL Scheduler Architecture
 
-Status: Block 2 model and Block 3 runtime integration complete.
+Status: Block 2 model, Block 3 runtime and Block 6 visual editor complete.
 
 ## Independence boundary
 
@@ -66,3 +66,30 @@ The runtime never reads, stores, selects or calls a physical TRV entity ID.
 If a configured room thermostat is not currently registered, the application
 is skipped and is not marked successful. A later Coordinator update retries the
 current period; successfully applied periods are not repeated.
+
+## Visual editor
+
+The admin-only **ZEAL → Schedule** page uses the configured Zone/Floor hierarchy
+for navigation, but every schedule is still keyed by its stable room ID. The
+page explicitly displays the room's canonical ZEAL thermostat. Physical TRV
+entity IDs are neither selectable nor sent by schedule write requests.
+
+Each weekday has a step timeline and exact name, 24-hour time and setpoint
+fields. Dragging is a convenience control that snaps to 15 minutes and 0.5°C;
+the fields preserve exact values supported by the model. Up to four daily
+periods are exposed in the V1 editor. Empty days and the start of every day show
+the most recent target carried from the previous scheduled day, matching the
+engine's cross-midnight selection.
+
+Source-day application changes only the browser-side week until **Save
+schedule** is selected. A room-to-room copy first saves that same source editor
+state, then replaces only the seven daily lists of selected rooms. Destination
+room IDs, names, zones, Areas, physical equipment and ZEAL thermostat entities
+are retained.
+
+Both operations include the configuration revision received when the editor was
+loaded. A stale browser is rejected instead of overwriting a newer hierarchy or
+schedule. Successful writes persist first, update the running scheduler and
+return a fresh complete configuration snapshot. The page is responsive across
+desktop, tablet and narrow mobile layouts and warns before discarding unsaved
+room or schedule changes.

@@ -1,4 +1,4 @@
-"""Block 5 panel registration and frontend contract tests."""
+"""Block 5/6 panel registration and frontend contract tests."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=2"
+        "/zeal-panel.js?v=3"
     )
 
     static_routes = {
@@ -88,3 +88,21 @@ def test_frontend_contains_setup_safety_and_responsive_contracts():
     assert "another integration, automation, blueprint or schedule" in source
     assert "@media (max-width: 760px)" in source
     assert "@media (max-width: 430px)" in source
+
+
+def test_frontend_contains_visual_scheduler_contracts():
+    """Protect the Block 6 interactions that require a browser DOM."""
+    source = PANEL_FILE.read_text()
+    assert 'data-view="schedule"' in source
+    assert "Seven-day schedule" in source
+    assert 'type: "zeal/update_room_days"' in source
+    assert 'type: "zeal/copy_room_schedule"' in source
+    assert "expected_revision: this._configuration.revision" in source
+    assert "ZEAL scheduling target" in source
+    assert "The schedule changes this ZEAL thermostat only" in source
+    assert "timeline-point" in source
+    assert "pointerdown" in source
+    assert "Continues from the previous scheduled day" in source
+    assert "Apply to selected days" in source
+    assert "Copy this seven-day schedule to other rooms" in source
+    assert "Their zone, Area, physical equipment and ZEAL thermostat remain unchanged" in source

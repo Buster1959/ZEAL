@@ -12,6 +12,20 @@ const HEAT_SOURCE_DELAYS = {
   other: 300,
 };
 
+const WEEKDAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+
+const MIN_SCHEDULE_TEMPERATURE = 5;
+const MAX_SCHEDULE_TEMPERATURE = 30;
+const MAX_PERIODS_PER_DAY = 4;
+
 const COMPETING_SCHEDULER_WARNING =
   "Do not assign a thermostat to more than one thermostat setpoint scheduler. " +
   "If ZEAL and another integration, automation, blueprint or schedule both change " +
@@ -33,8 +47,22 @@ class ZealPanel extends HTMLElement {
     this._loading = true;
     this._saving = false;
     this._dirty = false;
+    this._scheduleZoneId = null;
+    this._scheduleRoomId = null;
+    this._scheduleDays = null;
+    this._scheduleSourceDay = "monday";
+    this._scheduleTargetDays = new Set();
+    this._scheduleCopyTargets = new Set();
+    this._scheduleSelectedPeriod = null;
+    this._scheduleDirty = false;
+    this._scheduleSaving = false;
+    this._drag = null;
     this._notice = "";
     this._error = "";
+    this.shadowRoot.addEventListener("pointerdown", (event) => this._onPointerDown(event));
+    this.shadowRoot.addEventListener("pointermove", (event) => this._onPointerMove(event));
+    this.shadowRoot.addEventListener("pointerup", (event) => this._onPointerUp(event));
+    this.shadowRoot.addEventListener("pointercancel", (event) => this._onPointerUp(event));
   }
 
   set hass(value) {
@@ -97,6 +125,7 @@ class ZealPanel extends HTMLElement {
     this._configuration = configuration;
     this._draft = this._copy(configuration.zones || []);
     this._dirty = false;
+    this._loadScheduleRoom({ keepSelection: true });
     this._loading = false;
     this._error = "";
     this._render();
@@ -159,7 +188,13 @@ class ZealPanel extends HTMLElement {
       <div class="shell">
         ${this._header()}
         ${this._messages()}
-        ${this._view === "setup" ? this._renderSetup() : this._renderOverview()}
+        ${
+          this._view === "setup"
+            ? this._renderSetup()
+            : this._view === "schedule"
+              ? this._renderSchedule()
+              : this._renderOverview()
+        }
       </div>`;
   }
 
@@ -187,6 +222,7 @@ class ZealPanel extends HTMLElement {
       </header>
       <nav aria-label="ZEAL sections">
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
+        <button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>
         <button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>
       </nav>`;
   }
@@ -276,6 +312,558 @@ class ZealPanel extends HTMLElement {
         room.active === false ? "Inactive" : "Active"
       }</span>
     </div>`;
+  }
+
+  _scheduleRooms() {
+    return this._configuration?.schedule?.rooms || {};
+  }
+
+  _scheduleRoomIdsInZone(zoneId) {
+    const schedules = this._scheduleRooms();
+    const zone = (this._configuration?.zones || []).find(
+      (candidate) => candidate.zone_id === zoneId
+    );
+    return (zone?.rooms || [])
+      .map((room) => room.room_id)
+      .filter((roomId) => schedules[roomId]);
+  }
+
+  _scheduleZones() {
+    return (this._configuration?.zones || []).filter(
+      (zone) => this._scheduleRoomIdsInZone(zone.zone_id).length
+    );
+  }
+
+  _zoneForScheduleRoom(roomId) {
+    return (this._configuration?.zones || []).find((zone) =>
+      (zone.rooms || []).some((room) => room.room_id === roomId)
+    );
+  }
+
+  _loadScheduleRoom({ keepSelection = false } = {}) {
+    const schedules = this._scheduleRooms();
+    const zones = this._scheduleZones();
+    const existingRoom = keepSelection && schedules[this._scheduleRoomId];
+    if (existingRoom) {
+      this._scheduleZoneId = this._zoneForScheduleRoom(this._scheduleRoomId)?.zone_id || null;
+    }
+    if (!zones.some((zone) => zone.zone_id === this._scheduleZoneId)) {
+      this._scheduleZoneId = zones[0]?.zone_id || null;
+    }
+    const roomIds = this._scheduleRoomIdsInZone(this._scheduleZoneId);
+    if (!roomIds.includes(this._scheduleRoomId)) {
+      this._scheduleRoomId = roomIds[0] || null;
+    }
+    const room = schedules[this._scheduleRoomId];
+    this._scheduleDays = room ? this._copy(room.days) : null;
+    this._scheduleSourceDay = "monday";
+    this._scheduleTargetDays = new Set();
+    this._scheduleCopyTargets = new Set();
+    this._scheduleSelectedPeriod = null;
+    this._scheduleDirty = false;
+    this._scheduleSaving = false;
+    this._drag = null;
+  }
+
+  _renderSchedule() {
+    const schedules = this._scheduleRooms();
+    if (!Object.keys(schedules).length) {
+      return `<section class="page-heading"><div><h2>Schedule</h2><p>Create rooms with physical thermostats before adding schedules.</p></div><button class="primary" data-view="setup">Open setup</button></section>
+        <section class="empty-card"><ha-icon icon="mdi:calendar-clock"></ha-icon><h3>No schedulable rooms yet</h3><p>A ZEAL room becomes schedulable after it is saved with at least one physical thermostat/TRV.</p><button class="primary" data-view="setup">Configure rooms</button></section>`;
+    }
+    const zones = this._scheduleZones();
+    const roomIds = this._scheduleRoomIdsInZone(this._scheduleZoneId);
+    const zoneOptions = zones
+      .map(
+        (zone) =>
+          `<option value="${this._escape(zone.zone_id)}" ${
+            zone.zone_id === this._scheduleZoneId ? "selected" : ""
+          }>${this._escape(zone.name)}</option>`
+      )
+      .join("");
+    const roomOptions = roomIds
+      .map(
+        (roomId) =>
+          `<option value="${this._escape(roomId)}" ${
+            roomId === this._scheduleRoomId ? "selected" : ""
+          }>${this._escape(schedules[roomId].room_name)}</option>`
+      )
+      .join("");
+    const thermostat = this._zealThermostat(this._scheduleRoomId);
+    return `
+      <section class="page-heading schedule-heading">
+        <div><h2>Seven-day schedule</h2><p>Each room has seven independent daily setpoint schedules.</p></div>
+        <div class="schedule-navigation">
+          <label>Zone / Floor<select data-schedule-action="zone">${zoneOptions}</select></label>
+          <label>Room<select data-schedule-action="room">${roomOptions}</select></label>
+        </div>
+      </section>
+      ${this._warning()}
+      <section class="schedule-target"><ha-icon icon="mdi:thermostat"></ha-icon><div><strong>ZEAL scheduling target</strong><span>${this._escape(
+        thermostat ? this._entityLabel(thermostat) : "Canonical ZEAL room thermostat is unavailable"
+      )}</span><small>The schedule changes this ZEAL thermostat only. ZEAL then applies its safe canonical target to the room's physical thermostats.</small></div></section>
+      <section class="schedule-week">${WEEKDAYS.map((day) => this._renderScheduleDay(day)).join("")}</section>
+      <section class="schedule-actions-card">
+        <div><h3>Apply a day</h3><p>Choose one Source day, tick Apply here on the destination days, then apply. Save when the week is ready.</p></div>
+        <button class="secondary compact" data-schedule-action="apply-days">Apply to selected days</button>
+        ${this._renderScheduleCopy()}
+      </section>
+      <div class="save-bar schedule-save-bar">
+        <span class="schedule-save-state">${
+          this._scheduleDirty ? "Unsaved schedule changes" : "Schedule is up to date"
+        }</span>
+        <div><button class="text-button" data-schedule-action="discard" ${
+          !this._scheduleDirty || this._scheduleSaving ? "disabled" : ""
+        }>Discard changes</button><button class="primary" data-schedule-action="save" ${
+          !this._scheduleDirty || this._scheduleSaving ? "disabled" : ""
+        }>${this._scheduleSaving ? "Saving…" : "Save schedule"}</button></div>
+      </div>`;
+  }
+
+  _renderScheduleDay(day) {
+    const periods = this._scheduleDays?.[day] || [];
+    const rows = periods
+      .map(
+        (period, index) => `<div class="period-row ${
+          this._scheduleSelectedPeriod?.day === day &&
+          this._scheduleSelectedPeriod?.index === index
+            ? "selected"
+            : ""
+        }">
+          <input aria-label="${day} period name" data-schedule-day="${day}" data-schedule-index="${index}" data-schedule-field="name" value="${this._escape(
+            period.name
+          )}" />
+          <input aria-label="${day} period time" type="time" data-schedule-day="${day}" data-schedule-index="${index}" data-schedule-field="time" value="${this._escape(
+            period.time
+          )}" />
+          <input aria-label="${day} period target" type="number" min="${MIN_SCHEDULE_TEMPERATURE}" max="${MAX_SCHEDULE_TEMPERATURE}" step="0.1" data-schedule-day="${day}" data-schedule-index="${index}" data-schedule-field="temperature" value="${this._escape(
+            period.temperature
+          )}" />
+          <span>${this._scheduleTemperatureUnit()}</span>
+          <button class="period-remove" data-schedule-action="remove-period" data-day="${day}" data-index="${index}" title="Remove period" aria-label="Remove ${this._escape(
+            period.name
+          )}">×</button>
+        </div>`
+      )
+      .join("");
+    const title = `${day[0].toUpperCase()}${day.slice(1)}`;
+    return `<article class="day-card">
+      <div class="day-heading"><h3>${title}</h3><label><input type="radio" name="schedule-source-day" data-schedule-action="source-day" value="${day}" ${
+        this._scheduleSourceDay === day ? "checked" : ""
+      } /> Source</label><label><input type="checkbox" data-schedule-action="target-day" value="${day}" ${
+        this._scheduleTargetDays.has(day) ? "checked" : ""
+      } /> Apply here</label></div>
+      ${this._renderTimeline(day)}
+      <div class="period-labels"><span>Name</span><span>Time</span><span>Target</span></div>
+      ${rows || '<p class="room-empty schedule-empty">No periods yet. The previous day’s final target continues.</p>'}
+      <button class="secondary add-period" data-schedule-action="add-period" data-day="${day}" ${
+        periods.length >= MAX_PERIODS_PER_DAY ? "disabled" : ""
+      }>+ Add period</button>
+    </article>`;
+  }
+
+  _renderScheduleCopy() {
+    const schedules = this._scheduleRooms();
+    const destinationIds = Object.keys(schedules).filter(
+      (roomId) => roomId !== this._scheduleRoomId
+    );
+    const allSelected =
+      destinationIds.length > 0 &&
+      destinationIds.every((roomId) => this._scheduleCopyTargets.has(roomId));
+    const groups = this._scheduleZones()
+      .map((zone) => {
+        const targets = this._scheduleRoomIdsInZone(zone.zone_id).filter(
+          (roomId) => roomId !== this._scheduleRoomId
+        );
+        if (!targets.length) return "";
+        return `<fieldset><legend>${this._escape(zone.name)}</legend>${targets
+          .map(
+            (roomId) =>
+              `<label><input type="checkbox" data-schedule-action="copy-target" value="${this._escape(
+                roomId
+              )}" ${
+                this._scheduleCopyTargets.has(roomId) ? "checked" : ""
+              } /> ${this._escape(schedules[roomId].room_name)}</label>`
+          )
+          .join("")}</fieldset>`;
+      })
+      .join("");
+    return `<details class="copy-schedule">
+      <summary>Copy this seven-day schedule to other rooms</summary>
+      <p>This saves the current room's editor state and replaces only the schedules of the selected rooms. Their zone, Area, physical equipment and ZEAL thermostat remain unchanged.</p>
+      <button class="text-button compact" data-schedule-action="toggle-copy-targets" ${
+        destinationIds.length ? "" : "disabled"
+      }>${allSelected ? "Clear all" : "Select all"}</button>
+      <div class="copy-targets">${groups || '<span class="muted">No other schedulable rooms are available.</span>'}</div>
+      <button class="primary compact" data-schedule-action="copy-schedule" ${
+        this._scheduleCopyTargets.size && !this._scheduleSaving ? "" : "disabled"
+      }>Copy to selected rooms</button>
+    </details>`;
+  }
+
+  _scheduleTemperatureUnit() {
+    return this._configuration?.schedule?.temperature_unit || "°C";
+  }
+
+  _formatScheduleTemperature(value) {
+    return value === null || value === undefined || value === ""
+      ? "—"
+      : `${Number(value)}${this._scheduleTemperatureUnit()}`;
+  }
+
+  _timeToMinutes(value) {
+    const [hours, minutes] = String(value).split(":").map(Number);
+    return hours * 60 + minutes;
+  }
+
+  _timeFromMinutes(value) {
+    const minutes = Math.max(0, Math.min(1439, value));
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(
+      minutes % 60
+    ).padStart(2, "0")}`;
+  }
+
+  _temperatureAtStartOfDay(day) {
+    const dayIndex = WEEKDAYS.indexOf(day);
+    if (dayIndex < 0 || !this._scheduleDays) return null;
+    for (let offset = 1; offset <= WEEKDAYS.length; offset += 1) {
+      const previous =
+        this._scheduleDays[
+          WEEKDAYS[(dayIndex - offset + WEEKDAYS.length) % WEEKDAYS.length]
+        ];
+      if (!previous?.length) continue;
+      const ordered = [...previous].sort((left, right) =>
+        left.time.localeCompare(right.time)
+      );
+      return Number(ordered[ordered.length - 1].temperature);
+    }
+    return null;
+  }
+
+  _temperatureRange(periods, carryTemperature = null) {
+    const values = periods
+      .map((period) => Number(period.temperature))
+      .filter(Number.isFinite);
+    if (Number.isFinite(carryTemperature)) values.push(carryTemperature);
+    const middle = values.length
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : 20;
+    let minimum = Math.max(
+      MIN_SCHEDULE_TEMPERATURE,
+      Math.floor(Math.min(...values, middle) - 2)
+    );
+    let maximum = Math.min(
+      MAX_SCHEDULE_TEMPERATURE,
+      Math.ceil(Math.max(...values, middle) + 2)
+    );
+    if (maximum - minimum < 6) {
+      minimum = Math.max(
+        MIN_SCHEDULE_TEMPERATURE,
+        Math.min(Math.floor(middle - 3), MAX_SCHEDULE_TEMPERATURE - 6)
+      );
+      maximum = Math.min(MAX_SCHEDULE_TEMPERATURE, minimum + 6);
+    }
+    return { minimum, maximum };
+  }
+
+  _renderTimeline(day) {
+    const periods = this._scheduleDays?.[day] || [];
+    const carryTemperature = this._temperatureAtStartOfDay(day);
+    const { minimum, maximum } = this._temperatureRange(
+      periods,
+      carryTemperature
+    );
+    const ordered = periods
+      .map((period, index) => ({ period, index }))
+      .sort((left, right) => left.period.time.localeCompare(right.period.time));
+    const coordinates = ordered.map(({ period, index }) => ({
+      index,
+      x: (this._timeToMinutes(period.time) / 1440) * 100,
+      y:
+        ((maximum - Number(period.temperature)) / (maximum - minimum)) * 100,
+      temperature: Number(period.temperature),
+    }));
+    let path = "";
+    if (coordinates.length || carryTemperature !== null) {
+      const startTemperature = carryTemperature ?? coordinates[0].temperature;
+      const startY =
+        ((maximum - startTemperature) / (maximum - minimum)) * 100;
+      path = `M 0 ${startY.toFixed(2)}`;
+      for (const point of coordinates) {
+        path += ` H ${point.x.toFixed(2)} V ${point.y.toFixed(2)}`;
+      }
+      path += " H 100";
+    }
+    const points = coordinates
+      .map(
+        ({ index, x, y, temperature }) =>
+          `<button class="timeline-point" data-schedule-action="timeline-point" data-day="${day}" data-index="${index}" style="left:${x}%;top:${y}%" title="Drag to change time and target" aria-label="${this._escape(
+            day
+          )} ${this._escape(periods[index].name)}: ${this._escape(
+            periods[index].time
+          )}, ${this._formatScheduleTemperature(
+            temperature
+          )}">${this._formatScheduleTemperature(temperature)}</button>`
+      )
+      .join("");
+    const continuity =
+      carryTemperature === null
+        ? ""
+        : ` Continues from the previous scheduled day at ${this._formatScheduleTemperature(
+            carryTemperature
+          )}.`;
+    return `<div class="visual-editor"><div class="timeline-title">Visual editor <span>Drag a point: left/right changes time; up/down changes target.${continuity}</span></div><div class="timeline-shell"><div class="temperature-scale"><span>${this._formatScheduleTemperature(
+      maximum
+    )}</span><span>${this._formatScheduleTemperature(
+      Math.round((minimum + maximum) / 2)
+    )}</span><span>${this._formatScheduleTemperature(
+      minimum
+    )}</span></div><div><div class="timeline-plot" data-timeline-day="${day}" data-temp-min="${minimum}" data-temp-max="${maximum}"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${path}" /></svg>${points}</div><div class="time-scale"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div></div></div></div>`;
+  }
+
+  _addSchedulePeriod(day) {
+    const periods = this._scheduleDays[day];
+    if (periods.length >= MAX_PERIODS_PER_DAY) return;
+    const usedTimes = new Set(periods.map((period) => period.time));
+    const suggestedTimes = ["06:00", "08:00", "12:00", "16:00", "18:00", "22:00"];
+    let time = suggestedTimes.find((candidate) => !usedTimes.has(candidate));
+    if (!time) {
+      for (let minutes = 0; minutes < 1440; minutes += 15) {
+        const candidate = this._timeFromMinutes(minutes);
+        if (!usedTimes.has(candidate)) {
+          time = candidate;
+          break;
+        }
+      }
+    }
+    const number = periods.length + 1;
+    const name = `Period ${number}`;
+    periods.push({
+      id: `period-${Date.now()}-${number}`,
+      friendly_name: this._slug(name),
+      name,
+      time: time || "12:00",
+      temperature: this._temperatureAtStartOfDay(day) ?? 20,
+    });
+    this._markScheduleChanged(true);
+  }
+
+  _slug(value) {
+    return (
+      String(value)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "") || "period"
+    );
+  }
+
+  _markScheduleChanged(render = false) {
+    this._scheduleDirty = true;
+    this._notice = "";
+    this._error = "";
+    if (render) {
+      this._render();
+      return;
+    }
+    const saveButton = this.shadowRoot.querySelector(
+      '[data-schedule-action="save"]'
+    );
+    const discardButton = this.shadowRoot.querySelector(
+      '[data-schedule-action="discard"]'
+    );
+    const state = this.shadowRoot.querySelector(".schedule-save-state");
+    if (saveButton) saveButton.disabled = false;
+    if (discardButton) discardButton.disabled = false;
+    if (state) state.textContent = "Unsaved schedule changes";
+  }
+
+  _applyScheduleDays() {
+    const targets = [...this._scheduleTargetDays].filter(
+      (day) => day !== this._scheduleSourceDay
+    );
+    if (!this._scheduleSourceDay || !targets.length) {
+      this._error =
+        "Choose a Source day and tick Apply here on at least one different day.";
+      this._render();
+      return;
+    }
+    for (const day of targets) {
+      this._scheduleDays[day] = this._copy(
+        this._scheduleDays[this._scheduleSourceDay]
+      );
+    }
+    this._notice = `${
+      this._scheduleSourceDay[0].toUpperCase() + this._scheduleSourceDay.slice(1)
+    } applied to ${targets.join(", ")}. Save schedule to keep it.`;
+    this._error = "";
+    this._scheduleDirty = true;
+    this._render();
+  }
+
+  _sortedScheduleDays() {
+    const days = this._copy(this._scheduleDays);
+    for (const periods of Object.values(days)) {
+      periods.sort((left, right) => left.time.localeCompare(right.time));
+    }
+    return days;
+  }
+
+  async _saveSchedule() {
+    if (!this._scheduleDirty || this._scheduleSaving) return;
+    this._scheduleSaving = true;
+    this._error = "";
+    this._render();
+    try {
+      const configuration = await this._hass.callWS({
+        type: "zeal/update_room_days",
+        entry_id: this._entryId,
+        expected_revision: this._configuration.revision,
+        room_id: this._scheduleRoomId,
+        days: this._sortedScheduleDays(),
+      });
+      this._configuration = configuration;
+      this._draft = this._copy(configuration.zones || []);
+      this._loadScheduleRoom({ keepSelection: true });
+      this._notice = "Schedule saved and applied to the running ZEAL scheduler.";
+      this._error = "";
+    } catch (error) {
+      this._scheduleSaving = false;
+      const conflict = error?.code === "conflict" || error?.body?.code === "conflict";
+      this._error = conflict
+        ? "ZEAL changed in another browser or process. Reload before saving this schedule."
+        : this._message(error, "Schedule could not be saved.");
+    }
+    this._render();
+  }
+
+  async _copySchedule() {
+    if (!this._scheduleCopyTargets.size || this._scheduleSaving) return;
+    const schedules = this._scheduleRooms();
+    const sourceName = schedules[this._scheduleRoomId]?.room_name || "This room";
+    const targetNames = [...this._scheduleCopyTargets].map(
+      (roomId) => schedules[roomId]?.room_name || roomId
+    );
+    this._scheduleSaving = true;
+    this._render();
+    try {
+      const configuration = await this._hass.callWS({
+        type: "zeal/copy_room_schedule",
+        entry_id: this._entryId,
+        expected_revision: this._configuration.revision,
+        source_room_id: this._scheduleRoomId,
+        target_room_ids: [...this._scheduleCopyTargets],
+        source_days: this._sortedScheduleDays(),
+      });
+      this._configuration = configuration;
+      this._draft = this._copy(configuration.zones || []);
+      this._loadScheduleRoom({ keepSelection: true });
+      this._notice = `Copied ${sourceName}'s seven-day schedule to ${targetNames.join(
+        ", "
+      )}. Room configuration and thermostats were not changed.`;
+      this._error = "";
+    } catch (error) {
+      this._scheduleSaving = false;
+      const conflict = error?.code === "conflict" || error?.body?.code === "conflict";
+      this._error = conflict
+        ? "ZEAL changed in another browser or process. Reload before copying this schedule."
+        : this._message(error, "The schedule could not be copied.");
+    }
+    this._render();
+  }
+
+  _toggleScheduleCopyTargets() {
+    const destinations = Object.keys(this._scheduleRooms()).filter(
+      (roomId) => roomId !== this._scheduleRoomId
+    );
+    const allSelected =
+      destinations.length > 0 &&
+      destinations.every((roomId) => this._scheduleCopyTargets.has(roomId));
+    this._scheduleCopyTargets = allSelected ? new Set() : new Set(destinations);
+    this._render();
+  }
+
+  _onPointerDown(event) {
+    const point = event.target.closest(".timeline-point");
+    if (!point || !this._scheduleDays || this._view !== "schedule") return;
+    event.preventDefault();
+    this._scheduleSelectedPeriod = {
+      day: point.dataset.day,
+      index: Number(point.dataset.index),
+    };
+    this._drag = {
+      point,
+      day: point.dataset.day,
+      index: Number(point.dataset.index),
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+    point.setPointerCapture(event.pointerId);
+  }
+
+  _onPointerMove(event) {
+    if (!this._drag || this._drag.pointerId !== event.pointerId) return;
+    if (
+      !this._drag.moved &&
+      Math.hypot(
+        event.clientX - this._drag.startX,
+        event.clientY - this._drag.startY
+      ) < 4
+    )
+      return;
+    this._drag.moved = true;
+    this._updateDrag(event);
+  }
+
+  _onPointerUp(event) {
+    if (!this._drag || this._drag.pointerId !== event.pointerId) return;
+    if (this._drag.moved) this._updateDrag(event);
+    this._drag.point.releasePointerCapture?.(event.pointerId);
+    const moved = this._drag.moved;
+    this._drag = null;
+    if (moved) this._markScheduleChanged(true);
+  }
+
+  _updateDrag(event) {
+    const { day, index, point } = this._drag;
+    const plot = this.shadowRoot.querySelector(`[data-timeline-day="${day}"]`);
+    if (!plot) return;
+    const bounds = plot.getBoundingClientRect();
+    const horizontal = Math.max(
+      0,
+      Math.min(1, (event.clientX - bounds.left) / bounds.width)
+    );
+    const vertical = Math.max(
+      0,
+      Math.min(1, (event.clientY - bounds.top) / bounds.height)
+    );
+    const period = this._scheduleDays[day][index];
+    const minutes = Math.min(1439, Math.round((horizontal * 1440) / 15) * 15);
+    const minimum = Number(plot.dataset.tempMin);
+    const maximum = Number(plot.dataset.tempMax);
+    period.time = this._timeFromMinutes(minutes);
+    period.temperature = Math.max(
+      MIN_SCHEDULE_TEMPERATURE,
+      Math.min(
+        MAX_SCHEDULE_TEMPERATURE,
+        Math.round((maximum - vertical * (maximum - minimum)) * 2) / 2
+      )
+    );
+    point.style.left = `${(minutes / 1440) * 100}%`;
+    point.style.top = `${
+      ((maximum - period.temperature) / (maximum - minimum)) * 100
+    }%`;
+    point.textContent = this._formatScheduleTemperature(period.temperature);
+    const timeField = this.shadowRoot.querySelector(
+      `input[data-schedule-day="${day}"][data-schedule-index="${index}"][data-schedule-field="time"]`
+    );
+    const temperatureField = this.shadowRoot.querySelector(
+      `input[data-schedule-day="${day}"][data-schedule-index="${index}"][data-schedule-field="temperature"]`
+    );
+    if (timeField) timeField.value = period.time;
+    if (temperatureField) temperatureField.value = period.temperature;
   }
 
   _renderSetup() {
@@ -463,9 +1051,12 @@ class ZealPanel extends HTMLElement {
         const next = button.dataset.view;
         if (next === this._view) return;
         if (this._dirty && this._view === "setup" && !window.confirm("Discard unsaved setup changes?")) return;
+        if (this._scheduleDirty && this._view === "schedule" && !window.confirm("Discard unsaved schedule changes?")) return;
         this._view = next;
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
+        if (next === "schedule") this._loadScheduleRoom({ keepSelection: true });
+        else this._scheduleDirty = false;
         this._notice = "";
         this._error = "";
         this._render();
@@ -476,13 +1067,100 @@ class ZealPanel extends HTMLElement {
       this._initialLoad();
     });
     this.shadowRoot.querySelector('[data-action="select-entry"]')?.addEventListener("change", async (event) => {
-      if (this._dirty && !window.confirm("Discard unsaved setup changes?")) {
+      if ((this._dirty || this._scheduleDirty) && !window.confirm("Discard unsaved changes?")) {
         event.target.value = this._entryId;
         return;
       }
       this._entryId = event.target.value;
       await this._loadConfiguration();
     });
+    this.shadowRoot.querySelector('[data-schedule-action="zone"]')?.addEventListener("change", (event) => {
+      if (this._scheduleDirty && !window.confirm("Discard unsaved schedule changes?")) {
+        event.target.value = this._scheduleZoneId;
+        return;
+      }
+      this._scheduleZoneId = event.target.value;
+      this._scheduleRoomId = null;
+      this._loadScheduleRoom();
+      this._notice = "";
+      this._error = "";
+      this._render();
+    });
+    this.shadowRoot.querySelector('[data-schedule-action="room"]')?.addEventListener("change", (event) => {
+      if (this._scheduleDirty && !window.confirm("Discard unsaved schedule changes?")) {
+        event.target.value = this._scheduleRoomId;
+        return;
+      }
+      this._scheduleRoomId = event.target.value;
+      this._loadScheduleRoom({ keepSelection: true });
+      this._notice = "";
+      this._error = "";
+      this._render();
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="source-day"]').forEach((control) => {
+      control.addEventListener("change", () => {
+        this._scheduleSourceDay = control.value;
+        this._render();
+      });
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="target-day"]').forEach((control) => {
+      control.addEventListener("change", () => {
+        if (control.checked) this._scheduleTargetDays.add(control.value);
+        else this._scheduleTargetDays.delete(control.value);
+        this._render();
+      });
+    });
+    this.shadowRoot.querySelectorAll("[data-schedule-field]").forEach((control) => {
+      control.addEventListener("change", () => {
+        const period =
+          this._scheduleDays[control.dataset.scheduleDay][
+            Number(control.dataset.scheduleIndex)
+          ];
+        const field = control.dataset.scheduleField;
+        period[field] = field === "temperature" ? Number(control.value) : control.value;
+        if (field === "name") period.friendly_name = this._slug(control.value);
+        this._markScheduleChanged();
+      });
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="copy-target"]').forEach((control) => {
+      control.addEventListener("change", () => {
+        if (control.checked) this._scheduleCopyTargets.add(control.value);
+        else this._scheduleCopyTargets.delete(control.value);
+        const copyButton = this.shadowRoot.querySelector(
+          '[data-schedule-action="copy-schedule"]'
+        );
+        if (copyButton) copyButton.disabled = !this._scheduleCopyTargets.size;
+      });
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="timeline-point"]').forEach((button) => {
+      button.addEventListener("click", () => {
+        this._scheduleSelectedPeriod = {
+          day: button.dataset.day,
+          index: Number(button.dataset.index),
+        };
+        this._render();
+      });
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="add-period"]').forEach((button) => {
+      button.addEventListener("click", () => this._addSchedulePeriod(button.dataset.day));
+    });
+    this.shadowRoot.querySelectorAll('[data-schedule-action="remove-period"]').forEach((button) => {
+      button.addEventListener("click", () => {
+        this._scheduleDays[button.dataset.day].splice(Number(button.dataset.index), 1);
+        this._scheduleSelectedPeriod = null;
+        this._markScheduleChanged(true);
+      });
+    });
+    this.shadowRoot.querySelector('[data-schedule-action="apply-days"]')?.addEventListener("click", () => this._applyScheduleDays());
+    this.shadowRoot.querySelector('[data-schedule-action="toggle-copy-targets"]')?.addEventListener("click", () => this._toggleScheduleCopyTargets());
+    this.shadowRoot.querySelector('[data-schedule-action="copy-schedule"]')?.addEventListener("click", () => this._copySchedule());
+    this.shadowRoot.querySelector('[data-schedule-action="discard"]')?.addEventListener("click", () => {
+      this._loadScheduleRoom({ keepSelection: true });
+      this._notice = "";
+      this._error = "";
+      this._render();
+    });
+    this.shadowRoot.querySelector('[data-schedule-action="save"]')?.addEventListener("click", () => this._saveSchedule());
     this.shadowRoot.querySelectorAll("[data-zone-field]").forEach((control) => {
       control.addEventListener("change", () => {
         const zone = this._draft[Number(control.dataset.zone)];
@@ -648,7 +1326,7 @@ class ZealPanel extends HTMLElement {
       * { box-sizing:border-box; }
       button, input, select { font:inherit; }
       main { padding:24px 18px 110px; }
-      .shell { max-width:1180px; margin:0 auto; }
+      .shell { max-width:1500px; margin:0 auto; }
       header { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:18px; }
       .identity { display:flex; align-items:center; gap:14px; }
       .identity img { width:52px; height:52px; object-fit:contain; }
@@ -693,7 +1371,52 @@ class ZealPanel extends HTMLElement {
       .room-summary strong, .room-summary span { display:block; }
       .room-summary div > span { margin-top:3px; font-size:12px; color:var(--secondary-text-color); }
       .empty-card { padding:28px; text-align:center; }
+      .empty-card > ha-icon { color:var(--primary-color); --mdc-icon-size:42px; margin-bottom:10px; }
       .empty-card p { color:var(--secondary-text-color); }
+      .schedule-heading { align-items:flex-end; }
+      .schedule-navigation { display:flex; gap:12px; min-width:min(100%, 500px); }
+      .schedule-navigation label { flex:1; }
+      .schedule-target { display:flex; align-items:flex-start; gap:11px; margin:0 0 18px; padding:14px; border-radius:10px; background:var(--card-background-color); border:1px solid var(--divider-color); }
+      .schedule-target ha-icon { color:var(--primary-color); --mdc-icon-size:28px; }
+      .schedule-target strong, .schedule-target span, .schedule-target small { display:block; }
+      .schedule-target span { margin:3px 0; overflow-wrap:anywhere; }
+      .schedule-week { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; }
+      .day-card, .schedule-actions-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:15px; }
+      .day-heading { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+      .day-heading h3 { margin:0 auto 0 0; }
+      .day-heading label { display:flex; flex-direction:row; align-items:center; gap:4px; color:var(--secondary-text-color); font-size:12px; white-space:nowrap; }
+      .day-heading input, .copy-targets input { width:auto; min-height:auto; margin:0; }
+      .visual-editor { margin:0 0 14px; }
+      .timeline-title { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:13px; font-weight:700; }
+      .timeline-title span { color:var(--secondary-text-color); font-size:10px; font-weight:400; text-align:right; }
+      .timeline-shell { display:grid; grid-template-columns:31px 1fr; gap:6px; margin-top:8px; }
+      .temperature-scale { height:130px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; color:var(--secondary-text-color); font-size:10px; padding:1px 0; }
+      .timeline-plot { height:130px; position:relative; overflow:visible; border-left:1px solid var(--divider-color); border-bottom:1px solid var(--divider-color); background:repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--divider-color) calc(25% - 1px), var(--divider-color) 25%), repeating-linear-gradient(0deg, transparent 0, transparent calc(25% - 1px), var(--divider-color) calc(25% - 1px), var(--divider-color) 25%); }
+      .timeline-plot svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+      .timeline-plot path { fill:none; stroke:var(--primary-color); stroke-width:2; vector-effect:non-scaling-stroke; }
+      .timeline-point { position:absolute; transform:translate(-50%, -50%); z-index:1; width:34px; min-width:34px; min-height:34px; height:34px; padding:0; border:2px solid var(--card-background-color); border-radius:50%; background:var(--primary-color); color:var(--text-primary-color, white); box-shadow:0 0 0 1px var(--primary-color); font-size:10px; font-weight:700; touch-action:none; cursor:grab; }
+      .timeline-point:active { cursor:grabbing; }
+      .time-scale { display:flex; justify-content:space-between; color:var(--secondary-text-color); font-size:10px; margin-top:4px; }
+      .period-labels, .period-row { display:grid; grid-template-columns:minmax(80px,1fr) 80px 68px 14px 30px; gap:5px; align-items:center; }
+      .period-labels { color:var(--secondary-text-color); font-size:11px; margin-bottom:4px; padding:0 3px; }
+      .period-row { margin:7px 0; border-radius:6px; }
+      .period-row.selected { outline:2px solid var(--primary-color); outline-offset:2px; }
+      .period-row input { min-width:0; min-height:38px; padding:6px; }
+      .period-remove { min-width:30px; min-height:36px; padding:0; background:transparent; color:var(--error-color); font-size:23px; }
+      .add-period { width:100%; margin-top:8px; }
+      .schedule-empty { padding:12px 8px; margin:8px 0; }
+      .schedule-actions-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; margin-top:18px; }
+      .schedule-actions-card h3 { margin-bottom:4px; }
+      .schedule-actions-card p, .copy-schedule p { margin:0; color:var(--secondary-text-color); }
+      .compact { width:auto; min-height:36px; }
+      .copy-schedule { grid-column:1 / -1; padding:13px; border:1px solid var(--divider-color); border-radius:8px; }
+      .copy-schedule summary { cursor:pointer; font-weight:700; }
+      .copy-schedule > p { margin:8px 0; }
+      .copy-targets { display:flex; gap:10px 20px; flex-wrap:wrap; margin:10px 0 13px; }
+      .copy-targets fieldset { display:flex; gap:8px 14px; flex-wrap:wrap; min-width:220px; padding:8px 10px; border:1px solid var(--divider-color); border-radius:7px; }
+      .copy-targets legend { color:var(--secondary-text-color); font-size:12px; }
+      .copy-targets label { flex-direction:row; align-items:center; gap:5px; font-weight:400; }
+      .schedule-save-bar { margin-top:18px; }
       .setup-help { padding:16px; margin-bottom:16px; }
       .setup-help p { margin:5px 0 0; color:var(--secondary-text-color); }
       .setup-zones { display:grid; gap:18px; }
@@ -724,7 +1447,7 @@ class ZealPanel extends HTMLElement {
       .room-empty { padding:18px; text-align:center; color:var(--secondary-text-color); border:1px dashed var(--divider-color); border-radius:8px; }
       .save-bar { position:sticky; bottom:12px; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 14px; margin-top:18px; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.18); }
       .save-bar > div { display:flex; gap:8px; }
-      .save-state { color:var(--secondary-text-color); }
+      .save-state, .schedule-save-state { color:var(--secondary-text-color); }
       .message { border-radius:8px; padding:12px 14px; margin:0 0 16px; }
       .message.error { color:var(--error-color); background:color-mix(in srgb, var(--error-color) 10%, var(--card-background-color)); border:1px solid var(--error-color); }
       .message.success { color:var(--success-color, #2e7d32); background:color-mix(in srgb, var(--success-color, #2e7d32) 10%, var(--card-background-color)); border:1px solid var(--success-color, #2e7d32); }
@@ -737,9 +1460,12 @@ class ZealPanel extends HTMLElement {
         header, .page-heading { align-items:stretch; flex-direction:column; }
         .identity img { width:46px; height:46px; }
         .entry-picker { min-width:0; }
-        nav { display:grid; grid-template-columns:1fr 1fr; }
+        nav { display:grid; grid-template-columns:repeat(3, 1fr); }
         .tab { padding:12px 8px; }
         .summary-grid, .zone-grid, .form-grid, .equipment-grid { grid-template-columns:1fr; }
+        .schedule-navigation { min-width:0; }
+        .schedule-actions-card { grid-template-columns:1fr; }
+        .schedule-actions-card > button { width:100%; }
         .summary-grid { grid-template-columns:repeat(3, 1fr); }
         .summary-card { display:block; padding:12px; text-align:center; }
         .summary-card ha-icon { margin-bottom:6px; }
@@ -760,6 +1486,12 @@ class ZealPanel extends HTMLElement {
         .summary-card { display:flex; text-align:left; }
         .setup-zone { padding:14px; }
         .room-editor { padding:12px; }
+        .schedule-navigation { flex-direction:column; }
+        .day-card { padding:12px; }
+        .timeline-title { display:block; }
+        .timeline-title span { display:block; text-align:left; margin-top:3px; }
+        .period-labels, .period-row { grid-template-columns:minmax(72px,1fr) 76px 61px 12px 28px; gap:3px; }
+        .period-row input { padding:5px 4px; }
       }
     </style>`;
   }

@@ -1,6 +1,7 @@
 # ZEAL Panel API Architecture
 
-Status: Block 4 backend and Block 5 Overview/Setup consumers complete.
+Status: Block 4 backend, Block 5 Overview/Setup and Block 6 Schedule consumers
+complete.
 
 ## Panel boundary
 
@@ -29,6 +30,11 @@ The catalog has two non-overlapping thermostat collections:
 Temperature sensors and actuator switches also exclude ZEAL-owned entities. The
 frontend never derives ownership from a display name, and the hierarchy writer
 independently rejects a ZEAL-owned entity submitted as physical equipment.
+
+The Schedule consumer navigates the hierarchy but sends only a stable ZEAL
+room ID and validated daily lists. It names and displays the canonical ZEAL room
+thermostat for clarity; physical thermostat entity IDs never enter a schedule
+write or copy request.
 
 ## Security boundary
 
@@ -88,5 +94,5 @@ room ID/name, canonical ZEAL thermostat ID, previous/requested temperature,
 cause and outcome. They do not contain credentials, tokens, location coordinates
 or physical-TRV service payloads.
 
-The HTML panel will turn the returned export objects into browser downloads;
-the backend does not write files into Home Assistant's configuration directory.
+Block 7 will turn the returned export objects into browser downloads; the
+backend does not write files into Home Assistant's configuration directory.

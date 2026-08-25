@@ -105,6 +105,14 @@ passes 98/98.
 Acceptance: saved schedules execute exactly as displayed and remain independent
 between rooms and days.
 
+Status: complete. The admin-only Schedule page navigates the existing
+Zone/Floor and room hierarchy, edits all seven days with draggable points or
+exact fields, displays cross-midnight carry, applies one source day locally,
+and saves or copies through conflict-protected APIs. Schedules target canonical
+ZEAL room thermostats only; copying preserves every destination's identity and
+physical equipment. Desktop, tablet and mobile layouts are included. The
+complete suite passes 100/100.
+
 ## Block 7 — Quick Change, downloads and audit
 
 - Add temporary per-room, selected-room and whole-house holds.

@@ -439,3 +439,95 @@ async def test_websocket_rejects_stale_and_malformed_schedule_writes(
     response = await client.receive_json()
     assert response["success"] is False
     assert response["error"]["code"] == "conflict"
+
+
+async def test_websocket_saves_editor_days_and_copies_only_the_schedule(
+    hass, hass_ws_client
+):
+    """The Block 6 editor can save and copy without changing room identity."""
+    area, _, _, _, zone = create_registry_fixture(hass)
+    bedroom = ar.async_get(hass).async_create("Bedroom")
+    registry = er.async_get(hass)
+    bedroom_trv = registry.async_get_or_create(
+        "climate",
+        "test",
+        "bedroom_trv",
+        suggested_object_id="bedroom_trv",
+        original_name="Bedroom TRV",
+    )
+    bedroom_sensor = registry.async_get_or_create(
+        "sensor",
+        "test",
+        "bedroom_temperature",
+        suggested_object_id="bedroom_temperature",
+        original_name="Bedroom Temperature",
+        original_device_class="temperature",
+    )
+    registry.async_update_entity(bedroom_trv.entity_id, area_id=bedroom.id)
+    registry.async_update_entity(bedroom_sensor.entity_id, area_id=bedroom.id)
+    zone[ZONE_ROOMS].append(
+        {
+            ROOM_ID: bedroom.id,
+            ROOM_NAME: bedroom.name,
+            ROOM_TRVS: [bedroom_trv.entity_id],
+            ROOM_SENSORS: [bedroom_sensor.entity_id],
+            ROOM_ACTIVE: True,
+        }
+    )
+    entry = await setup_loaded_entry(hass, [zone])
+    client = await hass_ws_client()
+    snapshot = configuration_snapshot(hass, entry.entry_id)
+    edited_days = {day: [] for day in WEEKDAYS}
+    edited_days["monday"] = [
+        {
+            "id": "wake",
+            "friendly_name": "wake",
+            "name": "Wake",
+            "time": "06:15",
+            "temperature": 20.5,
+        },
+        {
+            "id": "night",
+            "friendly_name": "night",
+            "name": "Night",
+            "time": "22:45",
+            "temperature": 17,
+        },
+    ]
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/update_room_days",
+            "entry_id": entry.entry_id,
+            "expected_revision": snapshot["revision"],
+            "room_id": area.id,
+            "days": edited_days,
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    saved = response["result"]
+    assert saved["revision"] != snapshot["revision"]
+    assert saved["schedule"]["rooms"][area.id]["days"]["monday"] == edited_days["monday"]
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/copy_room_schedule",
+            "entry_id": entry.entry_id,
+            "expected_revision": saved["revision"],
+            "source_room_id": area.id,
+            "target_room_ids": [bedroom.id],
+            "source_days": edited_days,
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    copied = response["result"]
+    source_schedule = copied["schedule"]["rooms"][area.id]
+    destination_schedule = copied["schedule"]["rooms"][bedroom.id]
+    assert destination_schedule["days"] == source_schedule["days"]
+    assert destination_schedule["room_id"] == bedroom.id
+    assert destination_schedule["room_name"] == bedroom.name
+    bedroom_configuration = copied["zones"][0][ZONE_ROOMS][1]
+    assert bedroom_configuration[ROOM_TRVS] == [bedroom_trv.entity_id]
+    assert bedroom_configuration[ROOM_SENSORS] == [bedroom_sensor.entity_id]

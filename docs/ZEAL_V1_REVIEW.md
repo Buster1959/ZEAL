@@ -36,11 +36,14 @@ require `visual_climate_scheduler` at runtime.
 
 - At review, no time-based scheduler was implemented. Block 2 has since added
   the ZEAL-owned pure schedule model, engine and storage boundary. Block 3 has
-  since added canonical-room execution; UI work remains for later blocks.
+  since added canonical-room execution, and Block 6 has added the seven-day
+  visual editor.
 - No calendar-driven away mode is implemented.
-- No HTML configuration or overview panel exists yet; setup remains the native
-  Options Flow. Block 4 has added the secure backend contract for the panel.
-- No built-in configuration download or schedule-application audit exists.
+- At review, setup used the native Options Flow. Blocks 4 and 5 have since added
+  the secure panel API and HTML Overview/Setup experience, and retired the
+  multi-page Options Flow.
+- Configuration-export and bounded schedule-application audit backends now
+  exist; their panel downloads remain Block 7 work.
 - No migration/import path exists for a Visual Climate Scheduler export.
 
 ### Versions and releases
@@ -64,8 +67,9 @@ require `visual_climate_scheduler` at runtime.
   stale-reading rejection and debounced offline/recovery notifications before
   accepting the baseline.
 - Block 2 added 25 pure tests for schedule persistence/migration, selection,
-  editing, room reconciliation and overrides. Panel API, runtime execution,
-  config editing and frontend workflows still await later blocks.
+  editing, room reconciliation and overrides. Blocks 3–6 added runtime,
+  configuration/audit API, catalog separation and HTML panel contracts,
+  bringing the complete suite to 100 cases.
 
 ### HACS and repository packaging
 
