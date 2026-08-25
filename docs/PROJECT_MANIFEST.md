@@ -26,6 +26,7 @@ test installation. Block 10 performs live acceptance, version finalisation,
 release notes and the reviewable merge to `main`. PolyForm Shield remains the
 project licence during full testing; the licence decision required for a clean
 HACS validation result is deliberately deferred until testing is complete.
+The automated and live gates are tracked in `docs/V1_ACCEPTANCE_RECORD.md`.
 
 ## Validation commands
 

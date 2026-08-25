@@ -169,7 +169,8 @@ This integration isn't in the default HACS store yet. Add it as a custom reposit
 - [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) — installation, Setup,
   Schedule, Quick Change, Away, downloads and mobile use
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Live test plan](TEST_PLAN.md) and [UI acceptance tests](docs/UI_ACCEPTANCE_TESTS.md)
+- [Live test plan](TEST_PLAN.md), [UI acceptance tests](docs/UI_ACCEPTANCE_TESTS.md)
+  and [V1 acceptance record](docs/V1_ACCEPTANCE_RECORD.md)
 - [Architecture](docs/ARCHITECTURE.md) and [data model](docs/DATA_MODEL.md)
 - [Decision summary](docs/DECISIONS.md) and [V1 block plan](docs/PROJECT_PLAN.md)
 - [Internationalisation roadmap](docs/I18N_ROADMAP.md)
@@ -334,6 +335,7 @@ that instead.
 
 - Home Assistant with at least one **Area** defined (Settings → Areas & Zones) for
   each room you want to configure.
+- Celsius targets; the ZEAL V1 schedule editor and control model use °C.
 - A `switch` entity per zone to act as the heating actuator (e.g. a smart relay or
   your ASHP's zone valve control) — exactly one per zone.
 - `climate` entities (TRVs) and `sensor` entities (temperature, `device_class:

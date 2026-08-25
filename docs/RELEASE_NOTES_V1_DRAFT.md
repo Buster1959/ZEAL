@@ -26,6 +26,7 @@ acceptance plan before unattended use.
 ## Known V1 limits
 
 - Heating only; the reserved cooling fields have no runtime effect.
+- Scheduler and ZEAL panel targets use Celsius in V1.
 - The ZEAL HTML panel is English even when the Home Assistant setup flow is
   translated.
 - HACS default-store submission, the final `1.0.0` manifest and GitHub release

@@ -6,8 +6,8 @@ as-is by anyone testing this from a fresh HA install — every step names the
 exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (119 collected cases, runs in seconds)
-> second) covering the demand-calculation combination matrix directly —
+> `tests/` has an automated pytest suite (122 collected cases, runs in seconds)
+> covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
 > *can't* cover: browser rendering and interactions, real (or dummy)
 > hardware behaving as expected, and anything end-to-end. Use both —
@@ -122,8 +122,8 @@ editing required anywhere in this section.
 
 ## 3. Configure a test zone in ZEAL
 
-1. `Settings → Devices & Services → Add Integration → ZEAL` (or "ASHP Zone
-   Control" if not yet renamed). Give the instance any name and finish.
+1. `Settings → Devices & Services → Add Integration → ZEAL HVAC System`.
+   Give the instance any name and finish.
 2. Open **ZEAL** from the sidebar and select **Setup**.
 3. Select **+ Add zone** and name it `Test Zone`.
 4. Set **Heating actuator switch** to `switch.test_zone_switch` (§2.3) —
@@ -216,10 +216,10 @@ since it was all created via UI helpers/config flows.
 
 ## 7. Open items this test plan does not cover
 
-- Multiple TRVs/sensors in one room (average sensor / highest-setpoint
-  logic) — repeat §2 twice more with a second dummy TRV/sensor pair in the
-  same Area, and verify the aggregation behaves as described in the
-  project doc §3.1.
+- Multiple TRVs/sensors in one room — repeat §2 with a second dummy TRV/sensor
+  pair in the same Area. Verify sensor averaging, canonical-target propagation
+  to both TRVs and safe fallback behavior if the canonical thermostat is not
+  yet available.
 - Multiple zones sharing vs. not sharing hardware, per your actual house
   layout (single-pump-two-zones, dual-pump, hotel-per-level) — this test
   plan builds one isolated zone; a second pass with two zones and two

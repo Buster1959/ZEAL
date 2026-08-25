@@ -5,12 +5,12 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 119 collected cases against `pytest-homeassistant-custom-component`:
+Coverage: 122 collected cases against `pytest-homeassistant-custom-component`:
 39 Coordinator cases, 35 pure scheduler cases, 14 scheduler runtime/boundary
 cases, 24 configuration/audit/WebSocket cases and 6 Config Flow/HTML panel
-contract cases, plus one translation-schema case covering ten languages. Test
-code is kept under `tests/`, not shipped inside `custom_components/zeal`.
-Verified result: 119/119 passing.
+contract cases, plus one translation-schema case covering ten languages and
+three release-metadata cases. Test code is kept under `tests/`, not shipped
+inside `custom_components/zeal`. Verified result: 122/122 passing.
 
 ## Running
 
@@ -70,6 +70,8 @@ framework Home Assistant Core itself uses to test its own integrations.
   Quick Change rejection and unchanged Zone Manual Override actuator authority.
 - Complete, non-empty config-flow translation schemas for all ten shipped
   language files.
+- HACS/Home Assistant manifest identity, Hassfest key ordering and both
+  repository validation workflow contracts.
 
 ## What's NOT covered (yet)
 

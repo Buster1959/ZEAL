@@ -12,6 +12,7 @@ on it for unattended heating.
   room Area.
 - Have one Home Assistant `switch` entity for each zone's pump, relay or other
   heating actuator.
+- ZEAL V1's scheduler and setup panel use Celsius targets.
 - Disable any other scheduler, automation or blueprint that changes the same
   thermostat setpoints. Competing writers can overwrite each other.
 
