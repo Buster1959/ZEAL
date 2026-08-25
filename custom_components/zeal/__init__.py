@@ -22,8 +22,21 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 
-from .const import CONF_ZONES, DOMAIN, ROOM_ID, STORAGE_KEY_FMT, STORAGE_VERSION, ZONE_ID, ZONE_ROOMS
+from .const import (
+    CONF_ZONES,
+    DOMAIN,
+    ROOM_ID,
+    ROOM_NAME,
+    ROOM_TRVS,
+    STORAGE_KEY_FMT,
+    STORAGE_VERSION,
+    ZONE_ID,
+    ZONE_ROOMS,
+)
 from .coordinator import ZealCoordinator
+from .scheduler.rooms import reconcile_room_schedules
+from .scheduler.runtime import ScheduleRuntime
+from .scheduler.storage import ScheduleStorage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,8 +114,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = ZealCoordinator(hass, entry, store)
     await coordinator.async_setup()
 
+    schedule_storage = ScheduleStorage(hass, entry.entry_id)
+    stored_schedule = await schedule_storage.async_load()
+    configured_rooms = {
+        room[ROOM_ID]: room.get(ROOM_NAME, room[ROOM_ID])
+        for zone in coordinator.zones
+        for room in zone.get(ZONE_ROOMS, [])
+        if room.get(ROOM_TRVS)
+    }
+    schedule_configuration = reconcile_room_schedules(
+        stored_schedule, configured_rooms
+    )
+    if schedule_configuration != stored_schedule:
+        await schedule_storage.async_save(schedule_configuration)
+    schedule_runtime = ScheduleRuntime(hass, coordinator)
+
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {"store": store, "coordinator": coordinator}
+    hass.data[DOMAIN][entry.entry_id] = {
+        "store": store,
+        "coordinator": coordinator,
+        "schedule_storage": schedule_storage,
+        "schedule_runtime": schedule_runtime,
+    }
 
     # Re-run setup whenever the Options Flow saves changes, so anything
     # reading hass.data picks up the new zones/rooms immediately.
@@ -120,6 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # the override switches (switch.py) have already registered themselves
     # with the coordinator and are respected on this very first run.
     await coordinator.async_config_entry_first_refresh()
+    await schedule_runtime.async_start(schedule_configuration)
 
     # Logged here, not inside coordinator.async_setup(), specifically
     # because it needs to run *after* platforms have loaded - the banner
@@ -144,5 +178,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if data is not None:
+            await data["schedule_runtime"].async_stop()
             data["coordinator"].async_teardown()
     return unload_ok

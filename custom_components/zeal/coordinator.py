@@ -695,6 +695,33 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             )
             _LOGGER.debug("  -> %s set to %s°C", trv, temp)
 
+    async def async_set_room_target(
+        self, room_id: str, temp: float, *, source: str = "unknown"
+    ) -> bool:
+        """Set one canonical ZEAL room target, then propagate it safely.
+
+        Scheduler callers supply only a stable ZEAL room ID. Physical TRV
+        selection remains encapsulated in ``async_propagate_room_setpoint`` and
+        retains its own-entity recursion guard and safety clamp.
+        """
+        room = self._find_room(room_id)
+        thermostat = self.room_thermostats.get(room_id)
+        if room is None or thermostat is None:
+            _LOGGER.warning(
+                "Scheduler/setpoint source %s could not resolve ZEAL room %s; "
+                "the target will be retried after a Coordinator update",
+                source,
+                room_id,
+            )
+            return False
+        safe_temp = min(
+            MAX_TARGET_TEMPERATURE,
+            max(MIN_TARGET_TEMPERATURE, float(temp)),
+        )
+        thermostat.apply_target_setpoint(safe_temp, source=source)
+        await self.async_propagate_room_setpoint(room_id, safe_temp)
+        return True
+
     async def _async_handle_external_trv_change(
         self, room: dict[str, Any], entity_id: str, new_temp: Any
     ) -> None:

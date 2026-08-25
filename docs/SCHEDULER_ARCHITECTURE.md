@@ -1,6 +1,6 @@
 # ZEAL Scheduler Architecture
 
-Status: Block 2 model complete; runtime integration begins in Block 3.
+Status: Block 2 model and Block 3 runtime integration complete.
 
 ## Independence boundary
 
@@ -45,9 +45,24 @@ unknown future versions fail closed.
 - `storage.py`: the only Home Assistant-facing module in this package; adapts
   the pure document to a separate versioned `Store`.
 
-## Block 3 runtime rule
+## Runtime adapter
 
-The future runtime adapter must resolve each scheduled `room_id` through ZEAL's
-configured rooms and apply the effective target through the existing canonical
-ZEAL room thermostat/setpoint propagation path. It must never schedule or call
-a physical TRV independently.
+On config-entry startup, ZEAL loads the independent schedule Store and
+reconciles it against the current configured room IDs. New schedulable rooms get
+empty schedules, renamed rooms keep their periods, and deleted room IDs are
+removed before the reconciled document is saved.
+
+`scheduler/runtime.py` immediately restores the period that should currently be
+active, then creates one Home Assistant timer for the nearest upcoming room
+transition. At a transition it applies changed periods and arranges the next
+timer. Timers and Coordinator listeners are cancelled on unload.
+
+The runtime passes only `room_id`, temperature and cause to
+`ZealCoordinator.async_set_room_target`. The Coordinator resolves the canonical
+ZEAL room thermostat, clamps the requested temperature, updates that entity and
+then uses its existing guarded propagation path for the room's physical TRVs.
+The runtime never reads, stores, selects or calls a physical TRV entity ID.
+
+If a configured room thermostat is not currently registered, the application
+is skipped and is not marked successful. A later Coordinator update retries the
+current period; successfully applied periods are not repeated.

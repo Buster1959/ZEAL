@@ -174,9 +174,19 @@ class ZealRoomThermostat(CoordinatorEntity[ZealCoordinator], RestoreEntity, Clim
         if temp is None:
             return
         _LOGGER.debug("%s: user set target temperature to %s°C", self.entity_id, temp)
-        self._attr_target_temperature = float(temp)
+        applied = await self.coordinator.async_set_room_target(
+            self._room_id, float(temp), source="manual_thermostat_change"
+        )
+        if applied:
+            await self.coordinator.async_request_refresh()
+
+    def apply_target_setpoint(self, temp: float, *, source: str) -> None:
+        """Update the canonical room target before guarded TRV propagation."""
+        _LOGGER.debug(
+            "%s: applying %s°C from %s", self.entity_id, temp, source
+        )
+        self._attr_target_temperature = temp
         self.async_write_ha_state()
-        await self.coordinator.async_propagate_room_setpoint(self._room_id, float(temp))
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         _LOGGER.debug("%s: user set hvac_mode to %s", self.entity_id, hvac_mode)

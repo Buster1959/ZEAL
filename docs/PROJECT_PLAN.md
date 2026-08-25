@@ -51,6 +51,11 @@ suite passes 63/63.
 Acceptance: service/runtime tests prove only canonical ZEAL room targets are
 changed and existing Coordinator safety behaviour remains unchanged.
 
+Status: complete. Startup loads and reconciles the separate schedule document,
+the runtime applies active periods through stable room IDs and the Coordinator's
+canonical room-target boundary, missing room thermostats retry safely, and only
+the nearest transition is timed. The complete suite passes 73/73.
+
 ## Block 4 — Configuration and WebSocket boundary
 
 - Add validated admin-only read/write APIs for ZEAL configuration, schedules,

@@ -35,8 +35,8 @@ require `visual_climate_scheduler` at runtime.
 ### Product functionality
 
 - At review, no time-based scheduler was implemented. Block 2 has since added
-  the ZEAL-owned pure schedule model, engine and storage boundary; runtime and
-  UI work remain for later blocks.
+  the ZEAL-owned pure schedule model, engine and storage boundary. Block 3 has
+  since added canonical-room execution; UI work remains for later blocks.
 - No calendar-driven away mode is implemented.
 - No HTML configuration or overview panel exists; setup is a long native
   Options Flow.
