@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.13.2`. It is feature
+> current candidate is on `main` at manifest version `0.13.3`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -192,6 +192,10 @@ All configuration is done via the UI — no YAML.
 Return to **ZEAL → Setup** at any time to modify the configuration. Existing
 configurations created with the former multi-page flow load into this panel
 without conversion or re-entry.
+
+ZEAL is classified as a Home Assistant hub because one entry coordinates
+multiple zone devices, room thermostats, sensors and actuators. It therefore
+appears on **Settings → Devices & Services → Integrations**, not Helpers.
 
 You may add more than one ZEAL instance, for example one for a gas-boiler
 system and another for an ASHP, provided their physical entities do not overlap.

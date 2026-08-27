@@ -19,7 +19,7 @@ def test_manifest_and_hacs_identity_are_consistent() -> None:
     assert manifest["domain"] == "zeal"
     assert manifest["name"] == hacs["name"] == "ZEAL HVAC System"
     assert re.fullmatch(r"\d+\.\d+\.\d+", manifest["version"])
-    assert manifest["integration_type"] == "helper"
+    assert manifest["integration_type"] == "hub"
     assert manifest["iot_class"] == "local_push"
     assert manifest["config_flow"] is True
     assert manifest["documentation"] == "https://github.com/Buster1959/ZEAL"

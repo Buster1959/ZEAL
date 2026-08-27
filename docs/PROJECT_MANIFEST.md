@@ -6,10 +6,10 @@
 - Home Assistant domain: `zeal`
 - Integration folder: `custom_components/zeal`
 - Integration name: ZEAL HVAC System
-- Integration type: helper
+- Integration type: hub
 - Distribution target: HACS custom integration
 - Current release-candidate branch: `main`
-- Current manifest version: `0.13.2` (pre-V1)
+- Current manifest version: `0.13.3` (pre-V1)
 
 ## Independence boundary
 

@@ -6,6 +6,8 @@ version for each test.
 
 ## Navigation and access
 
+- ZEAL appears under **Settings → Devices & Services → Integrations**, not
+  Helpers, and each named config entry is visible there.
 - An administrator can open ZEAL from the sidebar and the integration's
   Configure action.
 - Clear **Show ZEAL in the Home Assistant sidebar**, save, and confirm the link

@@ -5,9 +5,9 @@
   "config_flow": true,
   "dependencies": ["http"],
   "documentation": "https://github.com/Buster1959/ZEAL",
-  "integration_type": "helper",
+  "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Buster1959/ZEAL/issues",
   "requirements": [],
-  "version": "0.13.2"
+  "version": "0.13.3"
 }

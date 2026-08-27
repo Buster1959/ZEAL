@@ -7,9 +7,9 @@ not substitute for live Home Assistant, thermostat and actuator checks.
 ## Candidate
 
 - Branch: `main`
-- Candidate commit tested: `2234fe4` before the `0.13.2` hidden-panel recovery
-  fix; record the `0.13.2` commit when repeating affected UI checks
-- Manifest version during testing: `0.13.2`
+- Candidate commit tested: `f89ed22` before the `0.13.3` integration
+  classification fix; record the `0.13.3` commit when repeating affected UI checks
+- Manifest version during testing: `0.13.3`
 - Home Assistant version: _pending_
 - Desktop browser/version: _pending_
 - Companion app/platform/version: _pending_

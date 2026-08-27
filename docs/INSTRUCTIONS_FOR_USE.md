@@ -27,7 +27,10 @@ For a manual installation, copy `custom_components/zeal` into
 
 Then open **Settings → Devices & Services → Add Integration**, search for
 **ZEAL HVAC System**, give the instance a name and finish. ZEAL appears in the
-sidebar for Home Assistant administrators.
+sidebar for Home Assistant administrators and on **Devices & Services →
+Integrations**. It is a hub integration because one entry coordinates multiple
+zone devices, room thermostats, sensors and actuators; it is not listed under
+Helpers.
 
 ## Set up zones and rooms
 
