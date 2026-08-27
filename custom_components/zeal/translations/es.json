@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Ya existe una instancia con este nombre."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Acceso al panel de ZEAL",
+        "description": "Use esta opción de recuperación cuando el panel completo de ZEAL esté oculto. Active el enlace de la barra lateral y envíe el formulario; después, abra ZEAL desde la barra lateral. La ruta directa /zeal también permanece disponible.",
+        "data": {
+          "show_in_sidebar": "Mostrar ZEAL en la barra lateral de Home Assistant"
+        }
+      }
+    }
   }
 }

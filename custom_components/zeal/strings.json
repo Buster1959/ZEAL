@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "An instance with this name already exists."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ZEAL panel access",
+        "description": "Use this recovery setting when the full ZEAL panel is hidden. Enable the sidebar link and submit, then open ZEAL from the sidebar. The direct /zeal route also remains available.",
+        "data": {
+          "show_in_sidebar": "Show ZEAL in the Home Assistant sidebar"
+        }
+      }
+    }
   }
 }

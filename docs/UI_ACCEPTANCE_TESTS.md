@@ -9,7 +9,10 @@ version for each test.
 - An administrator can open ZEAL from the sidebar and the integration's
   Configure action.
 - Clear **Show ZEAL in the Home Assistant sidebar**, save, and confirm the link
-  is hidden while **Configure** still opens ZEAL and heating remains active.
+  is hidden while ZEAL heating control remains active.
+- When the link is hidden, confirm **Configure** opens the native recovery form;
+  enable the link, submit and verify ZEAL returns to the sidebar. Confirm `/zeal`
+  also opens the full panel directly while hidden.
 - With two loaded instances, confirm the shared link remains visible if either
   instance has its sidebar option enabled.
 - Select one of two instances, use **Delete this ZEAL instance**, cancel once,

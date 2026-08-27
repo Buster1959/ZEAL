@@ -62,7 +62,7 @@ async def async_sync_panel(hass: HomeAssistant) -> None:
             sidebar_title="ZEAL" if show_in_sidebar else None,
             sidebar_icon="mdi:radiator" if show_in_sidebar else None,
             require_admin=True,
-            config_panel_domain=DOMAIN,
+            config_panel_domain=DOMAIN if show_in_sidebar else None,
         )
 
 

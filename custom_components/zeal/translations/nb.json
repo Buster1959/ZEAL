@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Det finnes allerede en forekomst med dette navnet."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tilgang til ZEAL-panelet",
+        "description": "Bruk denne gjenopprettingsinnstillingen når hele ZEAL-panelet er skjult. Aktiver sidepanellenken og send inn, og åpne deretter ZEAL fra sidepanelet. Den direkte ruten /zeal er også tilgjengelig.",
+        "data": {
+          "show_in_sidebar": "Vis ZEAL i Home Assistant-sidepanelet"
+        }
+      }
+    }
   }
 }

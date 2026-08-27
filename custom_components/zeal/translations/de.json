@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Eine Instanz mit diesem Namen ist bereits vorhanden."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zugriff auf das ZEAL-Panel",
+        "description": "Verwenden Sie diese Wiederherstellungsoption, wenn das vollständige ZEAL-Panel ausgeblendet ist. Aktivieren Sie den Seitenleistenlink und senden Sie das Formular ab. Öffnen Sie ZEAL anschließend über die Seitenleiste. Der direkte Pfad /zeal bleibt ebenfalls verfügbar.",
+        "data": {
+          "show_in_sidebar": "ZEAL in der Home-Assistant-Seitenleiste anzeigen"
+        }
+      }
+    }
   }
 }

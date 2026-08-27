@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Une instance portant ce nom existe déjà."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Accès au panneau ZEAL",
+        "description": "Utilisez ce réglage de récupération lorsque le panneau ZEAL complet est masqué. Activez le lien de la barre latérale et validez, puis ouvrez ZEAL depuis la barre latérale. L’adresse directe /zeal reste également disponible.",
+        "data": {
+          "show_in_sidebar": "Afficher ZEAL dans la barre latérale de Home Assistant"
+        }
+      }
+    }
   }
 }

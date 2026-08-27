@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Esiste già un'istanza con questo nome."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Accesso al pannello ZEAL",
+        "description": "Usa questa impostazione di ripristino quando il pannello ZEAL completo è nascosto. Abilita il collegamento nella barra laterale e invia, quindi apri ZEAL dalla barra laterale. Rimane disponibile anche il percorso diretto /zeal.",
+        "data": {
+          "show_in_sidebar": "Mostra ZEAL nella barra laterale di Home Assistant"
+        }
+      }
+    }
   }
 }

@@ -5,11 +5,12 @@ Quick Change/download and Block 8 Away consumers complete.
 
 ## Panel boundary
 
-The integration registers `/zeal` as a versioned custom Home Assistant panel
-and uses it as the integration's Configure destination. Its optional sidebar
-link is visible while any loaded ZEAL instance has `show_in_sidebar` enabled;
-the route remains registered when the link is hidden. The panel route and every
-data command require an administrator. Its Overview is
+The integration registers `/zeal` as a versioned custom Home Assistant panel.
+While its optional sidebar link is visible, it is also the integration's
+Configure destination. When every loaded instance hides the link, Home
+Assistant's Configure action opens a native recovery Options Flow that can
+restore sidebar access; the direct `/zeal` route remains registered throughout.
+The panel route and every data command require an administrator. Its Overview is
 read-only; Setup works on a browser-side copy and submits the entire hierarchy
 only when **Save setup** is selected. Existing config-entry options remain the
 source of truth, so configurations created with the retired Options Flow require

@@ -43,8 +43,9 @@ setpoint of each room's latest successful ZEAL target change.
 
 Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and
 select **Save setup** if you do not want a permanent sidebar link. ZEAL keeps
-running and remains available through **Settings → Devices & Services → ZEAL
-HVAC System → Configure**.
+running. To restore the link, open **Settings → Devices & Services → ZEAL HVAC
+System → Configure**, enable the recovery checkbox and submit. The full panel
+also remains available directly at `/zeal`.
 
 ## Build and copy schedules
 

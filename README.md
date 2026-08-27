@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.13.1`. It is feature
+> current candidate is on `main` at manifest version `0.13.2`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -207,7 +207,8 @@ The sidebar preference is saved per ZEAL instance. Because all instances share
 one ZEAL panel link, that link remains visible while any loaded instance has
 **Show ZEAL in the Home Assistant sidebar** enabled. Hiding the link does not
 disable heating control; open the panel through **Settings → Devices & Services
-→ ZEAL HVAC System → Configure**.
+→ ZEAL HVAC System → Configure**, enable the recovery checkbox and submit. You
+can also open the full panel directly at `/zeal`.
 
 ### Scheduling
 

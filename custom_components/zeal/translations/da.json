@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "En instans med dette navn findes allerede."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adgang til ZEAL-panelet",
+        "description": "Brug denne gendannelsesindstilling, når hele ZEAL-panelet er skjult. Aktivér sidepanellinket og indsend, og åbn derefter ZEAL fra sidepanelet. Den direkte rute /zeal er også tilgængelig.",
+        "data": {
+          "show_in_sidebar": "Vis ZEAL i Home Assistant-sidepanelet"
+        }
+      }
+    }
   }
 }

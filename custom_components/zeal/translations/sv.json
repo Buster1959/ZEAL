@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Det finns redan en instans med det här namnet."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Åtkomst till ZEAL-panelen",
+        "description": "Använd den här återställningsinställningen när hela ZEAL-panelen är dold. Aktivera länken i sidofältet och skicka formuläret. Öppna sedan ZEAL från sidofältet. Direktvägen /zeal är också tillgänglig.",
+        "data": {
+          "show_in_sidebar": "Visa ZEAL i Home Assistants sidofält"
+        }
+      }
+    }
   }
 }

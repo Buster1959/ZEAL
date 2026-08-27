@@ -66,6 +66,30 @@ async def test_flow_allows_separate_named_instances_and_rejects_duplicate_names(
     assert duplicate["reason"] == "already_configured"
 
 
+async def test_native_options_flow_can_restore_a_hidden_sidebar_link(hass):
+    """Home Assistant Configure can recover access when the panel is hidden."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Hidden ZEAL",
+        data={},
+        options={CONF_ZONES: [], CONF_SHOW_IN_SIDEBAR: False},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SHOW_IN_SIDEBAR: True}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        CONF_ZONES: [],
+        CONF_SHOW_IN_SIDEBAR: True,
+    }
+
+
 async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     """A fresh install immediately exposes the HTML setup surface."""
     entry = MockConfigEntry(
@@ -87,7 +111,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=8"
+        "/zeal-panel.js?v=9"
     )
 
     static_routes = {
@@ -115,7 +139,7 @@ async def test_hidden_sidebar_keeps_the_integration_configuration_panel(hass):
 
     panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
     assert panel["title"] is None
-    assert panel["config_panel_domain"] == DOMAIN
+    assert panel["config_panel_domain"] is None
 
 
 async def test_shared_sidebar_link_follows_all_loaded_instances(hass):
@@ -143,7 +167,7 @@ async def test_shared_sidebar_link_follows_all_loaded_instances(hass):
     assert await hass.config_entries.async_unload(visible.entry_id)
     panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
     assert panel["title"] is None
-    assert panel["config_panel_domain"] == DOMAIN
+    assert panel["config_panel_domain"] is None
 
     assert await hass.config_entries.async_unload(hidden.entry_id)
     assert PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {})

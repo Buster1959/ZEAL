@@ -9,7 +9,7 @@
 - Integration type: helper
 - Distribution target: HACS custom integration
 - Current release-candidate branch: `main`
-- Current manifest version: `0.13.1` (pre-V1)
+- Current manifest version: `0.13.2` (pre-V1)
 
 ## Independence boundary
 

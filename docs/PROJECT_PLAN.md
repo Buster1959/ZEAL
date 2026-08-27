@@ -166,7 +166,7 @@ contains no personal installation details.
 Status: in progress. HACS metadata, HACS/Hassfest workflows, ten setup-flow
 language files, repository/Wiki user and technical guides, release draft,
 privacy rules and UI acceptance tests are implemented. The complete automated
-suite passes 130/130 and Hassfest passes. Actual ZEAL desktop/mobile screenshots
+suite passes 131/131 and Hassfest passes. Actual ZEAL desktop/mobile screenshots
 remain a Block 9 gate and must be captured from a generic test installation.
 HACS currently rejects the existing PolyForm Shield licence because it cannot
 identify it as a supported SPDX licence. The project owner has chosen to keep

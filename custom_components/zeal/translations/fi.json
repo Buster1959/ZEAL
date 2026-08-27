@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Tällä nimellä on jo olemassa esiintymä."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ZEAL-paneelin käyttö",
+        "description": "Käytä tätä palautusasetusta, kun koko ZEAL-paneeli on piilotettu. Ota sivupalkin linkki käyttöön ja lähetä lomake. Avaa sitten ZEAL sivupalkista. Myös suora /zeal-reitti on käytettävissä.",
+        "data": {
+          "show_in_sidebar": "Näytä ZEAL Home Assistantin sivupalkissa"
+        }
+      }
+    }
   }
 }

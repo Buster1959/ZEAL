@@ -12,5 +12,16 @@
     "abort": {
       "already_configured": "Er bestaat al een instantie met deze naam."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Toegang tot het ZEAL-paneel",
+        "description": "Gebruik deze herstelinstelling wanneer het volledige ZEAL-paneel verborgen is. Schakel de zijbalkkoppeling in en verstuur het formulier. Open ZEAL daarna via de zijbalk. De directe route /zeal blijft ook beschikbaar.",
+        "data": {
+          "show_in_sidebar": "ZEAL in de Home Assistant-zijbalk tonen"
+        }
+      }
+    }
   }
 }
