@@ -167,6 +167,25 @@ This integration isn't in the default HACS store yet. Add it as a custom reposit
 - [Internationalisation roadmap](docs/I18N_ROADMAP.md)
 - [Draft V1 release notes](docs/RELEASE_NOTES_V1_DRAFT.md)
 
+## Interface tour
+
+ZEAL uses one Home Assistant panel for Setup, Schedule, Quick Change and the
+system Overview. The screenshots below are from the generic V1 test
+installation; see the [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) for
+the complete guided tour.
+
+### Zone and room setup
+
+![ZEAL Setup page showing a zone, its actuator, canonical ZEAL scheduling targets and room equipment](docs/images/zeal-zone-and-room-setup-desktop.png)
+
+### Seven-day schedule
+
+![ZEAL Schedule page showing seven independent daily visual schedules for one room](docs/images/zeal-seven-day-schedule-desktop.png)
+
+### Quick Change
+
+![ZEAL Quick Change page showing Zone and Floor room selection and temporary target controls](docs/images/zeal-quick-change-desktop.png)
+
 ## Configuration
 
 All configuration is done via the UI — no YAML.
@@ -369,7 +388,7 @@ that instead.
 | 2. Coordinator — the actual control loop (reads TRVs/sensors, drives switches, per-zone editable re-enable delay suggested from heat source to prevent short-cycling, per-zone manual override switch, single-switch-per-zone schema) | Built with automated and deterministic development-environment coverage |
 | 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
-| 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed ZEAL screenshots pending |
+| 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed desktop screenshots added, mobile captures pending |
 | 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Repository metadata and validation workflows done; default-store submission follows Block 10 |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |

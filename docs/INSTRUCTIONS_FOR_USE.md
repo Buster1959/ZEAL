@@ -39,6 +39,8 @@ heat source, then review the suggested re-enable delay. Add one or more Home
 Assistant Areas as rooms and choose the non-ZEAL physical thermostats/TRVs and
 temperature sensors in each Area. Mark unused rooms inactive and save.
 
+![ZEAL Setup page showing a Zone or Floor, its heating actuator, canonical ZEAL scheduling targets and physical room equipment](images/zeal-zone-and-room-setup-desktop.png)
+
 The physical equipment picker intentionally excludes ZEAL's own room
 thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
 heat source, delay and equipment counts. Overview also shows the local time and
@@ -62,12 +64,21 @@ The last target carries across midnight and empty days. To reuse a full week,
 expand the room-copy section and select destination rooms. Their names, Areas,
 equipment and canonical thermostats do not change.
 
+![ZEAL seven-day visual Schedule page for a selected Zone or Floor and room](images/zeal-seven-day-schedule-desktop.png)
+
+Expand **Copy this seven-day schedule to other rooms** to choose destination
+rooms without changing their equipment or identity:
+
+![ZEAL expanded room-copy controls grouped by Zone or Floor](images/zeal-copy-schedule-to-rooms-desktop.png)
+
 ## Make a temporary Quick Change
 
 Open **Quick Change**, select one room, a Zone/Floor, several rooms or the whole
 house, then choose −1°C, +1°C or an exact target. Select two hours, four hours
 or until the next schedule transition. Cancel a room's hold to return it to the
 current weekly target. The saved schedule is never edited.
+
+![ZEAL Quick Change page with room, Zone or Floor and whole-house selection](images/zeal-quick-change-desktop.png)
 
 ## Use Away mode
 
@@ -79,6 +90,11 @@ select **End Away now**; normal control resumes immediately.
 
 While Away is active, new Quick Changes are blocked. Existing holds pause and
 resume afterward only if they have not expired.
+
+The lower part of Setup keeps Away mode, safe downloads, the sidebar preference
+and selected-instance management together:
+
+![ZEAL Setup page showing Away mode, downloads, sidebar preference and selected-instance controls](images/zeal-away-downloads-and-instance-controls-desktop.png)
 
 ## Download configuration and audit trail
 

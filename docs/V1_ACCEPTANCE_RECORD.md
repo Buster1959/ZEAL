@@ -59,7 +59,8 @@ the checks affected by that change.
 - Configuration export taken at the beginning and end of the 24-hour run
 - Audit export covering the same period
 - Redacted diagnostics after the restart and unavailable-device checks
-- Generic desktop and mobile screenshots listed in `docs/images/README.md`
+- Privacy-reviewed desktop screenshots in `docs/images`; add the corresponding
+  mobile captures after Companion-app acceptance
 - Notes for any discrepancy, even when the final result is correct
 
 Do not commit real-home exports. Store them privately and add only the pass/fail
@@ -68,7 +69,8 @@ result and a non-identifying explanation to this record.
 ## Release sequence after every live gate passes
 
 1. Resolve the release licence and make HACS validation pass.
-2. Add privacy-reviewed ZEAL screenshots and update the documentation links.
+2. Add the remaining privacy-reviewed mobile screenshots and update the
+   documentation links.
 3. Change the manifest and release notes from pre-V1 to `1.0.0`.
 4. Rerun the complete suite, compilation, frontend/metadata checks, Hassfest and
    HACS validation on the exact release commit.

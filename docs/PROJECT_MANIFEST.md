@@ -21,9 +21,9 @@ other thermostat setpoint scheduler control the same thermostat entities.
 
 Blocks 0–9 are implemented and the V1 candidate has been fast-forwarded to
 `main`. Block 10 live regression testing is in progress; feedback fixes must be
-retested before version finalisation, tagging and release. Actual ZEAL
-screenshots remain a privacy-review gate and must be captured from a generic
-test installation. PolyForm Shield remains the
+retested before version finalisation, tagging and release. Privacy-reviewed
+desktop screenshots from the generic test installation are now documented;
+the mobile captures remain a release gate. PolyForm Shield remains the
 project licence during full testing; the licence decision required for a clean
 HACS validation result is deliberately deferred until testing is complete.
 The automated and live gates are tracked in `docs/V1_ACCEPTANCE_RECORD.md`.

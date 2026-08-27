@@ -1,16 +1,30 @@
 # ZEAL Documentation Screenshots
 
-Actual ZEAL desktop and mobile screenshots will be added here after capture from
-a generic test installation. Do not reuse Visual Climate Scheduler screenshots:
+This directory contains privacy-reviewed screenshots captured from a generic
+ZEAL V1 test installation. Do not reuse Visual Climate Scheduler screenshots:
 the integrations are independent and their screens describe different control
 boundaries.
 
-## Required captures
+## Current desktop captures
 
-- Desktop Overview and Setup hierarchy
-- Desktop Schedule editor
-- Desktop Quick Change and Away mode
-- Desktop Downloads section
+- `zeal-zone-and-room-setup-desktop.png` — Zone/Floor, actuator, canonical ZEAL
+  target and physical room-equipment setup
+- `zeal-away-downloads-and-instance-controls-desktop.png` — Away mode,
+  configuration/audit downloads, sidebar preference and selected-instance
+  controls
+- `zeal-seven-day-schedule-desktop.png` — complete visual week for one room
+- `zeal-copy-schedule-to-rooms-desktop.png` — expanded full-week room-copy
+  controls
+- `zeal-quick-change-desktop.png` — room, Zone/Floor and whole-house temporary
+  target selection
+
+The captures contain generic room names and entity IDs needed to explain the
+interface. They contain no person names, addresses, email addresses, IP
+addresses, credentials, tokens or precise location information.
+
+## Captures still needed
+
+- Desktop Overview
 - Mobile Overview/Setup
 - Mobile Schedule exact-entry view
 - Mobile Quick Change
