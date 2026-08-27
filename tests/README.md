@@ -5,12 +5,12 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 128 collected cases against `pytest-homeassistant-custom-component`:
+Coverage: 130 collected cases against `pytest-homeassistant-custom-component`:
 39 Coordinator cases, 35 pure scheduler cases, 14 scheduler runtime/boundary
 cases, 24 configuration/audit/WebSocket cases and 6 Config Flow/HTML panel
 contract cases, plus one translation-schema case covering ten languages and
 three release-metadata cases. Test code is kept under `tests/`, not shipped
-inside `custom_components/zeal`. Verified result: 128/128 passing.
+inside `custom_components/zeal`. Verified result: 130/130 passing.
 
 ## Running
 

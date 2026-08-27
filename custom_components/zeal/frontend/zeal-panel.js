@@ -47,6 +47,7 @@ class ZealPanel extends HTMLElement {
     this._loading = true;
     this._saving = false;
     this._dirty = false;
+    this._showInSidebar = true;
     this._scheduleZoneId = null;
     this._scheduleRoomId = null;
     this._scheduleDays = null;
@@ -139,6 +140,7 @@ class ZealPanel extends HTMLElement {
   _acceptConfiguration(configuration) {
     this._configuration = configuration;
     this._draft = this._copy(configuration.zones || []);
+    this._showInSidebar = configuration.show_in_sidebar !== false;
     this._dirty = false;
     this._loadAwayDraft();
     this._loadScheduleRoom({ keepSelection: true });
@@ -1356,6 +1358,7 @@ class ZealPanel extends HTMLElement {
       </section>
       ${this._renderAwaySettings()}
       ${this._renderDownloads()}
+      ${this._renderSidebarSetting()}
       <div class="save-bar">
         <span class="save-state">${this._dirty ? "Unsaved setup changes" : "Setup is up to date"}</span>
         <div><button class="text-button" data-action="reset" ${
@@ -1374,6 +1377,14 @@ class ZealPanel extends HTMLElement {
     }>Download configuration</button><button class="secondary" data-download-action="audit" ${
       this._downloadBusy ? "disabled" : ""
     }>Download audit trail</button></div></section>`;
+  }
+
+  _renderSidebarSetting() {
+    return `<section class="sidebar-card"><h3>Home Assistant sidebar</h3>
+      <label class="active-toggle"><input type="checkbox" data-action="sidebar-toggle" ${
+        this._showInSidebar ? "checked" : ""
+      } /><span><strong>Show ZEAL in the Home Assistant sidebar</strong><small>When hidden, open ZEAL from Settings → Devices & Services → ZEAL HVAC System → Configure. If you use multiple ZEAL instances, the shared sidebar link remains visible while any instance has this option enabled.</small></span></label>
+    </section>`;
   }
 
   _renderAwaySettings() {
@@ -1586,6 +1597,7 @@ class ZealPanel extends HTMLElement {
         this._view = next;
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
+        this._showInSidebar = this._configuration.show_in_sidebar !== false;
         this._loadAwayDraft();
         if (next === "schedule" || next === "overview") {
           await this._loadConfiguration({ preserveNotice: true });
@@ -1828,9 +1840,14 @@ class ZealPanel extends HTMLElement {
     });
     this.shadowRoot.querySelector('[data-action="reset"]')?.addEventListener("click", () => {
       this._draft = this._copy(this._configuration.zones || []);
+      this._showInSidebar = this._configuration.show_in_sidebar !== false;
       this._dirty = false;
       this._error = "";
       this._render();
+    });
+    this.shadowRoot.querySelector('[data-action="sidebar-toggle"]')?.addEventListener("change", (event) => {
+      this._showInSidebar = event.target.checked;
+      this._markChanged();
     });
     this.shadowRoot.querySelector('[data-action="save"]')?.addEventListener("click", () => this._save());
   }
@@ -1992,9 +2009,12 @@ class ZealPanel extends HTMLElement {
         entry_id: this._entryId,
         expected_revision: this._configuration.revision,
         zones: this._draft,
+        show_in_sidebar: this._showInSidebar,
       });
       this._configuration.zones = this._copy(response.zones);
       this._configuration.revision = response.revision;
+      this._configuration.show_in_sidebar = response.show_in_sidebar;
+      this._showInSidebar = response.show_in_sidebar;
       this._draft = this._copy(response.zones);
       this._dirty = false;
       this._notice = "Setup saved. ZEAL is reloading the updated configuration.";
@@ -2138,7 +2158,7 @@ class ZealPanel extends HTMLElement {
       .quick-summary { display:flex; align-items:center; gap:12px 24px; flex-wrap:wrap; margin:0 0 18px; padding:13px 15px; border-radius:10px; background:var(--secondary-background-color); color:var(--secondary-text-color); }
       .quick-summary strong { color:var(--primary-text-color); }
       .quick-zones { display:grid; gap:16px; }
-      .quick-zone, .quick-controls, .download-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:16px; }
+      .quick-zone, .quick-controls, .download-card, .sidebar-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:16px; }
       .quick-zone-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
       .quick-zone-heading h3 { margin:0 0 3px; }
       .quick-zone-heading span { color:var(--secondary-text-color); font-size:12px; }
@@ -2201,6 +2221,9 @@ class ZealPanel extends HTMLElement {
       .download-card p { margin:0 0 5px; color:var(--secondary-text-color); }
       .download-card small { display:block; }
       .download-actions { flex:none; }
+      .sidebar-card { margin-top:18px; }
+      .sidebar-card h3 { margin-bottom:5px; }
+      .sidebar-card .active-toggle { margin-bottom:0; }
       .away-settings { margin-top:18px; padding:18px; background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; }
       .away-settings-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
       .away-settings-heading h3 { margin-bottom:5px; }

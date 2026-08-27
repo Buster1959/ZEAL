@@ -5,9 +5,11 @@ Quick Change/download and Block 8 Away consumers complete.
 
 ## Panel boundary
 
-The integration registers `/zeal` as a versioned custom Home Assistant panel,
-visible in the sidebar and used as the integration's Configure destination. The
-panel route and every data command require an administrator. Its Overview is
+The integration registers `/zeal` as a versioned custom Home Assistant panel
+and uses it as the integration's Configure destination. Its optional sidebar
+link is visible while any loaded ZEAL instance has `show_in_sidebar` enabled;
+the route remains registered when the link is hidden. The panel route and every
+data command require an administrator. Its Overview is
 read-only; Setup works on a browser-side copy and submits the entire hierarchy
 only when **Save setup** is selected. Existing config-entry options remain the
 source of truth, so configurations created with the retired Options Flow require
@@ -70,8 +72,8 @@ The hierarchy writer treats browser data as untrusted. It validates:
 
 ## Conflict protection
 
-Read responses contain a deterministic `revision` derived from both saved
-hierarchy and schedule documents. Every hierarchy or schedule write must include
+Read responses contain a deterministic `revision` derived from the saved
+hierarchy, schedule document and sidebar preference. Every hierarchy or schedule write must include
 the revision it was edited from. If either document changed in another browser
 tab or after a reload, the write fails with `conflict`; the newer data is never
 overwritten.
@@ -82,8 +84,8 @@ overwritten.
 - `zeal/get_configuration`: hierarchy, schedule, Quick Change state, latest
   successful room-target applications, revision and eligible Area/entity
   catalog.
-- `zeal/save_hierarchy`: validated full hierarchy update and safe config-entry
-  reload.
+- `zeal/save_hierarchy`: validated full hierarchy/sidebar-preference update and
+  safe config-entry reload.
 - `zeal/update_room_days`: validated seven-day update for one stable room ID.
 - `zeal/copy_room_schedule`: save source editor state and copy only its daily
   periods to selected rooms.

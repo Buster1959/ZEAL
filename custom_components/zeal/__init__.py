@@ -192,6 +192,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             data["coordinator"].async_teardown()
         if not hass.data[DOMAIN]:
             await async_remove_panel(hass)
+        else:
+            await async_sync_panel(hass)
     return unload_ok
 
 

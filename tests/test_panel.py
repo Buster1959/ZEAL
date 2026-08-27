@@ -6,7 +6,12 @@ from pathlib import Path
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.zeal.const import CONF_ZONES, DOMAIN, PANEL_URL_PATH
+from custom_components.zeal.const import (
+    CONF_SHOW_IN_SIDEBAR,
+    CONF_ZONES,
+    DOMAIN,
+    PANEL_URL_PATH,
+)
 from homeassistant.components import frontend
 from homeassistant.data_entry_flow import FlowResultType
 
@@ -34,7 +39,10 @@ async def test_initial_flow_only_names_an_empty_instance(hass):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "My ZEAL"
     assert result["data"] == {}
-    assert result["options"] == {CONF_ZONES: []}
+    assert result["options"] == {
+        CONF_ZONES: [],
+        CONF_SHOW_IN_SIDEBAR: True,
+    }
 
 
 async def test_flow_allows_separate_named_instances_and_rejects_duplicate_names(hass):
@@ -75,11 +83,11 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
     assert panel["require_admin"] is True
     assert panel["config_panel_domain"] == DOMAIN
-    assert panel.get("show_in_sidebar", True) is True
+    assert panel["title"] == "ZEAL"
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=6"
+        "/zeal-panel.js?v=7"
     )
 
     static_routes = {
@@ -89,6 +97,55 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert PANEL_FILE.is_file()
 
     assert await hass.config_entries.async_unload(entry.entry_id)
+    assert PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {})
+
+
+async def test_hidden_sidebar_keeps_the_integration_configuration_panel(hass):
+    """The Configure route remains available when the sidebar link is hidden."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Hidden ZEAL",
+        data={},
+        options={CONF_ZONES: [], CONF_SHOW_IN_SIDEBAR: False},
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
+    assert panel["title"] is None
+    assert panel["config_panel_domain"] == DOMAIN
+
+
+async def test_shared_sidebar_link_follows_all_loaded_instances(hass):
+    """Any opted-in instance keeps the single shared ZEAL link visible."""
+    hidden = MockConfigEntry(
+        domain=DOMAIN,
+        title="Hidden ZEAL",
+        data={},
+        options={CONF_ZONES: [], CONF_SHOW_IN_SIDEBAR: False},
+    )
+    visible = MockConfigEntry(
+        domain=DOMAIN,
+        title="Visible ZEAL",
+        data={},
+        options={CONF_ZONES: [], CONF_SHOW_IN_SIDEBAR: True},
+    )
+    hidden.add_to_hass(hass)
+    visible.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(hidden.entry_id)
+    await hass.async_block_till_done()
+    panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
+    assert panel["title"] == "ZEAL"
+
+    assert await hass.config_entries.async_unload(visible.entry_id)
+    panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
+    assert panel["title"] is None
+    assert panel["config_panel_domain"] == DOMAIN
+
+    assert await hass.config_entries.async_unload(hidden.entry_id)
     assert PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {})
 
 
@@ -107,6 +164,10 @@ def test_frontend_contains_setup_safety_and_responsive_contracts():
     assert "Every zone needs a name" in source
     assert "Do not assign a thermostat to more than one thermostat setpoint scheduler" in source
     assert "another integration, automation, blueprint or schedule" in source
+    assert 'data-action="sidebar-toggle"' in source
+    assert "Show ZEAL in the Home Assistant sidebar" in source
+    assert "show_in_sidebar: this._showInSidebar" in source
+    assert "Settings → Devices & Services → ZEAL HVAC System → Configure" in source
     assert "@media (max-width: 760px)" in source
     assert "@media (max-width: 430px)" in source
 

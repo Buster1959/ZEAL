@@ -8,6 +8,10 @@ version for each test.
 
 - An administrator can open ZEAL from the sidebar and the integration's
   Configure action.
+- Clear **Show ZEAL in the Home Assistant sidebar**, save, and confirm the link
+  is hidden while **Configure** still opens ZEAL and heating remains active.
+- With two loaded instances, confirm the shared link remains visible if either
+  instance has its sidebar option enabled.
 - A non-administrator cannot access configuration commands.
 - Overview, Setup, Schedule and Quick Change navigation stays visible and the
   active page is clear.

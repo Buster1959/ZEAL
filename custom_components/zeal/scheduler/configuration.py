@@ -14,6 +14,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from ..const import (
+    CONF_SHOW_IN_SIDEBAR,
     CONF_ZONES,
     DEFAULT_REENABLE_DELAY,
     DOMAIN,
@@ -50,11 +51,17 @@ def _json_copy(value: Any) -> Any:
 
 
 def configuration_revision(
-    zones: list[dict[str, Any]], schedule: ScheduleConfiguration
+    zones: list[dict[str, Any]],
+    schedule: ScheduleConfiguration,
+    show_in_sidebar: bool = True,
 ) -> str:
-    """Return a stable optimistic-concurrency token for both saved documents."""
+    """Return a stable token for hierarchy, schedule and panel preference."""
     payload = json.dumps(
-        {"zones": zones, "schedule": schedule.to_dict()},
+        {
+            "zones": zones,
+            "schedule": schedule.to_dict(),
+            CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
+        },
         sort_keys=True,
         separators=(",", ":"),
         allow_nan=False,
@@ -77,6 +84,7 @@ def current_revision(hass: HomeAssistant, entry_id: str) -> str:
     return configuration_revision(
         list(entry.options.get(CONF_ZONES, [])),
         data["schedule_runtime"].configuration,
+        entry.options.get(CONF_SHOW_IN_SIDEBAR, True),
     )
 
 
@@ -88,10 +96,12 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
     data = _entry_data(hass, entry_id)
     schedule = data["schedule_runtime"].configuration
     zones = _json_copy(list(entry.options.get(CONF_ZONES, [])))
+    show_in_sidebar = entry.options.get(CONF_SHOW_IN_SIDEBAR, True)
     return {
         "entry_id": entry_id,
         "title": entry.title,
-        "revision": configuration_revision(zones, schedule),
+        "revision": configuration_revision(zones, schedule, show_in_sidebar),
+        CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
         "zones": zones,
         "schedule": schedule.to_dict(),
         "away_mode": data["schedule_runtime"].away_mode_state(),
@@ -454,6 +464,7 @@ async def async_save_hierarchy(
     raw_zones: Any,
     *,
     expected_revision: str,
+    show_in_sidebar: bool | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
     """Validate/save hierarchy, reconcile schedules, then trigger safe reload."""
     entry = hass.config_entries.async_get_entry(entry_id)
@@ -461,6 +472,13 @@ async def async_save_hierarchy(
         raise KeyError(entry_id)
     if current_revision(hass, entry_id) != expected_revision:
         raise ConfigurationConflictError("Configuration changed; reload and try again")
+    if show_in_sidebar is not None and not isinstance(show_in_sidebar, bool):
+        raise ValueError("show_in_sidebar must be true or false")
+    effective_show_in_sidebar = (
+        entry.options.get(CONF_SHOW_IN_SIDEBAR, True)
+        if show_in_sidebar is None
+        else show_in_sidebar
+    )
     zones = validate_hierarchy(hass, raw_zones)
     data = _entry_data(hass, entry_id)
     current_schedule = data["schedule_runtime"].configuration
@@ -472,5 +490,12 @@ async def async_save_hierarchy(
     }
     schedule = reconcile_room_schedules(current_schedule, configured_rooms)
     await data["schedule_storage"].async_save(schedule)
-    hass.config_entries.async_update_entry(entry, options={CONF_ZONES: zones})
-    return zones, configuration_revision(zones, schedule)
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_ZONES: zones,
+            CONF_SHOW_IN_SIDEBAR: effective_show_in_sidebar,
+        },
+    )
+    return zones, configuration_revision(zones, schedule, effective_show_in_sidebar)

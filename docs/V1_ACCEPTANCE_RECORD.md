@@ -22,7 +22,7 @@ the checks affected by that change.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Complete Python suite | Pass | 128/128 tests, 27 August 2026 |
+| Complete Python suite | Pass | 130/130 tests, 27 August 2026 |
 | Python compilation | Pass | `custom_components` and `tests` |
 | Frontend JavaScript syntax | Pass | `zeal-panel.js` parsed by Node.js |
 | JSON and workflow YAML syntax | Pass | All shipped metadata parsed |

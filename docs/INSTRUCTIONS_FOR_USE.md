@@ -41,6 +41,11 @@ thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
 heat source, delay and equipment counts. Overview also shows the local time and
 setpoint of each room's latest successful ZEAL target change.
 
+Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and
+select **Save setup** if you do not want a permanent sidebar link. ZEAL keeps
+running and remains available through **Settings → Devices & Services → ZEAL
+HVAC System → Configure**.
+
 ## Build and copy schedules
 
 Open **Schedule**, choose a Zone/Floor and room, and add up to four changes to
@@ -89,6 +94,9 @@ Use the instance selector in the ZEAL header to change which one you are
 viewing. To disable or delete only one, open **Settings → Devices & Services →
 ZEAL HVAC System**, select the named instance and use its three-dot menu.
 Deleting one instance removes only its setup, schedules and audit trail.
+The shared sidebar link remains visible while any loaded ZEAL instance has its
+sidebar option enabled; it is hidden only when every loaded instance disables
+the option.
 
 ## Mobile use
 

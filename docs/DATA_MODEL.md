@@ -6,10 +6,12 @@ and schedule history from accidentally replacing one another.
 
 ## Zone and room hierarchy
 
-Zone configuration is stored in config-entry options under `zones`.
+Zone configuration and the panel-navigation preference are stored in
+config-entry options.
 
 ```json
 {
+  "show_in_sidebar": true,
   "zones": [
     {
       "zone_id": "example-zone",
@@ -32,6 +34,11 @@ Zone configuration is stored in config-entry options under `zones`.
   ]
 }
 ```
+
+`show_in_sidebar` defaults to `true` for entries created before the preference
+was introduced. It controls only whether the shared ZEAL link appears in Home
+Assistant navigation; it does not enable or disable the integration. With
+multiple loaded instances, the link is visible if any instance requests it.
 
 `room_id` is the stable Home Assistant Area ID. One Area can belong to only one
 ZEAL zone. `ashp_capability` and `cooling_capable` are reserved safe-default V2

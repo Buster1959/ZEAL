@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from ..const import DOMAIN
+from ..const import CONF_SHOW_IN_SIDEBAR, DOMAIN
 from .configuration import (
     ConfigurationConflictError,
     async_save_away_mode,
@@ -217,6 +217,7 @@ async def ws_save_away_mode(hass, connection, msg) -> None:
         vol.Required("entry_id"): str,
         vol.Required("expected_revision"): str,
         vol.Required("zones"): list,
+        vol.Optional("show_in_sidebar"): bool,
     }
 )
 @websocket_api.async_response
@@ -230,6 +231,7 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
             msg["entry_id"],
             msg["zones"],
             expected_revision=msg["expected_revision"],
+            show_in_sidebar=msg.get("show_in_sidebar"),
         )
     except ConfigurationConflictError as err:
         connection.send_error(msg["id"], ERR_CONFLICT, str(err))
@@ -238,7 +240,15 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
         connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err))
         return
     connection.send_result(
-        msg["id"], {"entry_id": msg["entry_id"], "revision": revision, "zones": zones}
+        msg["id"],
+        {
+            "entry_id": msg["entry_id"],
+            "revision": revision,
+            "zones": zones,
+            CONF_SHOW_IN_SIDEBAR: hass.config_entries.async_get_entry(
+                msg["entry_id"]
+            ).options.get(CONF_SHOW_IN_SIDEBAR, True),
+        },
     )
 
 

@@ -184,6 +184,8 @@ All configuration is done via the UI — no YAML.
    - add Home Assistant Areas as rooms (an Area can belong to one ZEAL zone);
    - select the physical climate thermostats/TRVs and temperature sensors already
      assigned to each Area, and choose whether the room is active;
+   - leave **Show ZEAL in the Home Assistant sidebar** enabled, or clear it if
+     you prefer to open ZEAL only from the integration's **Configure** action;
    - select **Save setup**. The complete hierarchy is validated against Home
      Assistant before it is saved, and stale browser edits are rejected safely.
 
@@ -198,6 +200,12 @@ disable or remove only one, open **Settings → Devices & Services → ZEAL HVAC
 System**, choose that named instance, then use its three-dot menu. **Disable**
 stops that instance; **Delete** removes that instance and its ZEAL setup,
 schedules and audit trail without removing the others.
+
+The sidebar preference is saved per ZEAL instance. Because all instances share
+one ZEAL panel link, that link remains visible while any loaded instance has
+**Show ZEAL in the Home Assistant sidebar** enabled. Hiding the link does not
+disable heating control; open the panel through **Settings → Devices & Services
+→ ZEAL HVAC System → Configure**.
 
 ### Scheduling
 

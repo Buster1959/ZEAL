@@ -13,7 +13,7 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow
 
-from .const import CONF_ZONES, DOMAIN
+from .const import CONF_SHOW_IN_SIDEBAR, CONF_ZONES, DOMAIN
 
 
 class ZealConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -32,7 +32,7 @@ class ZealConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(
                 title=name,
                 data={},
-                options={CONF_ZONES: []},
+                options={CONF_ZONES: [], CONF_SHOW_IN_SIDEBAR: True},
             )
 
         return self.async_show_form(

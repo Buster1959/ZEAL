@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.zeal.const import (
     AUDIT_MAX_ENTRIES,
+    CONF_SHOW_IN_SIDEBAR,
     CONF_ZONES,
     DOMAIN,
     ROOM_ACTIVE,
@@ -141,6 +142,7 @@ def test_revision_is_deterministic_and_changes_with_either_document():
     assert first != configuration_revision(
         [{ZONE_ID: "one"}], schedule
     )
+    assert first != configuration_revision([], schedule, False)
 
 
 def test_valid_hierarchy_is_normalized_from_home_assistant_registries(hass):
@@ -271,6 +273,7 @@ async def test_hierarchy_save_persists_and_survives_automatic_reload(hass):
     area, _, _, _, zone = create_registry_fixture(hass)
     entry = await setup_loaded_entry(hass, [zone])
     revision = configuration_snapshot(hass, entry.entry_id)["revision"]
+    assert configuration_snapshot(hass, entry.entry_id)[CONF_SHOW_IN_SIDEBAR] is True
     edited_zone = deepcopy(zone)
     edited_zone[ZONE_NAME] = "Renamed Ground Floor"
     zones, new_revision = await async_save_hierarchy(
@@ -278,12 +281,15 @@ async def test_hierarchy_save_persists_and_survives_automatic_reload(hass):
         entry.entry_id,
         [edited_zone],
         expected_revision=revision,
+        show_in_sidebar=False,
     )
     assert zones[0][ZONE_NAME] == "Renamed Ground Floor"
     assert new_revision != revision
     await hass.async_block_till_done()
     reloaded_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert reloaded_entry.options[CONF_ZONES][0][ZONE_NAME] == "Renamed Ground Floor"
+    assert reloaded_entry.options[CONF_SHOW_IN_SIDEBAR] is False
+    assert configuration_snapshot(hass, entry.entry_id)[CONF_SHOW_IN_SIDEBAR] is False
     assert area.id in hass.data[DOMAIN][entry.entry_id][
         "schedule_runtime"
     ].configuration.rooms

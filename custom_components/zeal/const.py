@@ -8,7 +8,7 @@ DOMAIN = "zeal"
 PANEL_COMPONENT = "zeal-panel"
 PANEL_URL_PATH = DOMAIN
 PANEL_STATIC_URL = f"/{DOMAIN}_static"
-PANEL_ASSET_VERSION = "6"
+PANEL_ASSET_VERSION = "7"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
@@ -20,6 +20,7 @@ AUDIT_MAX_ENTRIES = 500
 
 # Keys used inside config_entry.options
 CONF_ZONES = "zones"
+CONF_SHOW_IN_SIDEBAR = "show_in_sidebar"
 
 # Zone dict keys. A Zone is a user-named group of Rooms (e.g. "Ground
 # Floor") with its own heating actuator switch(es) - it is NOT tied 1:1 to
