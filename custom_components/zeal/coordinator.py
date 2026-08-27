@@ -530,13 +530,25 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
 
     def _get_usable_state(self, entity_id: str):
         """Return a present, available and recently reported HA state."""
-        state = self.hass.states.get(entity_id)
-        if state is None or state.state in UNAVAILABLE_STATES:
-            return None
-        last_reported = getattr(state, "last_reported", state.last_updated)
-        if (dt_util.utcnow() - last_reported).total_seconds() > STALE_THRESHOLD_SECONDS:
-            return None
+        state, _reason = self._entity_health(entity_id)
         return state
+
+    def _entity_health(self, entity_id: str):
+        """Return the usable state and an exact reason when it is unusable."""
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None, "is missing from Home Assistant"
+        if state.state in UNAVAILABLE_STATES:
+            return None, f"is reported as {state.state} by Home Assistant"
+        last_reported = getattr(state, "last_reported", state.last_updated)
+        age_seconds = (dt_util.utcnow() - last_reported).total_seconds()
+        if age_seconds > STALE_THRESHOLD_SECONDS:
+            age_minutes = max(1, round(age_seconds / 60))
+            return (
+                None,
+                f"has not reported a state to Home Assistant for about {age_minutes} minutes",
+            )
+        return state, None
 
     def _configured_active_entities(self) -> list[tuple[str, dict[str, Any], str]]:
         """Return (entity_id, room, kind) for monitored room equipment."""
@@ -554,7 +566,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         now = dt_util.utcnow()
         for entity_id, room, kind in self._configured_active_entities():
             notification_id = f"{DOMAIN}_offline_{entity_id.replace('.', '_')}"
-            if self._get_usable_state(entity_id) is not None:
+            _state, unhealthy_reason = self._entity_health(entity_id)
+            if unhealthy_reason is None:
                 self._entity_unhealthy_since.pop(entity_id, None)
                 if entity_id in self._entity_offline_notified:
                     await self.hass.services.async_call(
@@ -601,10 +614,10 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 "create",
                 {
                     "notification_id": notification_id,
-                    "title": "ZEAL device offline",
+                    "title": "ZEAL entity health warning",
                     "message": (
                         f"{entity_id} in {room.get(ROOM_NAME, room.get(ROOM_ID, 'an unknown room'))} "
-                        f"is unavailable or stale. {coverage}"
+                        f"{unhealthy_reason}. {coverage}"
                     ),
                 },
                 blocking=True,

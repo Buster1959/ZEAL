@@ -10,11 +10,15 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    AUDIT_STORAGE_KEY_FMT,
+    AUDIT_STORAGE_VERSION,
     CONF_ZONES,
     DOMAIN,
     ROOM_ID,
     ROOM_NAME,
     ROOM_TRVS,
+    SCHEDULE_STORAGE_KEY_FMT,
+    SCHEDULE_STORAGE_VERSION,
     STORAGE_KEY_FMT,
     STORAGE_VERSION,
     ZONE_ID,
@@ -189,3 +193,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not hass.data[DOMAIN]:
             await async_remove_panel(hass)
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove only this ZEAL instance's private persisted data."""
+    for version, key_format in (
+        (STORAGE_VERSION, STORAGE_KEY_FMT),
+        (SCHEDULE_STORAGE_VERSION, SCHEDULE_STORAGE_KEY_FMT),
+        (AUDIT_STORAGE_VERSION, AUDIT_STORAGE_KEY_FMT),
+    ):
+        await Store(
+            hass,
+            version,
+            key_format.format(entry_id=entry.entry_id),
+        ).async_remove()

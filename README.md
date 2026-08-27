@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">ZEAL</h1>
-<p align="center"><em>Zoned, Efficient, Adaptive, Learning — working name, draft project pre-v1</em></p>
+<p align="center"><em>Zoned, Efficient, Adaptive, Learning — V1 release candidate</em></p>
 
 <p align="center">
   Zone-based heating control for Home Assistant — configure zones, rooms, TRVs and
@@ -11,24 +11,15 @@
   webserver, no custom card required to get started.
 </p>
 
-> **📛 Draft project, pre-v1 — nothing here is final, including the name.** The
-> GitHub repo is [`Buster1959/ZEAL`](https://github.com/Buster1959/ZEAL), and as
-> of 17 Aug 2026 the code matches too: domain `zeal`, folder
-> `custom_components/zeal`, manifest name "ZEAL HVAC System", class names
-> `Zeal*` throughout. Still a draft — any of this, naming included, may change
-> again before v1. **This rename is breaking** for any existing config entry:
+> **ZEAL V1 release candidate — live regression testing is in progress.** The
+> current candidate is on `main` at manifest version `0.13.0`. It is feature
+> complete for V1 but is not yet the production `1.0.0` release. Test with
+> dummy or spare equipment and complete the live acceptance record before
+> unattended use. The earlier rename is breaking for any old config entry:
 > Home Assistant treats the domain as part of a config entry's stored identity,
 > so an install set up under the old `ashp_zone_control` domain will not
 > automatically pick up as `zeal` — remove the old integration instance and
-> add it fresh under the new domain. Per the standing pre-v1 policy above,
-> expect this kind of breaking change until v1 is actually tagged.
-
-> **⚠️ Early development — the control loop has automated and deterministic
-> development-environment coverage, but ZEAL V1 is not complete.** Configuration
-> and the Coordinator are built. Before trusting this with real heating
-> equipment, test it against dummy/spare TRVs first — read "Before you trust this
-> with real heating" below. Don't remove your existing heating automation until
-> you've verified it against your own setup.
+> add it fresh under the new domain.
 
 ## What it does (today)
 
@@ -184,7 +175,8 @@ All configuration is done via the UI — no YAML.
    Give the integration instance a name (e.g. "ZEAL HVAC System").
 2. Open **ZEAL** from the Home Assistant sidebar (or **Configure** on the
    integration card). The admin-only **Overview** shows the current zones,
-   rooms, actuators, heat sources and equipment counts.
+   rooms, actuators, heat sources, equipment counts and each room's latest
+   successful ZEAL target change as local time and setpoint.
 3. Select **Setup**, then:
    - add a zone and give it a descriptive name (e.g. "Ground Floor");
    - select its single heating actuator switch and heat source;
@@ -199,13 +191,22 @@ Return to **ZEAL → Setup** at any time to modify the configuration. Existing
 configurations created with the former multi-page flow load into this panel
 without conversion or re-entry.
 
+You may add more than one ZEAL instance, for example one for a gas-boiler
+system and another for an ASHP, provided their physical entities do not overlap.
+The ZEAL header shows an instance selector when more than one is loaded. To
+disable or remove only one, open **Settings → Devices & Services → ZEAL HVAC
+System**, choose that named instance, then use its three-dot menu. **Disable**
+stops that instance; **Delete** removes that instance and its ZEAL setup,
+schedules and audit trail without removing the others.
+
 ### Scheduling
 
 Open **ZEAL → Schedule**, choose a Zone/Floor and room, then build each day's
 temperature changes. You can drag a point on the graph for quick 15-minute and
 0.5°C adjustments, or enter an exact time and setpoint in the fields below it.
 Each day supports up to four named changes. Select one **Source** day and one or
-more **Apply here** days to reuse a daily pattern before saving.
+more **Apply here** days to reuse a daily pattern before saving. **Select all
+days** and **Clear all days** manage every destination day except the Source.
 
 A target remains active until the next scheduled change, including across
 midnight and across an empty day. The graph shows the target carried in from the
@@ -217,6 +218,8 @@ Areas, physical equipment and ZEAL thermostat identities stay unchanged.
 Schedule edits are held in the browser until **Save schedule** is selected.
 ZEAL detects if another browser or process has saved newer data and refuses to
 overwrite it. The saved schedule is immediately handed to the running scheduler.
+Entering Schedule refreshes the authoritative configuration so every saved
+Zone/Floor remains available after a slower integration reload.
 
 ### Quick Change
 
@@ -241,11 +244,13 @@ Open **ZEAL → Setup → Away mode** and choose exactly one activation method:
   entity is `on`. A dedicated Local Calendar or holiday calendar is recommended
   so unrelated appointments cannot activate it.
 - **Start and end date/time** activates Away for one exact period. Times are
-  interpreted in Home Assistant's configured time zone; the start is included
-  and normal control resumes at the end.
+  selected in five-minute intervals and interpreted in Home Assistant's
+  configured time zone; the start is included and normal control resumes at the
+  end.
 
-Choose the global Away target (12°C by default) and save. Only active rooms are
-changed. The setting, selected source and date range are persisted in the ZEAL
+Choose the global Away target (12°C by default) and save. Away already applies
+to every active room in all zones; no separate per-zone action is required.
+The setting, selected source and date range are persisted in the ZEAL
 schedule document, included in the configuration download and reconciled when
 Home Assistant restarts.
 
@@ -356,6 +361,16 @@ that instead.
 
 ## Troubleshooting
 
+**Several “ZEAL entity health warning” notifications appeared together.** ZEAL
+now states the exact reason in each notification. `unavailable` or `unknown`
+comes directly from Home Assistant; “has not reported a state” means the
+entity's Home Assistant state is older than the one-hour stale threshold. A
+further five-minute debounce prevents brief interruptions from notifying. This
+is based on entity state reports, not battery percentage. Check the named
+entities in Developer Tools and download diagnostics before deciding whether
+the integration or device is at fault. The message also states whether another
+usable TRV or sensor still covers the room.
+
 **A room's setpoint got silently changed to 5°C or 30°C, with a WARNING in
 the log about a clamped out-of-range value.** As of version 0.11.0, ZEAL
 actively enforces a 5–30°C sane range on every setpoint before it can reach
@@ -448,8 +463,8 @@ won't have anything to auto-discover.
 
 ## Contributing
 
-Issues and pull requests welcome. This is an early-stage personal project moving
-through the milestones above in order — see the pinned issues / project board for
+Issues and pull requests welcome. This is a V1 release-candidate project moving
+through live regression and release gates — see the acceptance record for
 current status.
 
 Before opening a PR: `pip install -r requirements_test.txt && pytest tests/ -v`

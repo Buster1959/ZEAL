@@ -7,7 +7,8 @@
 Review date: 24 August 2026
 
 Source branch: `main` at `505a9ca`
-Implementation branch: `feature/v1-scheduler-html-ui`
+Historical implementation branch: `feature/v1-scheduler-html-ui` (later
+fast-forwarded to `main`; see `PROJECT_MANIFEST.md` for current status)
 
 ## Executive finding
 

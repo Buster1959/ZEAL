@@ -1,8 +1,8 @@
 # ZEAL V1 Block Plan
 
 Each block is completed, tested, documented and committed before work begins on
-the next block. V1 release work stays on `feature/v1-scheduler-html-ui` until
-the complete branch is ready for review.
+the next block. The completed V1 candidate was fast-forwarded to `main`; live
+regression fixes are prepared on short-lived branches and retested before merge.
 
 ## Block 0 — Repository review and architecture boundary
 
@@ -166,7 +166,7 @@ contains no personal installation details.
 Status: in progress. HACS metadata, HACS/Hassfest workflows, ten setup-flow
 language files, repository/Wiki user and technical guides, release draft,
 privacy rules and UI acceptance tests are implemented. The complete automated
-suite passes 122/122 and Hassfest passes. Actual ZEAL desktop/mobile screenshots
+suite passes 128/128 and Hassfest passes. Actual ZEAL desktop/mobile screenshots
 remain a Block 9 gate and must be captured from a generic test installation.
 HACS currently rejects the existing PolyForm Shield licence because it cannot
 identify it as a supported SPDX licence. The project owner has chosen to keep
@@ -183,8 +183,10 @@ not an application-code failure.
 
 Acceptance: all gates pass and no required V1 work remains.
 
-Status: in progress. Automated tests, compilation, frontend syntax, JSON/YAML,
-repository hygiene and release-metadata contracts pass. The live acceptance
-matrix is recorded in `docs/V1_ACCEPTANCE_RECORD.md`. Manifest `1.0.0`, merge,
-tag, GitHub release and HACS submission remain gated on the pending live checks,
-screenshots and deferred licence decision.
+Status: in progress on `main`. Automated tests, compilation, frontend syntax,
+JSON/YAML, repository hygiene and release-metadata contracts passed for the
+initial candidate. The live acceptance matrix is recorded in
+`docs/V1_ACCEPTANCE_RECORD.md`; regression feedback is being fixed and affected
+checks will be repeated. Manifest `1.0.0`, tag, GitHub release and HACS
+submission remain gated on the pending live checks, screenshots and deferred
+licence decision.

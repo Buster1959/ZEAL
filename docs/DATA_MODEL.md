@@ -69,6 +69,10 @@ room-target outcomes. Each record contains timestamp, stable room identity,
 canonical entity ID, previous and requested temperatures, cause and outcome.
 It contains no credentials or Home Assistant tokens.
 
+The configuration snapshot exposes the newest successful audit record for each
+room as `last_changes`; this is a derived Overview view, not a fourth persisted
+document.
+
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
 information.

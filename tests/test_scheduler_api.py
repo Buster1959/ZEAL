@@ -316,6 +316,31 @@ async def test_audit_load_record_export_and_retention():
     assert last["room_id"] == "living_room"
     assert last["requested_temperature"] == 20.0
     assert len(store.data["entries"]) == AUDIT_MAX_ENTRIES
+    assert audit.latest_applied_by_room()["living_room"] == last
+
+
+async def test_audit_latest_change_ignores_failed_attempts():
+    store = MemoryStore()
+    audit = AuditLog(None, "entry", store=store)
+    await audit.async_load()
+    for minute, temperature, outcome in (
+        (0, 19, "applied"),
+        (5, 21, "skipped_unavailable"),
+        (10, 20, "applied"),
+    ):
+        await audit.async_record(
+            timestamp=datetime(2026, 8, 24, 7, minute, tzinfo=timezone.utc),
+            room_id="living_room",
+            room_name="Living Room",
+            canonical_entity_id="climate.zeal_living_room",
+            previous_temperature=18,
+            requested_temperature=temperature,
+            cause="scheduled_transition",
+            outcome=outcome,
+        )
+    latest = audit.latest_applied_by_room()["living_room"]
+    assert latest["timestamp"] == "2026-08-24T07:10:00+00:00"
+    assert latest["requested_temperature"] == 20.0
 
 
 async def test_audit_records_survive_a_fresh_runtime_instance():
@@ -516,16 +541,30 @@ async def test_websocket_saves_editor_days_and_copies_only_the_schedule(
     )
     registry.async_update_entity(bedroom_trv.entity_id, area_id=bedroom.id)
     registry.async_update_entity(bedroom_sensor.entity_id, area_id=bedroom.id)
-    zone[ZONE_ROOMS].append(
-        {
-            ROOM_ID: bedroom.id,
-            ROOM_NAME: bedroom.name,
-            ROOM_TRVS: [bedroom_trv.entity_id],
-            ROOM_SENSORS: [bedroom_sensor.entity_id],
-            ROOM_ACTIVE: True,
-        }
+    bedroom_switch = registry.async_get_or_create(
+        "switch",
+        "test",
+        "bedroom_heating_switch",
+        suggested_object_id="bedroom_heating_switch",
+        original_name="Bedroom Heating Switch",
     )
-    entry = await setup_loaded_entry(hass, [zone])
+    second_zone = {
+        ZONE_ID: "first_floor",
+        ZONE_NAME: "First Floor",
+        ZONE_SWITCH: bedroom_switch.entity_id,
+        "heat_source": "ashp",
+        "reenable_delay": 300,
+        ZONE_ROOMS: [
+            {
+                ROOM_ID: bedroom.id,
+                ROOM_NAME: bedroom.name,
+                ROOM_TRVS: [bedroom_trv.entity_id],
+                ROOM_SENSORS: [bedroom_sensor.entity_id],
+                ROOM_ACTIVE: True,
+            }
+        ],
+    }
+    entry = await setup_loaded_entry(hass, [zone, second_zone])
     client = await hass_ws_client()
     snapshot = configuration_snapshot(hass, entry.entry_id)
     edited_days = {day: [] for day in WEEKDAYS}
@@ -560,6 +599,11 @@ async def test_websocket_saves_editor_days_and_copies_only_the_schedule(
     saved = response["result"]
     assert saved["revision"] != snapshot["revision"]
     assert saved["schedule"]["rooms"][area.id]["days"]["monday"] == edited_days["monday"]
+    assert [saved_zone[ZONE_ID] for saved_zone in saved["zones"]] == [
+        "ground_floor",
+        "first_floor",
+    ]
+    assert set(saved["schedule"]["rooms"]) == {area.id, bedroom.id}
 
     await client.send_json_auto_id(
         {
@@ -579,7 +623,7 @@ async def test_websocket_saves_editor_days_and_copies_only_the_schedule(
     assert destination_schedule["days"] == source_schedule["days"]
     assert destination_schedule["room_id"] == bedroom.id
     assert destination_schedule["room_name"] == bedroom.name
-    bedroom_configuration = copied["zones"][0][ZONE_ROOMS][1]
+    bedroom_configuration = copied["zones"][1][ZONE_ROOMS][0]
     assert bedroom_configuration[ROOM_TRVS] == [bedroom_trv.entity_id]
     assert bedroom_configuration[ROOM_SENSORS] == [bedroom_sensor.entity_id]
 
@@ -669,6 +713,13 @@ async def test_websocket_saves_calendar_and_date_range_away_modes_across_reload(
             "calendar_entity_id": None,
             "starts_at": "2026-08-26T10:00:00+00:00",
             "ends_at": "2026-08-25T10:00:00+00:00",
+            "temperature": 12,
+        },
+        {
+            "mode": "date_range",
+            "calendar_entity_id": None,
+            "starts_at": "2026-08-26T10:03:00+00:00",
+            "ends_at": "2026-08-26T11:00:00+00:00",
             "temperature": 12,
         },
         {

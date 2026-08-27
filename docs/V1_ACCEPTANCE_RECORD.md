@@ -6,8 +6,9 @@ not substitute for live Home Assistant, thermostat and actuator checks.
 
 ## Candidate
 
-- Branch: `feature/v1-scheduler-html-ui`
-- Candidate commit tested: _record immediately before live testing_
+- Branch: `main` (feedback fixes are prepared on `fix/regression-feedback`)
+- Candidate commit tested: `77494f6` before this feedback round; replace with
+  the feedback-fix commit before repeating affected checks
 - Manifest version during testing: `0.13.0`
 - Home Assistant version: _pending_
 - Desktop browser/version: _pending_
@@ -21,7 +22,7 @@ the checks affected by that change.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Complete Python suite | Pass | 122/122 tests, 25 August 2026 |
+| Complete Python suite | Pass | 128/128 tests, 27 August 2026 |
 | Python compilation | Pass | `custom_components` and `tests` |
 | Frontend JavaScript syntax | Pass | `zeal-panel.js` parsed by Node.js |
 | JSON and workflow YAML syntax | Pass | All shipped metadata parsed |

@@ -38,14 +38,16 @@ temperature sensors in each Area. Mark unused rooms inactive and save.
 
 The physical equipment picker intentionally excludes ZEAL's own room
 thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
-heat source, delay and equipment counts.
+heat source, delay and equipment counts. Overview also shows the local time and
+setpoint of each room's latest successful ZEAL target change.
 
 ## Build and copy schedules
 
 Open **Schedule**, choose a Zone/Floor and room, and add up to four changes to
 each day. Drag graph points for quick changes or enter the exact time and target
 below the graph. Select one Source day and any Apply-here days to copy a daily
-pattern before saving.
+pattern before saving. Use **Select all days** or **Clear all days** for every
+destination except the Source.
 
 The last target carries across midnight and empty days. To reuse a full week,
 expand the room-copy section and select destination rooms. Their names, Areas,
@@ -61,9 +63,10 @@ current weekly target. The saved schedule is never edited.
 ## Use Away mode
 
 Open **Setup → Away mode** and select Off, a dedicated Home Assistant Calendar,
-or one exact start/end period. Choose the global Away target and save. Only
-active rooms are changed. If you return early, select **End Away now**; normal
-control resumes immediately.
+or one exact start/end period. Manual date/time choices use five-minute
+intervals. Choose the global Away target and save. Away applies to every active
+room in all zones; no separate zone selection is needed. If you return early,
+select **End Away now**; normal control resumes immediately.
 
 While Away is active, new Quick Changes are blocked. Existing holds pause and
 resume afterward only if they have not expired.
@@ -77,6 +80,15 @@ recent target attempts and outcomes.
 
 Exports contain room/zone names and entity IDs, but no credentials or tokens.
 Review them before sharing if your naming reveals personal information.
+
+## Multiple ZEAL instances
+
+Separate named ZEAL instances can control separate heating systems on one Home
+Assistant machine. Their thermostats, sensors and actuators must not overlap.
+Use the instance selector in the ZEAL header to change which one you are
+viewing. To disable or delete only one, open **Settings → Devices & Services →
+ZEAL HVAC System**, select the named instance and use its three-dot menu.
+Deleting one instance removes only its setup, schedules and audit trail.
 
 ## Mobile use
 

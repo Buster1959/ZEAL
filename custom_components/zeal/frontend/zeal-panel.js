@@ -215,6 +215,7 @@ class ZealPanel extends HTMLElement {
                 ? this._renderQuickChange()
               : this._renderOverview()
         }
+        ${this._warning()}
       </div>`;
   }
 
@@ -349,9 +350,9 @@ class ZealPanel extends HTMLElement {
     return `
       <section class="page-heading">
         <div><h2>System overview</h2><p>Heating zones and the Home Assistant equipment ZEAL controls.</p></div>
-        <button class="primary" data-view="setup">${zones.length ? "Modify setup" : "Start setup"}</button>
+        <div><button class="secondary" data-action="refresh-configuration">Refresh</button>
+        <button class="primary" data-view="setup">${zones.length ? "Modify setup" : "Start setup"}</button></div>
       </section>
-      ${this._warning()}
       <section class="summary-grid" aria-label="Configuration summary">
         ${this._summaryCard("Heating zones", zones.length, "mdi:radiator")}
         ${this._summaryCard("Active rooms", activeRooms, "mdi:home-thermometer")}
@@ -396,6 +397,12 @@ class ZealPanel extends HTMLElement {
 
   _overviewRoom(room) {
     const zealThermostat = this._zealThermostat(room.room_id);
+    const lastChange = this._configuration?.last_changes?.[room.room_id];
+    const lastChangeText = lastChange
+      ? `Last change ${this._formatChangeTime(lastChange.timestamp)} · Setpoint ${this._formatScheduleTemperature(
+          lastChange.requested_temperature
+        )}`
+      : "No ZEAL target change recorded yet";
     return `<div class="room-summary">
       <div><strong>${this._escape(room.name || this._areaName(room.room_id))}</strong><span>${this._escape(
         this._areaName(room.room_id)
@@ -403,7 +410,7 @@ class ZealPanel extends HTMLElement {
         (room.sensors || []).length
       } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span><span>ZEAL target: ${this._escape(
         zealThermostat ? this._entityLabel(zealThermostat) : "Not created"
-      )}</span></div>
+      )}</span><span>${this._escape(lastChangeText)}</span></div>
       <span class="state ${room.active === false ? "inactive" : ""}">${
         room.active === false ? "Inactive" : "Active"
       }</span>
@@ -471,6 +478,17 @@ class ZealPanel extends HTMLElement {
     });
   }
 
+  _formatChangeTime(value) {
+    if (!value) return "unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleTimeString([], {
+      timeZone: this._hass?.config?.time_zone,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
   _renderQuickChange() {
     if (this._quickLoading) {
       return `<div class="center-state quick-loading"><div class="spinner"></div><p>Refreshing current targets…</p></div>`;
@@ -513,7 +531,6 @@ class ZealPanel extends HTMLElement {
           wholeHouseSelected ? "Clear selection" : "Select whole house"
         }</button></div>
       </section>
-      ${this._warning()}
       ${
         awayActive
           ? `<section class="away-quick-notice"><strong>Away mode controls room targets now</strong><p>Quick Change is paused while active rooms use ${this._escape(
@@ -833,13 +850,15 @@ class ZealPanel extends HTMLElement {
           <label>Room<select data-schedule-action="room">${roomOptions}</select></label>
         </div>
       </section>
-      ${this._warning()}
       <section class="schedule-target"><ha-icon icon="mdi:thermostat"></ha-icon><div><strong>ZEAL scheduling target</strong><span>${this._escape(
         thermostat ? this._entityLabel(thermostat) : "Canonical ZEAL room thermostat is unavailable"
       )}</span><small>The schedule changes this ZEAL thermostat only. ZEAL then applies its safe canonical target to the room's physical thermostats.</small></div></section>
       <section class="schedule-week">${WEEKDAYS.map((day) => this._renderScheduleDay(day)).join("")}</section>
       <section class="schedule-actions-card">
         <div><h3>Apply a day</h3><p>Choose one Source day, tick Apply here on the destination days, then apply. Save when the week is ready.</p></div>
+        <button class="text-button compact" data-schedule-action="toggle-target-days">${WEEKDAYS.filter(
+          (day) => day !== this._scheduleSourceDay
+        ).every((day) => this._scheduleTargetDays.has(day)) ? "Clear all days" : "Select all days"}</button>
         <button class="secondary compact" data-schedule-action="apply-days">Apply to selected days</button>
         ${this._renderScheduleCopy()}
       </section>
@@ -887,7 +906,7 @@ class ZealPanel extends HTMLElement {
         this._scheduleSourceDay === day ? "checked" : ""
       } /> Source</label><label><input type="checkbox" data-schedule-action="target-day" value="${day}" ${
         this._scheduleTargetDays.has(day) ? "checked" : ""
-      } /> Apply here</label></div>
+      } ${this._scheduleSourceDay === day ? "disabled" : ""} /> Apply here</label></div>
       ${this._renderTimeline(day)}
       <div class="period-labels"><span>Name</span><span>Time</span><span>Target</span></div>
       ${rows || '<p class="room-empty schedule-empty">No periods yet. The previous day’s final target continues.</p>'}
@@ -1136,6 +1155,13 @@ class ZealPanel extends HTMLElement {
     this._render();
   }
 
+  _toggleScheduleTargetDays() {
+    const destinations = WEEKDAYS.filter((day) => day !== this._scheduleSourceDay);
+    const allSelected = destinations.every((day) => this._scheduleTargetDays.has(day));
+    this._scheduleTargetDays = allSelected ? new Set() : new Set(destinations);
+    this._render();
+  }
+
   _sortedScheduleDays() {
     const days = this._copy(this._scheduleDays);
     for (const periods of Object.values(days)) {
@@ -1313,7 +1339,6 @@ class ZealPanel extends HTMLElement {
         <div><h2>Setup</h2><p>Build each heating zone from Home Assistant Areas and their equipment.</p></div>
         <button class="secondary" data-action="add-zone">+ Add zone</button>
       </section>
-      ${this._warning()}
       <section class="setup-help">
         <strong>Before you begin</strong>
         <p>Create and assign your Areas, physical climate entities, temperature sensors and actuator switches in Home Assistant first. An Area can belong to one ZEAL zone only.</p>
@@ -1355,7 +1380,7 @@ class ZealPanel extends HTMLElement {
     const calendars = this._configuration?.catalog?.calendars || [];
     const saved = this._configuration?.away_mode || {};
     return `<section class="away-settings">
-      <div class="away-settings-heading"><div><h3>Away mode</h3><p>Temporarily use one global target for every active room without changing weekly schedules.</p></div><span class="state ${saved.active ? "away-active" : ""}">${this._escape(
+      <div class="away-settings-heading"><div><h3>Away mode</h3><p>Temporarily use one global target for every active room in all zones without changing weekly schedules.</p></div><span class="state ${saved.active ? "away-active" : ""}">${this._escape(
         this._awayStatusText(saved)
       )}</span></div>
       <fieldset class="away-source"><legend>How should Away mode activate?</legend>
@@ -1388,11 +1413,11 @@ class ZealPanel extends HTMLElement {
         }
         ${
           this._awayMode === "date_range"
-            ? `<label>Away starts<input type="datetime-local" data-away-field="starts_at" value="${this._escape(
+            ? `<label>Away starts<input type="datetime-local" step="300" data-away-field="starts_at" value="${this._escape(
                 this._awayStartsAt
-              )}" /></label><label>Away ends<input type="datetime-local" data-away-field="ends_at" value="${this._escape(
+              )}" /></label><label>Away ends<input type="datetime-local" step="300" data-away-field="ends_at" value="${this._escape(
                 this._awayEndsAt
-              )}" /><small>The start is included; the end is the moment normal control resumes.</small></label>`
+              )}" /><small>Times use five-minute intervals. The start is included; the end is the moment normal control resumes.</small></label>`
             : ""
         }
         <label>Away target (${this._scheduleTemperatureUnit()})<input type="number" min="${MIN_SCHEDULE_TEMPERATURE}" max="${MAX_SCHEDULE_TEMPERATURE}" step="0.5" data-away-field="temperature" value="${this._escape(
@@ -1562,8 +1587,11 @@ class ZealPanel extends HTMLElement {
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
         this._loadAwayDraft();
-        if (next === "schedule") this._loadScheduleRoom({ keepSelection: true });
-        else this._scheduleDirty = false;
+        if (next === "schedule" || next === "overview") {
+          await this._loadConfiguration({ preserveNotice: true });
+          return;
+        }
+        this._scheduleDirty = false;
         this._notice = "";
         this._error = "";
         if (next === "quick") {
@@ -1577,6 +1605,7 @@ class ZealPanel extends HTMLElement {
       this._started = false;
       this._initialLoad();
     });
+    this.shadowRoot.querySelector('[data-action="refresh-configuration"]')?.addEventListener("click", () => this._loadConfiguration({ preserveNotice: true }));
     this.shadowRoot.querySelector('[data-action="select-entry"]')?.addEventListener("change", async (event) => {
       if ((this._dirty || this._scheduleDirty || this._awayDirty) && !window.confirm("Discard unsaved changes?")) {
         event.target.value = this._entryId;
@@ -1611,6 +1640,7 @@ class ZealPanel extends HTMLElement {
     this.shadowRoot.querySelectorAll('[data-schedule-action="source-day"]').forEach((control) => {
       control.addEventListener("change", () => {
         this._scheduleSourceDay = control.value;
+        this._scheduleTargetDays.delete(control.value);
         this._render();
       });
     });
@@ -1621,6 +1651,7 @@ class ZealPanel extends HTMLElement {
         this._render();
       });
     });
+    this.shadowRoot.querySelector('[data-schedule-action="toggle-target-days"]')?.addEventListener("click", () => this._toggleScheduleTargetDays());
     this.shadowRoot.querySelectorAll("[data-schedule-field]").forEach((control) => {
       control.addEventListener("change", () => {
         const period =
@@ -1979,7 +2010,7 @@ class ZealPanel extends HTMLElement {
   }
 
   async _reloadAfterSave(expectedRevision) {
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 350));
       try {
         const configuration = await this._hass.callWS({

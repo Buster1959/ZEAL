@@ -8,7 +8,7 @@
 - Integration name: ZEAL HVAC System
 - Integration type: helper
 - Distribution target: HACS custom integration
-- Current development branch: `feature/v1-scheduler-html-ui`
+- Current release-candidate branch: `main`
 - Current manifest version: `0.13.0` (pre-V1)
 
 ## Independence boundary
@@ -19,11 +19,11 @@ other thermostat setpoint scheduler control the same thermostat entities.
 
 ## V1 status
 
-Blocks 0–8 are implemented. Block 9 adds HACS metadata, validation workflows,
-setup-flow translations and aligned repository/Wiki documentation. Actual ZEAL
+Blocks 0–9 are implemented and the V1 candidate has been fast-forwarded to
+`main`. Block 10 live regression testing is in progress; feedback fixes must be
+retested before version finalisation, tagging and release. Actual ZEAL
 screenshots remain a privacy-review gate and must be captured from a generic
-test installation. Block 10 performs live acceptance, version finalisation,
-release notes and the reviewable merge to `main`. PolyForm Shield remains the
+test installation. PolyForm Shield remains the
 project licence during full testing; the licence decision required for a clean
 HACS validation result is deliberately deferred until testing is complete.
 The automated and live gates are tracked in `docs/V1_ACCEPTANCE_RECORD.md`.

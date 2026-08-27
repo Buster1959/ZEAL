@@ -45,6 +45,23 @@ leaves the actuator untouched. Also check the re-enable delay, room active
 state, usable sensor readings and whether every physical TRV is confirmed
 closed.
 
+## ZEAL reports an entity health warning
+
+Read the exact reason in the notification. A state of `unavailable` or
+`unknown` is reported by Home Assistant. “Has not reported a state” means the
+entity's Home Assistant `last_reported` time passed ZEAL's one-hour stale
+threshold and then remained unhealthy through the five-minute notification
+debounce. Check that entity in Developer Tools and download diagnostics. The
+notification also says whether another usable TRV or sensor still covers the
+room, and it dismisses automatically after a fresh usable state arrives.
+
+## One Zone/Floor temporarily disappears from Schedule
+
+Update to the current candidate. Entering Schedule now refreshes the complete
+saved configuration, and Setup waits longer for a slow config-entry reload.
+If it happens again, do not recreate the zone: reload the ZEAL page and attach
+redacted diagnostics with the exact save sequence to the issue report.
+
 ## Enable diagnostic logging
 
 Use **Settings → Devices & Services → ZEAL HVAC System → Enable debug logging**

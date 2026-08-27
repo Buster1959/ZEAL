@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+import custom_components.zeal as zeal_integration
 from custom_components.zeal.const import (
     CONF_ZONES,
     DOMAIN,
@@ -613,3 +614,29 @@ async def test_config_entry_setup_and_unload_own_scheduler_runtime(hass):
     assert await hass.config_entries.async_unload(entry.entry_id) is True
     await hass.async_block_till_done()
     assert entry.entry_id not in hass.data.get(DOMAIN, {})
+
+
+async def test_remove_entry_deletes_only_that_instances_private_stores(
+    hass, monkeypatch
+):
+    removed: list[tuple[int, str]] = []
+
+    class RemovingStore:
+        def __init__(self, _hass, version, key):
+            self.version = version
+            self.key = key
+
+        async def async_remove(self):
+            removed.append((self.version, self.key))
+
+    monkeypatch.setattr(zeal_integration, "Store", RemovingStore)
+    entry = MockConfigEntry(domain=DOMAIN, title="Boiler ZEAL", data={}, options={})
+
+    await zeal_integration.async_remove_entry(hass, entry)
+
+    assert removed == [
+        (1, f"zeal_{entry.entry_id}"),
+        (1, f"zeal.scheduler.{entry.entry_id}"),
+        (1, f"zeal.audit.{entry.entry_id}"),
+    ]
+    assert all("another-entry" not in key for _version, key in removed)

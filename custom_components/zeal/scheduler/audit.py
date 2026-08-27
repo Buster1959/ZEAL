@@ -82,3 +82,17 @@ class AuditLog:
             "maximum_entries": AUDIT_MAX_ENTRIES,
             "entries": [dict(entry) for entry in self._entries],
         }
+
+    def latest_applied_by_room(self) -> dict[str, dict[str, object]]:
+        """Return the newest successful target application for each room."""
+        latest: dict[str, dict[str, object]] = {}
+        for entry in reversed(self._entries):
+            room_id = entry.get("room_id")
+            if (
+                entry.get("outcome") != "applied"
+                or not isinstance(room_id, str)
+                or room_id in latest
+            ):
+                continue
+            latest[room_id] = dict(entry)
+        return latest

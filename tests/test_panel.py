@@ -37,6 +37,27 @@ async def test_initial_flow_only_names_an_empty_instance(hass):
     assert result["options"] == {CONF_ZONES: []}
 
 
+async def test_flow_allows_separate_named_instances_and_rejects_duplicate_names(hass):
+    """A boiler and ASHP can have independent entries on one HA machine."""
+    for name in ("Boiler ZEAL", "ASHP ZEAL"):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"name": name}
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    duplicate = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    duplicate = await hass.config_entries.flow.async_configure(
+        duplicate["flow_id"], {"name": "boiler zeal"}
+    )
+    assert duplicate["type"] is FlowResultType.ABORT
+    assert duplicate["reason"] == "already_configured"
+
+
 async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     """A fresh install immediately exposes the HTML setup surface."""
     entry = MockConfigEntry(
@@ -50,15 +71,15 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert frontend.async_panel_exists(hass, PANEL_URL_PATH)
+    assert PANEL_URL_PATH in hass.data[frontend.DATA_PANELS]
     panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
     assert panel["require_admin"] is True
     assert panel["config_panel_domain"] == DOMAIN
-    assert panel["show_in_sidebar"] is True
+    assert panel.get("show_in_sidebar", True) is True
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=5"
+        "/zeal-panel.js?v=6"
     )
 
     static_routes = {
@@ -68,7 +89,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert PANEL_FILE.is_file()
 
     assert await hass.config_entries.async_unload(entry.entry_id)
-    assert not frontend.async_panel_exists(hass, PANEL_URL_PATH)
+    assert PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {})
 
 
 def test_frontend_contains_setup_safety_and_responsive_contracts():
@@ -104,6 +125,9 @@ def test_frontend_contains_visual_scheduler_contracts():
     assert "pointerdown" in source
     assert "Continues from the previous scheduled day" in source
     assert "Apply to selected days" in source
+    assert "Select all days" in source
+    assert "Clear all days" in source
+    assert 'data-schedule-action="toggle-target-days"' in source
     assert "Copy this seven-day schedule to other rooms" in source
     assert "Their zone, Area, physical equipment and ZEAL thermostat remain unchanged" in source
 
@@ -134,10 +158,30 @@ def test_frontend_contains_away_mode_and_precedence_contracts():
     assert 'value="off"' in source
     assert 'value="calendar"' in source
     assert 'value="date_range"' in source
-    assert 'type="datetime-local"' in source
+    assert 'type="datetime-local" step="300"' in source
+    assert "every active room in all zones" in source
     assert "Home Assistant's configured time zone" in source
     assert "Only active rooms receive this target" in source
     assert "Zone Manual Override remains the highest authority" in source
     assert "Use weekly schedules and Quick Change normally" in source
     assert "Quick Change is unavailable while Away mode is active" in source
     assert "End Away now" in source
+
+
+def test_frontend_places_safety_warning_once_at_the_page_bottom():
+    """The shared warning follows the selected page instead of interrupting it."""
+    source = PANEL_FILE.read_text()
+    assert source.count("${this._warning()}") == 1
+    content = source[source.index("  _content() {") : source.index("  _header() {")]
+    assert content.index("${this._warning()}") > content.index("this._renderOverview()")
+
+
+def test_frontend_refreshes_schedule_navigation_after_setup_reload():
+    """A slow config-entry reload must not leave a newly added zone hidden."""
+    source = PANEL_FILE.read_text()
+    assert 'if (next === "schedule" || next === "overview") {' in source
+    assert "await this._loadConfiguration({ preserveNotice: true });" in source
+    assert 'data-action="refresh-configuration"' in source
+    assert "for (let attempt = 0; attempt < 40; attempt += 1)" in source
+    assert "No ZEAL target change recorded yet" in source
+    assert "Last change ${this._formatChangeTime" in source

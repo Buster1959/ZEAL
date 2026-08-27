@@ -434,6 +434,8 @@ async def test_offline_notification_fires_after_debounce_elapses(hass, coordinat
     assert len(creates) == 1
     assert creates[0]["notification_id"] == "zeal_offline_sensor_r"
     assert "sensor.r" in creates[0]["message"]
+    assert creates[0]["title"] == "ZEAL entity health warning"
+    assert "reported as unavailable by Home Assistant" in creates[0]["message"]
 
 
 async def test_offline_notification_not_recreated_every_cycle(hass, coordinator, freezer):
@@ -595,3 +597,4 @@ async def test_offline_health_check_detects_a_stale_entity_not_just_unavailable(
 
     assert len(creates) == 1
     assert "sensor.r" in creates[0]["message"]
+    assert "has not reported a state to Home Assistant for about" in creates[0]["message"]

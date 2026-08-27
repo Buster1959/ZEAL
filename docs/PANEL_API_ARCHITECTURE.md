@@ -44,8 +44,9 @@ runtime-only and never share a write path with the schedule document.
 Setup's Away card selects one of Off, a registry-backed Home Assistant calendar
 or one start/end period and a 5–30°C global target. The backend validates the
 calendar owner/domain and disabled state, interprets offset-free browser values
-in Home Assistant's configured time zone, and returns live activation status in
-configuration and Quick Change responses. The frontend blocks Quick Change
+in Home Assistant's configured time zone, enforces five-minute manual intervals,
+and returns live activation status in configuration and Quick Change responses.
+The frontend blocks Quick Change
 application while Away is active and displays the current authority globally.
 
 ## Security boundary
@@ -78,8 +79,9 @@ overwritten.
 ## Commands
 
 - `zeal/list_entries`: loaded ZEAL instances.
-- `zeal/get_configuration`: hierarchy, schedule, Quick Change state, revision
-  and eligible Area/entity catalog.
+- `zeal/get_configuration`: hierarchy, schedule, Quick Change state, latest
+  successful room-target applications, revision and eligible Area/entity
+  catalog.
 - `zeal/save_hierarchy`: validated full hierarchy update and safe config-entry
   reload.
 - `zeal/update_room_days`: validated seven-day update for one stable room ID.
@@ -107,6 +109,9 @@ the newest 500 canonical room-target outcomes. Records contain timestamp, stable
 room ID/name, canonical ZEAL thermostat ID, previous/requested temperature,
 cause and outcome. They do not contain credentials, tokens, location coordinates
 or physical-TRV service payloads.
+
+The Overview derives one latest successful change per room from this bounded
+audit store; failed/unavailable attempts do not replace the last applied target.
 
 The Setup consumer turns fresh export responses into timestamped JSON browser
 downloads. The backend does not write files into Home Assistant's configuration

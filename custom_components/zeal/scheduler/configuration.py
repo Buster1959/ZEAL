@@ -96,6 +96,7 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
         "schedule": schedule.to_dict(),
         "away_mode": data["schedule_runtime"].away_mode_state(),
         "quick_change": data["schedule_runtime"].quick_change_state(),
+        "last_changes": data["audit_log"].latest_applied_by_room(),
         "catalog": configuration_catalog(hass, entry_id),
     }
 
@@ -205,6 +206,8 @@ def validate_away_mode(
             raise ValueError(f"{field} must be a valid date and time")
         if parsed.tzinfo is None or parsed.utcoffset() is None:
             parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        if parsed.minute % 5 or parsed.second or parsed.microsecond:
+            raise ValueError(f"{field} must use a five-minute interval")
         return dt_util.as_utc(parsed).isoformat()
 
     away_mode = AwayModeConfiguration(
