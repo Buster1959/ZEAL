@@ -14,6 +14,7 @@ to `1.0.0`.
 - Temporary Quick Change for rooms, zones, selections or the whole house.
 - Calendar or exact-date Away mode with an immediate **End Away now** action.
 - Downloadable configuration and bounded persistent application audit trail.
+- Optional sidebar navigation and clear per-instance management/deletion.
 - HACS metadata, HACS/Hassfest workflows and setup-flow translations for ten
   European languages including English.
 

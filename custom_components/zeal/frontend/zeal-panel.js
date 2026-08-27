@@ -46,6 +46,7 @@ class ZealPanel extends HTMLElement {
     this._draft = [];
     this._loading = true;
     this._saving = false;
+    this._deleting = false;
     this._dirty = false;
     this._showInSidebar = true;
     this._scheduleZoneId = null;
@@ -1359,6 +1360,7 @@ class ZealPanel extends HTMLElement {
       ${this._renderAwaySettings()}
       ${this._renderDownloads()}
       ${this._renderSidebarSetting()}
+      ${this._renderInstanceManagement()}
       <div class="save-bar">
         <span class="save-state">${this._dirty ? "Unsaved setup changes" : "Setup is up to date"}</span>
         <div><button class="text-button" data-action="reset" ${
@@ -1385,6 +1387,15 @@ class ZealPanel extends HTMLElement {
         this._showInSidebar ? "checked" : ""
       } /><span><strong>Show ZEAL in the Home Assistant sidebar</strong><small>When hidden, open ZEAL from Settings → Devices & Services → ZEAL HVAC System → Configure. If you use multiple ZEAL instances, the shared sidebar link remains visible while any instance has this option enabled.</small></span></label>
     </section>`;
+  }
+
+  _renderInstanceManagement() {
+    const entry = this._entries.find((item) => item.entry_id === this._entryId);
+    return `<section class="instance-card"><div><h3>ZEAL instance management</h3><p>You are managing <strong>${this._escape(
+      entry?.title || this._configuration?.title || "this ZEAL instance"
+    )}</strong>. Disabling or deleting it does not affect any other ZEAL instance.</p><small>Deleting permanently removes this instance's zones, schedules, Away settings and audit trail.</small></div><div class="instance-actions"><button class="secondary" data-action="manage-instances">Open integration settings</button><button class="danger-button" data-action="delete-instance" ${
+      this._deleting ? "disabled" : ""
+    }>${this._deleting ? "Deleting…" : "Delete this ZEAL instance"}</button></div></section>`;
   }
 
   _renderAwaySettings() {
@@ -1849,6 +1860,10 @@ class ZealPanel extends HTMLElement {
       this._showInSidebar = event.target.checked;
       this._markChanged();
     });
+    this.shadowRoot.querySelector('[data-action="manage-instances"]')?.addEventListener("click", () => {
+      window.location.assign("/config/integrations/integration/zeal");
+    });
+    this.shadowRoot.querySelector('[data-action="delete-instance"]')?.addEventListener("click", () => this._deleteInstance());
     this.shadowRoot.querySelector('[data-action="save"]')?.addEventListener("click", () => this._save());
   }
 
@@ -1864,6 +1879,36 @@ class ZealPanel extends HTMLElement {
     this._notice = "";
     this._error = "";
     this._render();
+  }
+
+  async _deleteInstance() {
+    if (this._deleting || !this._entryId) return;
+    const entry = this._entries.find((item) => item.entry_id === this._entryId);
+    const title = entry?.title || this._configuration?.title || "this ZEAL instance";
+    if (!window.confirm(`Permanently delete ${title}?\n\nThis removes its zones, schedules, Away settings and audit trail. Other ZEAL instances are not removed. This cannot be undone.`)) return;
+    this._deleting = true;
+    this._error = "";
+    this._render();
+    try {
+      await this._hass.callApi(
+        "delete",
+        `config/config_entries/entry/${encodeURIComponent(this._entryId)}`
+      );
+      this._entries = this._entries.filter((item) => item.entry_id !== this._entryId);
+      if (!this._entries.length) {
+        window.location.assign("/config/integrations");
+        return;
+      }
+      this._entryId = this._entries[0].entry_id;
+      this._configuration = null;
+      this._deleting = false;
+      this._notice = `${title} was deleted. Other ZEAL instances were not changed.`;
+      await this._loadConfiguration({ preserveNotice: true });
+    } catch (error) {
+      this._deleting = false;
+      this._error = this._message(error, `${title} could not be deleted.`);
+      this._render();
+    }
   }
 
   async _saveAwayMode({ forceOff = false } = {}) {
@@ -2158,7 +2203,7 @@ class ZealPanel extends HTMLElement {
       .quick-summary { display:flex; align-items:center; gap:12px 24px; flex-wrap:wrap; margin:0 0 18px; padding:13px 15px; border-radius:10px; background:var(--secondary-background-color); color:var(--secondary-text-color); }
       .quick-summary strong { color:var(--primary-text-color); }
       .quick-zones { display:grid; gap:16px; }
-      .quick-zone, .quick-controls, .download-card, .sidebar-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:16px; }
+      .quick-zone, .quick-controls, .download-card, .sidebar-card, .instance-card { background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; padding:16px; }
       .quick-zone-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
       .quick-zone-heading h3 { margin:0 0 3px; }
       .quick-zone-heading span { color:var(--secondary-text-color); font-size:12px; }
@@ -2221,9 +2266,14 @@ class ZealPanel extends HTMLElement {
       .download-card p { margin:0 0 5px; color:var(--secondary-text-color); }
       .download-card small { display:block; }
       .download-actions { flex:none; }
-      .sidebar-card { margin-top:18px; }
-      .sidebar-card h3 { margin-bottom:5px; }
+      .sidebar-card, .instance-card { margin-top:18px; }
+      .sidebar-card h3, .instance-card h3 { margin-bottom:5px; }
       .sidebar-card .active-toggle { margin-bottom:0; }
+      .instance-card { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+      .instance-card p { margin:0 0 5px; color:var(--secondary-text-color); }
+      .instance-card small { display:block; }
+      .instance-actions { display:flex; gap:9px; flex:none; }
+      .danger-button { background:var(--error-color); color:white; }
       .away-settings { margin-top:18px; padding:18px; background:var(--card-background-color); border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow, 0 2px 6px rgba(0,0,0,.08)); border-radius:12px; }
       .away-settings-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
       .away-settings-heading h3 { margin-bottom:5px; }
@@ -2263,12 +2313,12 @@ class ZealPanel extends HTMLElement {
         .schedule-actions-card { grid-template-columns:1fr; }
         .schedule-actions-card > button { width:100%; }
         .quick-control-grid { grid-template-columns:1fr; }
-        .download-card { align-items:stretch; flex-direction:column; }
+        .download-card, .instance-card { align-items:stretch; flex-direction:column; }
         .away-banner, .away-settings-heading, .away-save-row { align-items:stretch; flex-direction:column; }
         .away-banner button { width:100%; }
         .away-source { grid-template-columns:1fr; }
         .away-save-row > div { display:grid; grid-template-columns:1fr 1fr; }
-        .download-actions button { flex:1; }
+        .download-actions button, .instance-actions button { flex:1; }
         .summary-grid { grid-template-columns:repeat(3, 1fr); }
         .summary-card { display:block; padding:12px; text-align:center; }
         .summary-card ha-icon { margin-bottom:6px; }

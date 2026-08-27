@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.13.0`. It is feature
+> current candidate is on `main` at manifest version `0.13.1`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -196,10 +196,12 @@ without conversion or re-entry.
 You may add more than one ZEAL instance, for example one for a gas-boiler
 system and another for an ASHP, provided their physical entities do not overlap.
 The ZEAL header shows an instance selector when more than one is loaded. To
-disable or remove only one, open **Settings → Devices & Services → ZEAL HVAC
-System**, choose that named instance, then use its three-dot menu. **Disable**
-stops that instance; **Delete** removes that instance and its ZEAL setup,
-schedules and audit trail without removing the others.
+remove only the selected instance, open **ZEAL → Setup → ZEAL instance
+management** and select **Delete this ZEAL instance**. ZEAL names the selected
+instance and asks for confirmation before permanently removing its setup,
+schedules and audit trail. Other instances are not removed. Use **Open
+integration settings** in the same card to reach Home Assistant's native page,
+where an individual instance can also be disabled or deleted.
 
 The sidebar preference is saved per ZEAL instance. Because all instances share
 one ZEAL panel link, that link remains visible while any loaded instance has

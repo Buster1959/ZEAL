@@ -6,10 +6,10 @@ not substitute for live Home Assistant, thermostat and actuator checks.
 
 ## Candidate
 
-- Branch: `main` (feedback fixes are prepared on `fix/regression-feedback`)
-- Candidate commit tested: `77494f6` before this feedback round; replace with
-  the feedback-fix commit before repeating affected checks
-- Manifest version during testing: `0.13.0`
+- Branch: `main`
+- Candidate commit tested: `5aacdc4` before the `0.13.1` distribution and
+  instance-management fix; record the `0.13.1` commit when repeating UI checks
+- Manifest version during testing: `0.13.1`
 - Home Assistant version: _pending_
 - Desktop browser/version: _pending_
 - Companion app/platform/version: _pending_

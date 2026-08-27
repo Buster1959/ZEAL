@@ -12,6 +12,9 @@ version for each test.
   is hidden while **Configure** still opens ZEAL and heating remains active.
 - With two loaded instances, confirm the shared link remains visible if either
   instance has its sidebar option enabled.
+- Select one of two instances, use **Delete this ZEAL instance**, cancel once,
+  then confirm deletion and verify only the selected instance and its private
+  setup/schedule/audit data are removed.
 - A non-administrator cannot access configuration commands.
 - Overview, Setup, Schedule and Quick Change navigation stays visible and the
   active page is clear.

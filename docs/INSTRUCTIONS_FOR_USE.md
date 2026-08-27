@@ -91,9 +91,11 @@ Review them before sharing if your naming reveals personal information.
 Separate named ZEAL instances can control separate heating systems on one Home
 Assistant machine. Their thermostats, sensors and actuators must not overlap.
 Use the instance selector in the ZEAL header to change which one you are
-viewing. To disable or delete only one, open **Settings → Devices & Services →
-ZEAL HVAC System**, select the named instance and use its three-dot menu.
-Deleting one instance removes only its setup, schedules and audit trail.
+viewing. To delete only the selected one, open **Setup → ZEAL instance
+management**, select **Delete this ZEAL instance** and confirm the permanent
+removal. Its setup, schedules and audit trail are deleted; other instances are
+not changed. Select **Open integration settings** to use Home Assistant's native
+page when you want to disable an individual instance instead.
 The shared sidebar link remains visible while any loaded ZEAL instance has its
 sidebar option enabled; it is hidden only when every loaded instance disables
 the option.

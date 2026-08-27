@@ -87,7 +87,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=7"
+        "/zeal-panel.js?v=8"
     )
 
     static_routes = {
@@ -168,6 +168,11 @@ def test_frontend_contains_setup_safety_and_responsive_contracts():
     assert "Show ZEAL in the Home Assistant sidebar" in source
     assert "show_in_sidebar: this._showInSidebar" in source
     assert "Settings → Devices & Services → ZEAL HVAC System → Configure" in source
+    assert "ZEAL instance management" in source
+    assert "Delete this ZEAL instance" in source
+    assert 'this._hass.callApi(\n        "delete"' in source
+    assert "config/config_entries/entry/" in source
+    assert "Other ZEAL instances are not removed" in source
     assert "@media (max-width: 760px)" in source
     assert "@media (max-width: 430px)" in source
 

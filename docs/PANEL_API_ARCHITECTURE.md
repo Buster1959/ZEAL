@@ -120,3 +120,9 @@ downloads. The backend does not write files into Home Assistant's configuration
 directory. Configuration exports contain the saved hierarchy, schedule,
 revision, current runtime view and eligible entity catalog. Audit downloads
 contain the bounded persisted outcome history.
+
+Instance removal deliberately uses Home Assistant's administrator-only config
+entry deletion endpoint after an explicit browser confirmation. ZEAL's standard
+`async_remove_entry` hook then removes only the selected entry's hierarchy,
+schedule and audit Stores. The panel also links to Home Assistant's native
+integration page for per-instance disable controls.
