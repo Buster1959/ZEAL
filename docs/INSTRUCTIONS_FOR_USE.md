@@ -18,19 +18,30 @@ on it for unattended heating.
 
 ## Install
 
-Until ZEAL is accepted into the default HACS store, add
-`https://github.com/Buster1959/ZEAL` as a HACS custom repository in the
-**Integration** category, install ZEAL and restart Home Assistant.
+ZEAL is distributed through HACS as a custom repository. Use the one-click
+button or follow the manual steps below:
+
+[![Open ZEAL in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Buster1959&repository=ZEAL&category=integration)
+
+1. Install HACS if it is not already installed, then open HACS.
+2. Select ⋮ (top right) → **Custom repositories**.
+3. Enter `https://github.com/Buster1959/ZEAL`.
+4. Select **Integration**, then select **Add**.
+5. Open **ZEAL HVAC System** in HACS and select **Download**.
+6. Restart Home Assistant.
+7. Open **Settings → Devices & Services → Add Integration**, search for
+   **ZEAL HVAC System**, and complete setup.
+
+ZEAL does not appear in the default HACS search results. Once its custom
+repository has been added, HACS installs and updates it normally.
 
 For a manual installation, copy `custom_components/zeal` into
 `config/custom_components/zeal` and restart Home Assistant.
 
-Then open **Settings → Devices & Services → Add Integration**, search for
-**ZEAL HVAC System**, give the instance a name and finish. ZEAL appears in the
-sidebar for Home Assistant administrators and on **Devices & Services →
-Integrations**. It is a hub integration because one entry coordinates multiple
-zone devices, room thermostats, sensors and actuators; it is not listed under
-Helpers.
+Give the integration instance a name and finish. ZEAL appears in the sidebar
+for Home Assistant administrators and on **Devices & Services → Integrations**.
+It is a hub integration because one entry coordinates multiple zone devices,
+room thermostats, sensors and actuators; it is not listed under Helpers.
 
 ## Set up zones and rooms
 

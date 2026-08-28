@@ -24,8 +24,8 @@ Blocks 0–9 are implemented and the V1 candidate has been fast-forwarded to
 retested before version finalisation, tagging and release. Privacy-reviewed
 desktop screenshots from the generic test installation are now documented;
 the mobile captures remain a release gate. PolyForm Shield remains the
-project licence during full testing; the licence decision required for a clean
-HACS validation result is deliberately deferred until testing is complete.
+project licence for V1. ZEAL is therefore distributed through HACS as a custom
+repository rather than submitted to the default HACS store.
 The automated and live gates are tracked in `docs/V1_ACCEPTANCE_RECORD.md`.
 
 ## Validation commands
@@ -37,6 +37,7 @@ python -m compileall -q custom_components tests
 
 GitHub runs both HACS validation and Home Assistant Hassfest on pushes and pull
 requests. Hassfest passes. HACS currently reports only the unrecognised
-PolyForm Shield licence, which is a recorded deferred release decision. Passing
-both workflows will still be required before a default-store request and does
-not replace live thermostat/actuator testing.
+PolyForm Shield licence. That expected policy result is retained for visibility
+but is not a custom-repository or V1 release blocker. All technical metadata
+checks and Hassfest must still pass; none replace live thermostat/actuator
+testing.

@@ -29,7 +29,7 @@ the checks affected by that change.
 | Tracked cache/placeholder scan | Pass | No shipped cache or release placeholders |
 | Manifest/HACS metadata contracts | Pass | Automated release-metadata tests |
 | Hassfest | Pass | GitHub validation on the V1 feature branch |
-| HACS validation | Deferred | Only PolyForm Shield identification fails; licence decision follows full testing |
+| HACS validation | Expected policy failure | PolyForm Shield is intentionally retained; custom-repository distribution does not require default-store licence eligibility |
 
 ## Live Home Assistant gates
 
@@ -68,21 +68,19 @@ result and a non-identifying explanation to this record.
 
 ## Release sequence after every live gate passes
 
-1. Resolve the release licence and make HACS validation pass.
-2. Add the remaining privacy-reviewed mobile screenshots and update the
+1. Add the remaining privacy-reviewed mobile screenshots and update the
    documentation links.
-3. Change the manifest and release notes from pre-V1 to `1.0.0`.
-4. Rerun the complete suite, compilation, frontend/metadata checks, Hassfest and
-   HACS validation on the exact release commit.
-5. Open the reviewable merge from the V1 feature branch to `main`.
-6. After merge, create the `1.0.0` tag and a full GitHub release from `main`.
-7. Smoke-test installation from that release before requesting default HACS
-   inclusion.
+2. Change the manifest and release notes from pre-V1 to `1.0.0`.
+3. Rerun the complete suite, compilation, frontend/metadata checks and Hassfest
+   on the exact release commit; confirm HACS reports only the expected licence
+   policy result.
+4. Create the `1.0.0` tag and a full GitHub release from `main`.
+5. Smoke-test one-click custom-HACS installation and updating from that release.
 
 ## Final sign-off
 
 - All live gates passed: _pending_
 - No unresolved V1 defects: _pending_
-- Release licence resolved: _pending_
+- PolyForm Shield licence and custom-HACS distribution confirmed: Yes
 - Exact release commit: _pending_
 - Approved for merge/tag/release: _pending_

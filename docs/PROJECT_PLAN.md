@@ -160,8 +160,9 @@ Override actuator authority. The complete suite passes 118/118.
 - Add privacy-reviewed screenshots, translations, `hacs.json`, HACS validation
   and Hassfest workflows.
 
-Acceptance: repository and Wiki agree, validation actions pass, and documentation
-contains no personal installation details.
+Acceptance: repository and Wiki agree, technical validation passes,
+custom-repository installation is documented, and documentation contains no
+personal installation details.
 
 Status: in progress. HACS metadata, HACS/Hassfest workflows, ten setup-flow
 language files, repository/Wiki user and technical guides, release draft,
@@ -170,10 +171,10 @@ suite passes 131/131 and Hassfest passes. Privacy-reviewed ZEAL desktop
 screenshots from the generic test installation are now documented; the mobile
 captures remain a Block 9 gate.
 HACS currently rejects the existing PolyForm Shield licence because it cannot
-identify it as a supported SPDX licence. The project owner has chosen to keep
-PolyForm Shield through full testing and resolve the public-release licence
-afterward; HACS validation is therefore an explicitly deferred release gate,
-not an application-code failure.
+identify it as an OSI-approved licence. The project owner has chosen to keep
+PolyForm Shield and distribute ZEAL through HACS as a custom repository. The
+licence result is therefore expected and is not an application-code or V1
+release failure.
 
 ## Block 10 — V1 validation and release preparation
 
@@ -188,6 +189,6 @@ Status: in progress on `main`. Automated tests, compilation, frontend syntax,
 JSON/YAML, repository hygiene and release-metadata contracts passed for the
 initial candidate. The live acceptance matrix is recorded in
 `docs/V1_ACCEPTANCE_RECORD.md`; regression feedback is being fixed and affected
-checks will be repeated. Manifest `1.0.0`, tag, GitHub release and HACS
-submission remain gated on the pending live checks, mobile screenshots and
-deferred licence decision.
+checks will be repeated. Manifest `1.0.0`, tag and GitHub release remain gated
+on the pending live checks and mobile screenshots. The release will be
+distributed through the documented custom-HACS route.

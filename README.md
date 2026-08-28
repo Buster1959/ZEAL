@@ -92,8 +92,9 @@
   panel.
 - The ZEAL panel is currently English. The standard Home Assistant setup flow
   includes ten European-language files.
-- Default HACS-store inclusion and the final V1 release still require Block 10
-  live acceptance and release preparation.
+- The final V1 release still requires Block 10 live acceptance and release
+  preparation. ZEAL is distributed through HACS as a custom repository because
+  its PolyForm Shield licence is not eligible for the default HACS store.
 
 See [Roadmap](#roadmap) for what's planned and in what order.
 
@@ -142,12 +143,21 @@ want your system to work:
 
 ### HACS (custom repository)
 
-This integration isn't in the default HACS store yet. Add it as a custom repository:
+ZEAL is distributed through HACS as a custom repository. It does not appear in
+the default HACS search results, but HACS still installs it and manages updates.
 
-1. HACS → Integrations → ⋮ (top right) → **Custom repositories**.
-2. Repository: this repo's URL. Category: **Integration**.
-3. Find **ZEAL HVAC System** in HACS and install it.
-4. Restart Home Assistant.
+[![Open ZEAL in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Buster1959&repository=ZEAL&category=integration)
+
+If the button is unavailable, add the repository manually:
+
+1. Install HACS if it is not already installed, then open HACS.
+2. Select ⋮ (top right) → **Custom repositories**.
+3. Enter `https://github.com/Buster1959/ZEAL`.
+4. Select **Integration** as the category, then select **Add**.
+5. Open **ZEAL HVAC System** in HACS and select **Download**.
+6. Restart Home Assistant.
+7. Open **Settings → Devices & Services → Add Integration**, search for
+   **ZEAL HVAC System**, and complete setup.
 
 ### Manual
 
@@ -389,7 +399,7 @@ that instead.
 | 3. HTML Overview and Setup panel for zone/room/TRV/sensor management | Done on the V1 feature branch |
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
 | 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed desktop screenshots added, mobile captures pending |
-| 6. HACS store submission, including the full ZEAL rename (domain, files, repo) with a migration path for existing installs | Repository metadata and validation workflows done; default-store submission follows Block 10 |
+| 6. HACS distribution, including the full ZEAL rename (domain, files and repository) | Custom-repository metadata, one-click installation and validation workflows done; the PolyForm Shield release remains outside the default HACS store |
 | 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |
 
