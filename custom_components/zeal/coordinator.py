@@ -63,6 +63,7 @@ from .const import (
     ROOM_SENSORS,
     ROOM_TRVS,
     RUNTIME_LAST_OFF,
+    SETPOINT_CONFIRMATION_RETRY_MIN_SECONDS,
     SETPOINT_ECHO_TIMEOUT_SECONDS,
     STALE_THRESHOLD_SECONDS,
     ZONE_ID,
@@ -94,6 +95,15 @@ class PendingSetpointWrite:
 
     temperature: float
     expires_at: datetime
+
+
+@dataclass(frozen=True)
+class UnconfirmedSetpointWrite:
+    """Latest target accepted by HA but not yet reported by the device."""
+
+    temperature: float
+    observed_reported_at: datetime
+    last_attempt_at: datetime
 
 
 class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
@@ -133,6 +143,14 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         # the resulting state events can arrive out of order. Each echo is
         # one-shot and expiring so a later real manual turn is never hidden.
         self._pending_setpoint_writes: dict[str, list[PendingSetpointWrite]] = {}
+
+        # Battery Z-Wave thermostats can be asleep when HA accepts a climate
+        # service call. Keep only the latest requested value until the entity
+        # actually reports it. A retry is allowed only after a new device
+        # report, which avoids minute-by-minute writes and battery drain.
+        self._unconfirmed_setpoint_writes: dict[
+            str, UnconfirmedSetpointWrite
+        ] = {}
 
         # Room propagation is latest-wins. A slow Z-Wave service call must not
         # leave a queue of obsolete temperatures which ZEAL then replays into
@@ -336,6 +354,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         # overwrite every thermostat in the room.
         if room is not None and is_usable and not was_usable:
             self._pending_setpoint_writes.pop(entity_id, None)
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
             self._unsynced_trvs.add(entity_id)
             self.hass.async_create_task(self._async_resync_recovered_trv(room, entity_id))
             self.hass.async_create_task(self.async_request_refresh())
@@ -366,6 +385,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
     # ------------------------------------------------------------------
     async def _async_update_data(self) -> dict[str, ZoneStatus]:
         await self._async_check_entity_health()
+        await self._async_retry_unconfirmed_setpoint_writes()
         await self._async_retry_unsynced_trvs()
         results: dict[str, ZoneStatus] = {}
         off_time_changed = False
@@ -771,9 +791,10 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
     async def _async_write_trv_setpoint(
         self, entity_id: str, temp: float, room_name: str
     ) -> bool:
-        """Write one physical TRV and remember its short-lived state echo."""
+        """Write one physical climate entity and wait for state confirmation."""
         state = self.hass.states.get(entity_id)
         if state is None or state.state in UNAVAILABLE_STATES:
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
             self._unsynced_trvs.add(entity_id)
             _LOGGER.warning(
                 "[%s] Can't propagate setpoint to unavailable TRV %s; "
@@ -789,6 +810,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         except (TypeError, ValueError):
             already_at_target = False
         if already_at_target:
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
             self._unsynced_trvs.discard(entity_id)
             _LOGGER.debug("  -> %s already at %s°C; no service call needed", entity_id, temp)
             return True
@@ -822,6 +844,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 self._pending_setpoint_writes[entity_id] = remaining
             else:
                 self._pending_setpoint_writes.pop(entity_id, None)
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
             self._unsynced_trvs.add(entity_id)
             _LOGGER.warning(
                 "[%s] Could not set %s to %s°C; ZEAL will retry: %s",
@@ -832,9 +855,81 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             )
             return False
 
+        latest_state = self.hass.states.get(entity_id)
+        latest_temp = (
+            latest_state.attributes.get("temperature") if latest_state else None
+        )
+        try:
+            confirmed = abs(float(latest_temp) - temp) < 0.01
+        except (TypeError, ValueError):
+            confirmed = False
+
+        if confirmed:
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
+            _LOGGER.debug("  -> %s confirmed at %s°C", entity_id, temp)
+        else:
+            reported_at = getattr(
+                latest_state or state,
+                "last_reported",
+                (latest_state or state).last_updated,
+            )
+            self._unconfirmed_setpoint_writes[entity_id] = UnconfirmedSetpointWrite(
+                temperature=temp,
+                observed_reported_at=reported_at,
+                last_attempt_at=now,
+            )
+            _LOGGER.debug(
+                "  -> %s accepted %s°C but has not reported it yet; "
+                "waiting for the battery device's next report",
+                entity_id,
+                temp,
+            )
+
         self._unsynced_trvs.discard(entity_id)
-        _LOGGER.debug("  -> %s set to %s°C", entity_id, temp)
         return True
+
+    async def _async_retry_unconfirmed_setpoint_writes(self) -> None:
+        """Retry a queued battery-device target only after a fresh report."""
+        now = dt_util.utcnow()
+        for entity_id, pending in tuple(self._unconfirmed_setpoint_writes.items()):
+            if self._unconfirmed_setpoint_writes.get(entity_id) is not pending:
+                continue
+            room = self._find_room_for_trv(entity_id)
+            if room is None:
+                self._unconfirmed_setpoint_writes.pop(entity_id, None)
+                continue
+            state = self.hass.states.get(entity_id)
+            if state is None or state.state in UNAVAILABLE_STATES:
+                self._unconfirmed_setpoint_writes.pop(entity_id, None)
+                self._unsynced_trvs.add(entity_id)
+                continue
+            current_temp = state.attributes.get("temperature")
+            try:
+                confirmed = abs(float(current_temp) - pending.temperature) < 0.01
+            except (TypeError, ValueError):
+                confirmed = False
+            if confirmed:
+                self._unconfirmed_setpoint_writes.pop(entity_id, None)
+                continue
+
+            reported_at = getattr(state, "last_reported", state.last_updated)
+            if reported_at <= pending.observed_reported_at:
+                continue
+            if (
+                now - pending.last_attempt_at
+            ).total_seconds() < SETPOINT_CONFIRMATION_RETRY_MIN_SECONDS:
+                continue
+
+            room_name = room.get(ROOM_NAME, room.get(ROOM_ID))
+            _LOGGER.debug(
+                "[%s] %s reported again without confirming %s°C; retrying once",
+                room_name,
+                entity_id,
+                pending.temperature,
+            )
+            await self._async_write_trv_setpoint(
+                entity_id, pending.temperature, room_name
+            )
 
     async def _async_resync_recovered_trv(
         self, room: dict[str, Any], entity_id: str
@@ -935,6 +1030,12 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 self._pending_setpoint_writes[entity_id] = pending_writes
             else:
                 self._pending_setpoint_writes.pop(entity_id, None)
+            unconfirmed = self._unconfirmed_setpoint_writes.get(entity_id)
+            if (
+                unconfirmed is not None
+                and abs(unconfirmed.temperature - new_temp) < 0.01
+            ):
+                self._unconfirmed_setpoint_writes.pop(entity_id, None)
             # This is the immediate, expected echo of one ZEAL write. It is
             # consumed now; a later manual turn to the same value is genuine.
             _LOGGER.debug(
@@ -947,6 +1048,24 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             self._pending_setpoint_writes[entity_id] = pending_writes
         else:
             self._pending_setpoint_writes.pop(entity_id, None)
+
+        unconfirmed = self._unconfirmed_setpoint_writes.get(entity_id)
+        if (
+            unconfirmed is not None
+            and abs(unconfirmed.temperature - new_temp) < 0.01
+        ):
+            self._unconfirmed_setpoint_writes.pop(entity_id, None)
+            self._unsynced_trvs.discard(entity_id)
+            _LOGGER.debug(
+                "%s: late confirmation of ZEAL's %s°C write, ignoring once",
+                entity_id,
+                new_temp,
+            )
+            return
+
+        # A different setpoint is a genuine physical/manual change. It
+        # supersedes any older queued target for this entity.
+        self._unconfirmed_setpoint_writes.pop(entity_id, None)
 
         room_id = room.get(ROOM_ID)
         room_name = room.get(ROOM_NAME, room_id)

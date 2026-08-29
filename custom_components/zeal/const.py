@@ -104,6 +104,11 @@ STALE_THRESHOLD_SECONDS = 4 * 60 * 60
 # event almost immediately. Keep that expected echo only briefly so an actual
 # manual turn to the same temperature later is never mistaken for our own write.
 SETPOINT_ECHO_TIMEOUT_SECONDS = 30
+# A sleeping battery thermostat can accept a Home Assistant service call while
+# deferring the radio command until its next wake/report. Never poll it with
+# repeated writes: one retry is allowed only after a fresh report, and attempts
+# are additionally rate-limited in case a device emits a burst of reports.
+SETPOINT_CONFIRMATION_RETRY_MIN_SECONDS = 5 * 60
 # A physical dial can emit several intermediate setpoints while it is being
 # turned. Wait for it to settle before waking every other battery TRV in the
 # room. Continuous/noisy input therefore produces no outbound write storm.

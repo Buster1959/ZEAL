@@ -526,11 +526,128 @@ async def test_old_self_write_marker_cannot_hide_a_later_manual_change(
     hass.services.async_register("climate", "set_temperature", fake_set_temperature)
 
     await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 20.0)
+    # First consume the actual device confirmation. The remembered desired
+    # value must disappear at that point, rather than becoming permanent.
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 20.0})
+    await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 20.0)
     freezer.tick(SETPOINT_ECHO_TIMEOUT_SECONDS + 1)
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 19.0})
+    await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 19.0)
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 20.0})
     await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 20.0)
 
-    assert thermostat.external_setpoints == [20.0]
-    assert calls == [20.0, 20.0]
+    assert thermostat.external_setpoints == [19.0, 20.0]
+    assert calls == [20.0]
+
+
+async def test_sleeping_thermostat_write_stays_pending_until_late_confirmation(
+    hass, coordinator, freezer
+):
+    """A service call is not proof that a sleeping battery node changed."""
+    room = make_room("r", "Room", ["climate.r_thermostat"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(21.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    hass.states.async_set("climate.r_thermostat", "heat", {"temperature": 18.0})
+
+    calls: list[float] = []
+
+    async def accepted_but_sleeping(call):
+        calls.append(call.data["temperature"])
+
+    hass.services.async_register(
+        "climate", "set_temperature", accepted_but_sleeping
+    )
+
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 21.0)
+    assert calls == [21.0]
+    assert coordinator._unconfirmed_setpoint_writes[
+        "climate.r_thermostat"
+    ].temperature == 21.0
+
+    # Even after the short immediate-echo window, a delayed sleeping-node
+    # report matching the requested target is confirmation, not a new dial turn.
+    freezer.tick(SETPOINT_ECHO_TIMEOUT_SECONDS + 1)
+    hass.states.async_set("climate.r_thermostat", "heat", {"temperature": 21.0})
+    await coordinator._async_handle_external_trv_change(
+        room, "climate.r_thermostat", 21.0
+    )
+
+    assert thermostat.external_setpoints == []
+    assert "climate.r_thermostat" not in coordinator._unconfirmed_setpoint_writes
+    assert calls == [21.0]
+
+
+async def test_sleeping_thermostat_retries_only_after_a_fresh_device_report(
+    hass, coordinator, freezer, monkeypatch
+):
+    """Coordinator scans cannot turn into repeated battery-device writes."""
+    monkeypatch.setattr(
+        coordinator_module, "SETPOINT_CONFIRMATION_RETRY_MIN_SECONDS", 60
+    )
+    room = make_room("r", "Room", ["climate.r_thermostat"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    coordinator.room_thermostats[room[ROOM_ID]] = FakeThermostat(21.0)
+    hass.states.async_set("climate.r_thermostat", "heat", {"temperature": 18.0})
+
+    calls: list[float] = []
+
+    async def accepted_but_unconfirmed(call):
+        calls.append(call.data["temperature"])
+
+    hass.services.async_register(
+        "climate", "set_temperature", accepted_but_unconfirmed
+    )
+
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 21.0)
+    freezer.tick(61)
+
+    # Any number of ZEAL scans with no new device report performs no writes.
+    await coordinator._async_retry_unconfirmed_setpoint_writes()
+    await coordinator._async_retry_unconfirmed_setpoint_writes()
+    assert calls == [21.0]
+
+    # One fresh report permits exactly one retry.
+    hass.states.async_set("climate.r_thermostat", "heat", {"temperature": 18.0})
+    await coordinator._async_retry_unconfirmed_setpoint_writes()
+    await coordinator._async_retry_unconfirmed_setpoint_writes()
+    assert calls == [21.0, 21.0]
+
+
+async def test_manual_value_supersedes_unconfirmed_sleeping_device_target(
+    hass, coordinator, monkeypatch
+):
+    """A different physical setpoint remains authoritative in both directions."""
+    monkeypatch.setattr(coordinator_module, "EXTERNAL_SETPOINT_SETTLE_SECONDS", 0)
+    room = make_room(
+        "r",
+        "Room",
+        ["climate.wall_thermostat", "climate.radiator_trv"],
+        ["sensor.r"],
+    )
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(21.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    hass.states.async_set("climate.wall_thermostat", "heat", {"temperature": 18.0})
+    hass.states.async_set("climate.radiator_trv", "heat", {"temperature": 21.0})
+
+    calls: list[tuple[str, float]] = []
+
+    async def capture(call):
+        calls.append((call.data["entity_id"], call.data["temperature"]))
+
+    hass.services.async_register("climate", "set_temperature", capture)
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 21.0)
+    assert "climate.wall_thermostat" in coordinator._unconfirmed_setpoint_writes
+
+    hass.states.async_set("climate.wall_thermostat", "heat", {"temperature": 19.0})
+    await coordinator._async_handle_external_trv_change(
+        room, "climate.wall_thermostat", 19.0
+    )
+
+    assert thermostat.target_temperature == 19.0
+    assert "climate.wall_thermostat" not in coordinator._unconfirmed_setpoint_writes
+    assert calls[-1] == ("climate.radiator_trv", 19.0)
 
 
 async def test_recovered_trv_is_restored_from_canonical_room_target(hass, coordinator):
