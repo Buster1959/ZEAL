@@ -32,6 +32,7 @@ one sensor per room): a room can have *multiple* TRVs and/or sensors.
 """
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -40,6 +41,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -51,6 +53,7 @@ from .const import (
     DEFAULT_REENABLE_DELAY,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EXTERNAL_SETPOINT_SETTLE_SECONDS,
     MAX_TARGET_TEMPERATURE,
     MIN_TARGET_TEMPERATURE,
     OFFLINE_DEBOUNCE_SECONDS,
@@ -60,6 +63,7 @@ from .const import (
     ROOM_SENSORS,
     ROOM_TRVS,
     RUNTIME_LAST_OFF,
+    SETPOINT_ECHO_TIMEOUT_SECONDS,
     STALE_THRESHOLD_SECONDS,
     ZONE_ID,
     ZONE_NAME,
@@ -82,6 +86,14 @@ class ZoneStatus:
     needs_heat: bool
     demand_lines: list[str] = field(default_factory=list)
     switches_ok: bool = True  # False if every configured switch was unavailable
+
+
+@dataclass(frozen=True)
+class PendingSetpointWrite:
+    """One short-lived climate service-call echo that ZEAL expects to see."""
+
+    temperature: float
+    expires_at: datetime
 
 
 class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
@@ -116,12 +128,28 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         # TRVs are slaved to it, not the other way around.
         self.room_thermostats: dict[str, Any] = {}
 
-        # entity_id (TRV) -> last temperature we ourselves wrote to it, via
-        # async_propagate_room_setpoint(). Self-write loop guard: without
-        # this, propagating a thermostat's setpoint to a TRV would trigger
-        # the TRV's own state-change listener, which would read it back as
-        # a new *external* change and re-propagate indefinitely.
-        self._last_written_setpoint: dict[str, float] = {}
+        # entity_id (TRV) -> short-lived writes we expect the state listener
+        # to echo. More than one can be in flight on slow radio hardware, and
+        # the resulting state events can arrive out of order. Each echo is
+        # one-shot and expiring so a later real manual turn is never hidden.
+        self._pending_setpoint_writes: dict[str, list[PendingSetpointWrite]] = {}
+
+        # Room propagation is latest-wins. A slow Z-Wave service call must not
+        # leave a queue of obsolete temperatures which ZEAL then replays into
+        # the room, creating a self-sustaining feedback storm.
+        self._queued_room_setpoints: dict[str, float] = {}
+        self._rooms_propagating_setpoints: set[str] = set()
+
+        # room_id -> newest external-change generation. Physical dial events
+        # are debounced until quiet so a noisy or continuously moving device
+        # cannot wake and drain every other battery TRV in the room.
+        self._external_setpoint_generation: dict[str, int] = {}
+
+        # Physical TRVs which missed a propagation because they were
+        # unavailable (or rejected a service call). They are retried on a
+        # Coordinator update and explicitly restored to the canonical room
+        # target when their state changes back to usable.
+        self._unsynced_trvs: set[str] = set()
 
         # entity_id -> first unhealthy observation. Notifications are
         # debounced so a brief radio dropout does not alarm the household.
@@ -298,13 +326,27 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         old_val = old_state.state if old_state else None
         _LOGGER.debug("Tracked entity changed: %s (%s -> %s)", entity_id, old_val, new_val)
 
+        room = self._find_room_for_trv(entity_id)
+        was_usable = old_state is not None and old_state.state not in UNAVAILABLE_STATES
+        is_usable = new_state is not None and new_state.state not in UNAVAILABLE_STATES
+
+        # A recovering TRV can still be holding an old local target. The
+        # canonical ZEAL room thermostat wins on recovery; otherwise that
+        # stale target could be misread below as a new manual adjustment and
+        # overwrite every thermostat in the room.
+        if room is not None and is_usable and not was_usable:
+            self._pending_setpoint_writes.pop(entity_id, None)
+            self._unsynced_trvs.add(entity_id)
+            self.hass.async_create_task(self._async_resync_recovered_trv(room, entity_id))
+            self.hass.async_create_task(self.async_request_refresh())
+            return
+
         # Only TRVs carry a "temperature" attribute we care about here;
         # sensor state changes fall through to the plain refresh below.
         if new_state is not None and old_state is not None:
             new_temp = new_state.attributes.get("temperature")
             old_temp = old_state.attributes.get("temperature")
             if new_temp is not None and new_temp != old_temp:
-                room = self._find_room_for_trv(entity_id)
                 if room is not None:
                     _LOGGER.debug(
                         "TRV setpoint change detected: %s (%s -> %s°C) in room %s",
@@ -324,6 +366,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
     # ------------------------------------------------------------------
     async def _async_update_data(self) -> dict[str, ZoneStatus]:
         await self._async_check_entity_health()
+        await self._async_retry_unsynced_trvs()
         results: dict[str, ZoneStatus] = {}
         off_time_changed = False
         _LOGGER.debug("Evaluation cycle starting (%d zone(s) configured)", len(self.zones))
@@ -673,6 +716,29 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         truth, not any individual TRV.
         """
         temp = min(MAX_TARGET_TEMPERATURE, max(MIN_TARGET_TEMPERATURE, float(temp)))
+        if self._find_room(room_id) is None:
+            _LOGGER.debug("Can't propagate setpoint - unknown room_id %s", room_id)
+            return
+
+        self._queued_room_setpoints[room_id] = temp
+        if room_id in self._rooms_propagating_setpoints:
+            _LOGGER.debug(
+                "Room %s propagation busy; queued latest target %s°C", room_id, temp
+            )
+            return
+
+        self._rooms_propagating_setpoints.add(room_id)
+        try:
+            while room_id in self._queued_room_setpoints:
+                latest_temp = self._queued_room_setpoints.pop(room_id)
+                await self._async_propagate_room_setpoint_once(room_id, latest_temp)
+        finally:
+            self._rooms_propagating_setpoints.discard(room_id)
+
+    async def _async_propagate_room_setpoint_once(
+        self, room_id: str, temp: float
+    ) -> None:
+        """Run one serialized pass, abandoning it if a newer target arrives."""
         room = self._find_room(room_id)
         if room is None:
             _LOGGER.debug("Can't propagate setpoint - unknown room_id %s", room_id)
@@ -693,20 +759,118 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             )
         _LOGGER.debug("[%s] Propagating %s°C to %d TRV(s)", room_name, temp, len(trvs))
         for trv in trvs:
-            state = self.hass.states.get(trv)
-            if state is None or state.state in UNAVAILABLE_STATES:
-                _LOGGER.warning(
-                    "[%s] Can't propagate setpoint to unavailable TRV %s", room_name, trv
+            if room_id in self._queued_room_setpoints:
+                _LOGGER.debug(
+                    "[%s] Abandoning superseded %s°C propagation pass",
+                    room_name,
+                    temp,
                 )
-                continue
-            self._last_written_setpoint[trv] = temp
+                return
+            await self._async_write_trv_setpoint(trv, temp, room_name)
+
+    async def _async_write_trv_setpoint(
+        self, entity_id: str, temp: float, room_name: str
+    ) -> bool:
+        """Write one physical TRV and remember its short-lived state echo."""
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state in UNAVAILABLE_STATES:
+            self._unsynced_trvs.add(entity_id)
+            _LOGGER.warning(
+                "[%s] Can't propagate setpoint to unavailable TRV %s; "
+                "ZEAL will retry when it recovers",
+                room_name,
+                entity_id,
+            )
+            return False
+
+        current_temp = state.attributes.get("temperature")
+        try:
+            already_at_target = abs(float(current_temp) - temp) < 0.01
+        except (TypeError, ValueError):
+            already_at_target = False
+        if already_at_target:
+            self._unsynced_trvs.discard(entity_id)
+            _LOGGER.debug("  -> %s already at %s°C; no service call needed", entity_id, temp)
+            return True
+
+        now = dt_util.utcnow()
+        pending = PendingSetpointWrite(
+            temperature=temp,
+            expires_at=now + timedelta(seconds=SETPOINT_ECHO_TIMEOUT_SECONDS),
+        )
+        pending_writes = [
+            item
+            for item in self._pending_setpoint_writes.get(entity_id, [])
+            if now <= item.expires_at
+        ]
+        pending_writes.append(pending)
+        self._pending_setpoint_writes[entity_id] = pending_writes
+        try:
             await self.hass.services.async_call(
                 "climate",
                 "set_temperature",
-                {"entity_id": trv, "temperature": temp},
+                {"entity_id": entity_id, "temperature": temp},
                 blocking=True,
             )
-            _LOGGER.debug("  -> %s set to %s°C", trv, temp)
+        except HomeAssistantError as err:
+            remaining = [
+                item
+                for item in self._pending_setpoint_writes.get(entity_id, [])
+                if item is not pending
+            ]
+            if remaining:
+                self._pending_setpoint_writes[entity_id] = remaining
+            else:
+                self._pending_setpoint_writes.pop(entity_id, None)
+            self._unsynced_trvs.add(entity_id)
+            _LOGGER.warning(
+                "[%s] Could not set %s to %s°C; ZEAL will retry: %s",
+                room_name,
+                entity_id,
+                temp,
+                err,
+            )
+            return False
+
+        self._unsynced_trvs.discard(entity_id)
+        _LOGGER.debug("  -> %s set to %s°C", entity_id, temp)
+        return True
+
+    async def _async_resync_recovered_trv(
+        self, room: dict[str, Any], entity_id: str
+    ) -> None:
+        """Restore a recovered TRV from ZEAL's canonical room target."""
+        room_id = room.get(ROOM_ID)
+        room_name = room.get(ROOM_NAME, room_id)
+        thermostat = self.room_thermostats.get(room_id)
+        target = getattr(thermostat, "target_temperature", None)
+        if target is None:
+            _LOGGER.debug(
+                "[%s] Delaying recovery sync for %s until its ZEAL thermostat is ready",
+                room_name,
+                entity_id,
+            )
+            self._unsynced_trvs.add(entity_id)
+            return
+        safe_temp = min(
+            MAX_TARGET_TEMPERATURE,
+            max(MIN_TARGET_TEMPERATURE, float(target)),
+        )
+        await self.async_propagate_room_setpoint(room_id, safe_temp)
+
+    async def _async_retry_unsynced_trvs(self) -> None:
+        """Retry missed writes without allowing an old TRV target to win."""
+        for entity_id in tuple(self._unsynced_trvs):
+            if entity_id not in self._unsynced_trvs:
+                continue
+            room = self._find_room_for_trv(entity_id)
+            if room is None:
+                self._unsynced_trvs.discard(entity_id)
+                continue
+            state = self.hass.states.get(entity_id)
+            if state is None or state.state in UNAVAILABLE_STATES:
+                continue
+            await self._async_resync_recovered_trv(room, entity_id)
 
     async def async_set_room_target(
         self, room_id: str, temp: float, *, source: str = "unknown"
@@ -751,16 +915,38 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             _LOGGER.debug("Ignoring non-numeric TRV temperature: %r", new_temp)
             return
 
-        last_written = self._last_written_setpoint.get(entity_id)
-        if last_written is not None and abs(last_written - new_temp) < 0.01:
-            # This matches what we ourselves just wrote to this TRV - not a
-            # new manual change, just our own propagation being read back.
+        now = dt_util.utcnow()
+        pending_writes = [
+            item
+            for item in self._pending_setpoint_writes.get(entity_id, [])
+            if now <= item.expires_at
+        ]
+        matching_pending = next(
+            (
+                item
+                for item in pending_writes
+                if abs(item.temperature - new_temp) < 0.01
+            ),
+            None,
+        )
+        if matching_pending is not None:
+            pending_writes.remove(matching_pending)
+            if pending_writes:
+                self._pending_setpoint_writes[entity_id] = pending_writes
+            else:
+                self._pending_setpoint_writes.pop(entity_id, None)
+            # This is the immediate, expected echo of one ZEAL write. It is
+            # consumed now; a later manual turn to the same value is genuine.
             _LOGGER.debug(
-                "%s: change to %s°C matches our own last write, ignoring (loop guard)",
+                "%s: change to %s°C is ZEAL's expected write echo, ignoring once",
                 entity_id,
                 new_temp,
             )
             return
+        if pending_writes:
+            self._pending_setpoint_writes[entity_id] = pending_writes
+        else:
+            self._pending_setpoint_writes.pop(entity_id, None)
 
         room_id = room.get(ROOM_ID)
         room_name = room.get(ROOM_NAME, room_id)
@@ -773,6 +959,20 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         thermostat = self.room_thermostats.get(room_id)
         if thermostat is not None:
             thermostat.apply_external_setpoint(new_temp)
+
+        generation = self._external_setpoint_generation.get(room_id, 0) + 1
+        self._external_setpoint_generation[room_id] = generation
+        if EXTERNAL_SETPOINT_SETTLE_SECONDS > 0:
+            await asyncio.sleep(EXTERNAL_SETPOINT_SETTLE_SECONDS)
+        if self._external_setpoint_generation.get(room_id) != generation:
+            _LOGGER.debug(
+                "%s: superseded while the physical dial was still moving; "
+                "discarding intermediate %s°C propagation",
+                entity_id,
+                new_temp,
+            )
+            return
+        self._external_setpoint_generation.pop(room_id, None)
         await self.async_propagate_room_setpoint(room_id, new_temp)
 
     # ------------------------------------------------------------------

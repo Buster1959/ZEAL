@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.13.3`. It is feature
+> current candidate is on `main` at manifest version `0.13.4`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -45,7 +45,13 @@
 - Every room with a TRV gets its own **Thermostat** entity — the room's actual
   setpoint, not any individual physical TRV. Change it (or physically adjust any
   TRV in the room) and every TRV in that room follows automatically, kept in sync
-  by the Coordinator.
+  by the Coordinator. ZEAL ignores only the immediate state echo of its own write;
+  later manual changes are always accepted, and a TRV that was unavailable is
+  restored from the room Thermostat when it reconnects. Rapid updates are
+  coalesced per room so slow radio acknowledgements cannot replay obsolete
+  temperatures or create a feedback loop. A physical dial must also remain
+  stable for five seconds before ZEAL writes its final target to the room's
+  other TRVs, preventing intermediate dial positions from draining batteries.
 - A **Coordinator** evaluates every active room every 60 seconds (and instantly on
   any tracked TRV/sensor state change), turns each zone's heating switch on when
   any active room is colder than its room Thermostat's target, and off when none
@@ -408,7 +414,7 @@ that instead.
 **Several “ZEAL entity health warning” notifications appeared together.** ZEAL
 now states the exact reason in each notification. `unavailable` or `unknown`
 comes directly from Home Assistant; “has not reported a state” means the
-entity's Home Assistant state is older than the one-hour stale threshold. A
+entity's Home Assistant state is older than the four-hour stale threshold. A
 further five-minute debounce prevents brief interruptions from notifying. This
 is based on entity state reports, not battery percentage. Check the named
 entities in Developer Tools and download diagnostics before deciding whether

@@ -99,7 +99,15 @@ DEFAULT_REENABLE_DELAY = 300  # seconds - min time OFF before allowed back ON
 MIN_TARGET_TEMPERATURE = 5.0
 MAX_TARGET_TEMPERATURE = 30.0
 OFFLINE_DEBOUNCE_SECONDS = 300
-STALE_THRESHOLD_SECONDS = 3600
+STALE_THRESHOLD_SECONDS = 4 * 60 * 60
+# A climate.set_temperature service call normally produces its matching state
+# event almost immediately. Keep that expected echo only briefly so an actual
+# manual turn to the same temperature later is never mistaken for our own write.
+SETPOINT_ECHO_TIMEOUT_SECONDS = 30
+# A physical dial can emit several intermediate setpoints while it is being
+# turned. Wait for it to settle before waking every other battery TRV in the
+# room. Continuous/noisy input therefore produces no outbound write storm.
+EXTERNAL_SETPOINT_SETTLE_SECONDS = 5
 
 # Suggested re-enable delay per heat source, in seconds - a starting point
 # reflecting how each source actually behaves, not a hard rule:

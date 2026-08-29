@@ -14,6 +14,7 @@ Run with:
 """
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -27,11 +28,14 @@ from custom_components.zeal.const import (
     ROOM_NAME,
     ROOM_SENSORS,
     ROOM_TRVS,
+    SETPOINT_ECHO_TIMEOUT_SECONDS,
+    STALE_THRESHOLD_SECONDS,
     ZONE_ID,
     ZONE_NAME,
     ZONE_ROOMS,
     ZONE_SWITCH,
 )
+from custom_components.zeal import coordinator as coordinator_module
 from custom_components.zeal.coordinator import ZealCoordinator
 from homeassistant.helpers.storage import Store
 
@@ -46,6 +50,11 @@ class FakeThermostat:
         self.target_temperature = target_temperature
         self.hvac_mode = hvac_mode
         self.entity_id = entity_id
+        self.external_setpoints: list[float] = []
+
+    def apply_external_setpoint(self, temperature: float) -> None:
+        self.target_temperature = temperature
+        self.external_setpoints.append(temperature)
 
 
 def make_room(room_id: str, name: str, trvs: list[str], sensors: list[str], active: bool = True) -> dict:
@@ -92,6 +101,12 @@ async def coordinator(hass, floor1_zone) -> ZealCoordinator:
     store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
     coord = ZealCoordinator(hass, entry, store)
     return coord
+
+
+@pytest.fixture(autouse=True)
+def no_external_setpoint_settle_delay(monkeypatch):
+    """Keep unit tests fast; individual debounce tests opt into a short delay."""
+    monkeypatch.setattr(coordinator_module, "EXTERNAL_SETPOINT_SETTLE_SECONDS", 0)
 
 
 def set_sensor(hass, entity_id: str, value: str | float) -> None:
@@ -331,7 +346,250 @@ async def test_propagate_room_setpoint_skips_self_referencing_entity(hass, coord
     # ...but the self-referencing entity was never called - no recursive
     # service call, no infinite loop.
     assert zeal_entity_id not in called_entity_ids
-    assert zeal_entity_id not in coordinator._last_written_setpoint
+    assert zeal_entity_id not in coordinator._pending_setpoint_writes
+
+
+async def test_manual_change_on_either_physical_trv_synchronizes_the_room(
+    hass, coordinator
+):
+    """A manual turn on either of two room TRVs becomes the room target."""
+    room = make_room(
+        "master_bedroom",
+        "Master Bedroom",
+        ["climate.master_bedroom_trv", "climate.room_thermostat"],
+        ["sensor.room_thermostat_air_temperature"],
+    )
+    coordinator.zones = [make_zone("first_floor", "First Floor", "switch.pump", [room])]
+    thermostat = FakeThermostat(18.0, entity_id="climate.master_bedroom_zeal")
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    for trv in room[ROOM_TRVS]:
+        hass.states.async_set(trv, "heat", {"temperature": 18.0})
+
+    calls: list[tuple[str, float]] = []
+
+    async def fake_set_temperature(call):
+        calls.append((call.data["entity_id"], call.data["temperature"]))
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+
+    # The state event has already put the manually adjusted source TRV at 22°C.
+    hass.states.async_set(
+        "climate.master_bedroom_trv", "heat", {"temperature": 22.0}
+    )
+    await coordinator._async_handle_external_trv_change(
+        room, "climate.master_bedroom_trv", 22.0
+    )
+    assert thermostat.target_temperature == 22.0
+    assert calls == [
+        ("climate.room_thermostat", 22.0),
+    ]
+
+    # Consume the immediate state echo produced by ZEAL's one necessary write.
+    await coordinator._async_handle_external_trv_change(
+        room, "climate.room_thermostat", 22.0
+    )
+    assert len(calls) == 1
+
+    # Turning the other physical thermostat later must work in reverse too.
+    hass.states.async_set("climate.room_thermostat", "heat", {"temperature": 19.0})
+    await coordinator._async_handle_external_trv_change(
+        room, "climate.room_thermostat", 19.0
+    )
+    assert thermostat.target_temperature == 19.0
+    assert thermostat.external_setpoints == [22.0, 19.0]
+    assert calls[-1:] == [
+        ("climate.master_bedroom_trv", 19.0),
+    ]
+
+
+async def test_multiple_out_of_order_write_echoes_are_all_ignored(hass, coordinator):
+    """Slow radio echoes must not be mistaken for new manual setpoints."""
+    room = make_room("r", "Room", ["climate.r_trv"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(18.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 18.0})
+
+    async def fake_set_temperature(call):
+        return None
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 20.0)
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 21.0)
+    assert len(coordinator._pending_setpoint_writes["climate.r_trv"]) == 2
+
+    await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 20.0)
+    await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 21.0)
+
+    assert thermostat.external_setpoints == []
+    assert "climate.r_trv" not in coordinator._pending_setpoint_writes
+
+
+async def test_rapid_room_updates_coalesce_to_latest_target(hass, coordinator):
+    """A slow first write cannot create a replay queue of obsolete targets."""
+    room = make_room(
+        "r",
+        "Room",
+        ["climate.r_trv1", "climate.r_trv2"],
+        ["sensor.r"],
+    )
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    for trv in room[ROOM_TRVS]:
+        hass.states.async_set(trv, "heat", {"temperature": 18.0})
+
+    first_write_started = asyncio.Event()
+    release_first_write = asyncio.Event()
+    calls: list[tuple[str, float]] = []
+
+    async def slow_set_temperature(call):
+        calls.append((call.data["entity_id"], call.data["temperature"]))
+        if len(calls) == 1:
+            first_write_started.set()
+            await release_first_write.wait()
+
+    hass.services.async_register("climate", "set_temperature", slow_set_temperature)
+
+    first_pass = asyncio.create_task(
+        coordinator.async_propagate_room_setpoint(room[ROOM_ID], 20.0)
+    )
+    await first_write_started.wait()
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 21.0)
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 22.0)
+    release_first_write.set()
+    await first_pass
+
+    assert calls == [
+        ("climate.r_trv1", 20.0),
+        ("climate.r_trv1", 22.0),
+        ("climate.r_trv2", 22.0),
+    ]
+    assert all(temperature != 21.0 for _, temperature in calls)
+
+
+async def test_moving_physical_dial_waits_for_quiet_before_writing_battery_trvs(
+    hass, coordinator, monkeypatch
+):
+    """Intermediate dial positions never become outbound battery-device writes."""
+    monkeypatch.setattr(coordinator_module, "EXTERNAL_SETPOINT_SETTLE_SECONDS", 0.02)
+    room = make_room(
+        "r",
+        "Room",
+        ["climate.dial_trv", "climate.battery_trv"],
+        ["sensor.r"],
+    )
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(18.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    hass.states.async_set("climate.dial_trv", "heat", {"temperature": 20.0})
+    hass.states.async_set("climate.battery_trv", "heat", {"temperature": 18.0})
+
+    calls: list[tuple[str, float]] = []
+
+    async def fake_set_temperature(call):
+        calls.append((call.data["entity_id"], call.data["temperature"]))
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+
+    intermediate = asyncio.create_task(
+        coordinator._async_handle_external_trv_change(
+            room, "climate.dial_trv", 20.0
+        )
+    )
+    await asyncio.sleep(0)
+    hass.states.async_set("climate.dial_trv", "heat", {"temperature": 21.0})
+    latest = asyncio.create_task(
+        coordinator._async_handle_external_trv_change(
+            room, "climate.dial_trv", 21.0
+        )
+    )
+    await asyncio.gather(intermediate, latest)
+
+    assert thermostat.external_setpoints == [20.0, 21.0]
+    assert calls == [("climate.battery_trv", 21.0)]
+
+
+async def test_old_self_write_marker_cannot_hide_a_later_manual_change(
+    hass, coordinator, freezer
+):
+    room = make_room("r", "Room", ["climate.r_trv"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(18.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 18.0})
+
+    calls: list[float] = []
+
+    async def fake_set_temperature(call):
+        calls.append(call.data["temperature"])
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 20.0)
+    freezer.tick(SETPOINT_ECHO_TIMEOUT_SECONDS + 1)
+    await coordinator._async_handle_external_trv_change(room, "climate.r_trv", 20.0)
+
+    assert thermostat.external_setpoints == [20.0]
+    assert calls == [20.0, 20.0]
+
+
+async def test_recovered_trv_is_restored_from_canonical_room_target(hass, coordinator):
+    room = make_room("r", "Room", ["climate.r_trv"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    thermostat = FakeThermostat(18.0)
+    coordinator.room_thermostats[room[ROOM_ID]] = thermostat
+
+    hass.states.async_set("climate.r_trv", "unavailable", {"temperature": 22.0})
+    old_state = hass.states.get("climate.r_trv")
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 22.0})
+    new_state = hass.states.get("climate.r_trv")
+
+    calls: list[float] = []
+
+    async def fake_set_temperature(call):
+        calls.append(call.data["temperature"])
+
+    async def fake_refresh():
+        return None
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+    coordinator.async_request_refresh = fake_refresh
+    coordinator._async_handle_tracked_state_change(
+        SimpleNamespace(
+            data={
+                "entity_id": "climate.r_trv",
+                "old_state": old_state,
+                "new_state": new_state,
+            }
+        )
+    )
+    await hass.async_block_till_done()
+
+    assert calls == [18.0]
+    assert thermostat.target_temperature == 18.0
+    assert thermostat.external_setpoints == []
+
+
+async def test_unavailable_trv_write_is_retried_after_recovery(hass, coordinator):
+    room = make_room("r", "Room", ["climate.r_trv"], ["sensor.r"])
+    coordinator.zones = [make_zone("z", "Zone", "switch.pump", [room])]
+    coordinator.room_thermostats[room[ROOM_ID]] = FakeThermostat(18.0)
+    hass.states.async_set("climate.r_trv", "unavailable")
+
+    await coordinator.async_propagate_room_setpoint(room[ROOM_ID], 18.0)
+    assert "climate.r_trv" in coordinator._unsynced_trvs
+
+    calls: list[float] = []
+
+    async def fake_set_temperature(call):
+        calls.append(call.data["temperature"])
+
+    hass.services.async_register("climate", "set_temperature", fake_set_temperature)
+    hass.states.async_set("climate.r_trv", "heat", {"temperature": 22.0})
+    await coordinator._async_retry_unsynced_trvs()
+
+    assert calls == [18.0]
+    assert "climate.r_trv" not in coordinator._unsynced_trvs
 
 
 # ---------------------------------------------------------------------
@@ -521,7 +779,7 @@ async def test_get_usable_state_returns_state_for_a_fresh_reading(hass, coordina
 
 async def test_get_usable_state_returns_none_for_a_stale_reading(hass, coordinator, freezer):
     hass.states.async_set("sensor.r", "20.0")  # last_reported = now
-    freezer.tick(3601)  # just past STALE_THRESHOLD_SECONDS (3600) - never updated again
+    freezer.tick(STALE_THRESHOLD_SECONDS + 1)  # never updated again
     assert coordinator._get_usable_state("sensor.r") is None
 
 
@@ -533,7 +791,7 @@ async def test_get_usable_state_does_not_false_positive_on_a_stable_reading_with
     is exactly why last_reported (not last_updated/last_changed) is
     used. Staying under the threshold, this must still count as fresh."""
     hass.states.async_set("sensor.r", "20.0")
-    freezer.tick(1800)  # well under the 3600s threshold
+    freezer.tick(3601)  # one hour without a report remains healthy in the four-hour trial
     assert coordinator._get_usable_state("sensor.r") is not None
 
 
@@ -545,7 +803,7 @@ async def test_room_temperature_excludes_a_stale_sensor(hass, coordinator, freez
     room = make_room("r", "R", ["climate.r_trv"], ["sensor.r"])
     hass.states.async_set("sensor.r", "20.0")
 
-    freezer.tick(3601)  # sensor never reports again
+    freezer.tick(STALE_THRESHOLD_SECONDS + 1)  # sensor never reports again
 
     assert coordinator._room_temperature(room) is None  # correctly distrusted, not "20.0"
 
@@ -554,7 +812,7 @@ async def test_room_temperature_averages_only_fresh_sensors_when_one_is_stale(ha
     room = make_room("r", "R", ["climate.r_trv"], ["sensor.r1", "sensor.r2"])
     hass.states.async_set("sensor.r1", "18.0")
 
-    freezer.tick(3601)  # r1 goes silent from here on
+    freezer.tick(STALE_THRESHOLD_SECONDS + 1)  # r1 goes silent from here on
 
     hass.states.async_set("sensor.r2", "22.0")  # r2 keeps reporting - fresh right now
 
@@ -569,7 +827,7 @@ async def test_zone_all_trvs_off_conservative_on_a_stale_trv(hass, coordinator, 
     zone = make_zone("z", "Z", "switch.z", [room])
     hass.states.async_set("climate.r_trv", "off")
 
-    freezer.tick(3601)  # never reports again, even though last state was "off"
+    freezer.tick(STALE_THRESHOLD_SECONDS + 1)  # never reports again, even though last state was "off"
 
     assert coordinator._zone_all_trvs_off(zone) is False
 
@@ -587,7 +845,7 @@ async def test_offline_health_check_detects_a_stale_entity_not_just_unavailable(
     hass.states.async_set("sensor.r", "20.0")  # never reports again from here
     creates, _ = _register_notification_capture(hass)
 
-    freezer.tick(3601)  # sensor now stale (> STALE_THRESHOLD_SECONDS); TRV would be too...
+    freezer.tick(STALE_THRESHOLD_SECONDS + 1)  # sensor is stale; TRV would be too...
     hass.states.async_set("climate.r_trv", "heat", {"temperature": 20.0})  # ...but keeps reporting
     await coordinator._async_check_entity_health()  # first sighting of the stale sensor
 

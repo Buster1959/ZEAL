@@ -20,6 +20,21 @@ week. A manual room-thermostat change is respected until the next schedule
 transition during normal control. Also confirm the room is active and has a
 canonical ZEAL thermostat.
 
+## One physical thermostat did not follow another in the same room
+
+Update to ZEAL 0.13.4 or later. A manual setpoint change on any configured
+physical TRV is the new room target and is propagated to the canonical ZEAL
+thermostat and every other physical TRV in that room. ZEAL's loop guard ignores
+only the immediate echo of its own service call, not a later manual selection of
+the same temperature. If a physical TRV is unavailable during propagation, ZEAL
+queues it and restores the canonical room target when it reconnects. Rapid
+changes are handled latest-first: obsolete intermediate targets are discarded,
+and delayed or out-of-order radio acknowledgements are recognised as ZEAL's own
+writes rather than fed back into the room. ZEAL waits until a physical dial has
+remained stable for five seconds before writing the final target to other TRVs;
+continuous or noisy input therefore cannot produce a battery-draining outbound
+write storm.
+
 ## A Quick Change is unavailable
 
 Quick Change is deliberately blocked while Away is active. End Away or wait for
@@ -49,7 +64,7 @@ closed.
 
 Read the exact reason in the notification. A state of `unavailable` or
 `unknown` is reported by Home Assistant. “Has not reported a state” means the
-entity's Home Assistant `last_reported` time passed ZEAL's one-hour stale
+entity's Home Assistant `last_reported` time passed ZEAL's four-hour stale
 threshold and then remained unhealthy through the five-minute notification
 debounce. Check that entity in Developer Tools and download diagnostics. The
 notification also says whether another usable TRV or sensor still covers the
