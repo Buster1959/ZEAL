@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZEAL–Scheduler Patch Parity"
+  short_description: "Check shared fixes before sibling patches"
+  default_prompt: "Use $zeal-visual-scheduler-parity to check whether this fix also applies to the sibling heating project."
