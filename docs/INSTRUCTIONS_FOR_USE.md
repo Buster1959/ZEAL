@@ -54,7 +54,11 @@ temperature sensors in each Area. Mark unused rooms inactive and save.
 
 The physical equipment picker intentionally excludes ZEAL's own room
 thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
-heat source, delay and equipment counts. Overview also shows the local time and
+heat source, delay and equipment counts. Each Zone/Floor card also shows the live
+heating-actuator state and a horizontally scrollable room-demand strip. Every
+room is labelled Demand, Satisfied, Off, Inactive or Unavailable alongside its
+current setpoint and measured temperature, making it easy to see why a zone is
+heating. Overview also shows the local time and
 setpoint of each room's latest successful ZEAL target change.
 
 Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and

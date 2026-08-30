@@ -111,7 +111,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=9"
+        "/zeal-panel.js?v=10"
     )
 
     static_routes = {
@@ -199,6 +199,21 @@ def test_frontend_contains_setup_safety_and_responsive_contracts():
     assert "Other ZEAL instances are not removed" in source
     assert "@media (max-width: 760px)" in source
     assert "@media (max-width: 430px)" in source
+
+
+def test_frontend_contains_live_overview_demand_contracts():
+    """Overview shows live actuator and room demand without duplicating control state."""
+    source = PANEL_FILE.read_text()
+    assert "Heating actuator" in source
+    assert 'icon="mdi:radiator"' in source
+    assert "On · zone heating" in source
+    assert "Off · no zone heat" in source
+    assert "Setpoint ${this._formatScheduleTemperature" in source
+    assert "Temperature ${this._formatScheduleTemperature" in source
+    assert 'label: demanding ? "Demand" : "Satisfied"' in source
+    assert 'this._hass?.states?.[thermostat.entity_id]' in source
+    assert "overflow-x:auto" in source
+    assert "_syncOverviewDemand" in source
 
 
 def test_frontend_contains_visual_scheduler_contracts():

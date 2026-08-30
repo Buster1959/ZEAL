@@ -76,6 +76,7 @@ class ZealPanel extends HTMLElement {
     this._downloadBusy = false;
     this._notice = "";
     this._error = "";
+    this._overviewDemandSignatures = new Map();
     this.shadowRoot.addEventListener("pointerdown", (event) => this._onPointerDown(event));
     this.shadowRoot.addEventListener("pointermove", (event) => this._onPointerMove(event));
     this.shadowRoot.addEventListener("pointerup", (event) => this._onPointerUp(event));
@@ -87,6 +88,8 @@ class ZealPanel extends HTMLElement {
     if (!this._started && value) {
       this._started = true;
       this._initialLoad();
+    } else if (this._view === "overview" && this._configuration) {
+      this._syncOverviewDemand();
     }
   }
 
@@ -384,6 +387,7 @@ class ZealPanel extends HTMLElement {
       )}</p></div><span class="pill">${(zone.rooms || []).length} room${
         (zone.rooms || []).length === 1 ? "" : "s"
       }</span></div>
+      ${this._overviewDemand(zone, switchEntity)}
       <dl class="zone-facts">
         <div><dt>Heating actuator</dt><dd>${this._escape(
           this._entityLabel(switchEntity)
@@ -396,6 +400,103 @@ class ZealPanel extends HTMLElement {
           : `<p class="muted">No Areas assigned to this zone.</p>`
       }</div>
     </article>`;
+  }
+
+  _overviewDemand(zone, switchEntity) {
+    const body = this._overviewDemandBody(zone, switchEntity);
+    this._overviewDemandSignatures.set(zone.zone_id, body);
+    return `<section class="zone-demand" data-zone-demand data-zone-id="${this._escape(
+      zone.zone_id
+    )}" aria-label="Live heating demand for ${this._escape(zone.name)}">${body}</section>`;
+  }
+
+  _overviewDemandBody(zone, switchEntity) {
+    const actuator = this._actuatorOverviewState(zone.switch);
+    const rooms = (zone.rooms || []).map((room) => this._roomDemandOverview(room));
+    return `<div class="actuator-status ${actuator.cssClass}">
+      <ha-icon icon="mdi:radiator"></ha-icon>
+      <div><span>Heating actuator</span><strong>${this._escape(actuator.label)}</strong></div>
+    </div>
+    <div class="demand-strip" tabindex="0" role="list" aria-label="Room demand, setpoint and temperature">
+      ${
+        rooms.length
+          ? rooms.map((room) => this._roomDemandChip(room)).join("")
+          : `<span class="demand-empty">No rooms assigned</span>`
+      }
+    </div>`;
+  }
+
+  _actuatorOverviewState(entityId) {
+    const state = entityId ? this._hass?.states?.[entityId] : null;
+    if (!entityId) return { label: "Not configured", cssClass: "unknown" };
+    if (!state || ["unknown", "unavailable"].includes(state.state)) {
+      return { label: "Unavailable", cssClass: "unknown" };
+    }
+    return state.state === "on"
+      ? { label: "On · zone heating", cssClass: "heating" }
+      : { label: "Off · no zone heat", cssClass: "idle" };
+  }
+
+  _roomDemandOverview(room) {
+    const name = room.name || this._areaName(room.room_id);
+    if (room.active === false) {
+      return { name, label: "Inactive", cssClass: "inactive", setpoint: null, temperature: null };
+    }
+    const thermostat = this._zealThermostat(room.room_id);
+    const state = thermostat ? this._hass?.states?.[thermostat.entity_id] : null;
+    if (!state || ["unknown", "unavailable"].includes(state.state)) {
+      return { name, label: "Unavailable", cssClass: "unknown", setpoint: null, temperature: null };
+    }
+    const setpoint = Number(state.attributes?.temperature);
+    const temperature = Number(state.attributes?.current_temperature);
+    if (state.state === "off") {
+      return { name, label: "Off", cssClass: "inactive", setpoint, temperature };
+    }
+    if (!Number.isFinite(setpoint) || !Number.isFinite(temperature)) {
+      return { name, label: "Unavailable", cssClass: "unknown", setpoint, temperature };
+    }
+    const demanding = setpoint - temperature > 0;
+    return {
+      name,
+      label: demanding ? "Demand" : "Satisfied",
+      cssClass: demanding ? "demanding" : "satisfied",
+      setpoint,
+      temperature,
+    };
+  }
+
+  _roomDemandChip(room) {
+    const readings =
+      Number.isFinite(room.setpoint) && Number.isFinite(room.temperature)
+        ? `<span>Setpoint ${this._formatScheduleTemperature(
+            room.setpoint
+          )} · Temperature ${this._formatScheduleTemperature(room.temperature)}</span>`
+        : `<span>Temperature data unavailable</span>`;
+    return `<div class="demand-chip ${room.cssClass}" role="listitem">
+      <strong>${this._escape(room.name)}</strong>
+      ${readings}
+      <em>${this._escape(room.label)}</em>
+    </div>`;
+  }
+
+  _syncOverviewDemand() {
+    if (!this.shadowRoot || this._view !== "overview") return;
+    for (const container of this.shadowRoot.querySelectorAll("[data-zone-demand]")) {
+      const zone = (this._configuration?.zones || []).find(
+        (candidate) => candidate.zone_id === container.dataset.zoneId
+      );
+      if (!zone) continue;
+      const switchEntity = this._configuration.catalog.switches.find(
+        (item) => item.entity_id === zone.switch
+      );
+      const body = this._overviewDemandBody(zone, switchEntity);
+      if (this._overviewDemandSignatures.get(zone.zone_id) === body) continue;
+      const scrollLeft = container.querySelector(".demand-strip")?.scrollLeft || 0;
+      container.innerHTML = body;
+      const strip = container.querySelector(".demand-strip");
+      if (strip) strip.scrollLeft = scrollLeft;
+      this._overviewDemandSignatures.set(zone.zone_id, body);
+    }
   }
 
   _overviewRoom(room) {
@@ -2143,6 +2244,27 @@ class ZealPanel extends HTMLElement {
       .pill, .state { white-space:nowrap; border-radius:999px; padding:5px 9px; font-size:12px; background:var(--secondary-background-color); }
       .state { color:var(--success-color, #2e7d32); }
       .state.inactive { color:var(--secondary-text-color); }
+      .zone-demand { margin:14px 0 0; padding:11px; border:1px solid var(--divider-color); border-radius:10px; background:var(--secondary-background-color); }
+      .actuator-status { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
+      .actuator-status ha-icon { flex:none; --mdc-icon-size:27px; }
+      .actuator-status span, .actuator-status strong { display:block; }
+      .actuator-status span { color:var(--secondary-text-color); font-size:11px; }
+      .actuator-status strong { margin-top:1px; font-size:13px; }
+      .actuator-status.heating ha-icon, .actuator-status.heating strong { color:var(--warning-color, #ef6c00); }
+      .actuator-status.idle ha-icon { color:var(--secondary-text-color); }
+      .actuator-status.unknown ha-icon, .actuator-status.unknown strong { color:var(--error-color); }
+      .demand-strip { display:flex; gap:8px; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; padding:1px 0 5px; scroll-snap-type:x proximity; }
+      .demand-chip { flex:0 0 auto; min-width:205px; display:grid; grid-template-columns:1fr auto; gap:3px 12px; padding:8px 10px; border-left:4px solid var(--divider-color); border-radius:7px; background:var(--card-background-color); scroll-snap-align:start; }
+      .demand-chip strong { overflow:hidden; text-overflow:ellipsis; }
+      .demand-chip span { grid-column:1 / -1; color:var(--secondary-text-color); font-size:11px; }
+      .demand-chip em { grid-column:2; grid-row:1; align-self:center; font-size:11px; font-style:normal; font-weight:700; }
+      .demand-chip.demanding { border-left-color:var(--warning-color, #ef6c00); }
+      .demand-chip.demanding em { color:var(--warning-color, #ef6c00); }
+      .demand-chip.satisfied { border-left-color:var(--success-color, #2e7d32); }
+      .demand-chip.satisfied em { color:var(--success-color, #2e7d32); }
+      .demand-chip.inactive, .demand-chip.unknown { opacity:.72; }
+      .demand-chip.unknown { border-left-color:var(--error-color); }
+      .demand-empty { color:var(--secondary-text-color); font-size:12px; }
       .zone-facts { margin:16px 0; padding:12px 0; border-top:1px solid var(--divider-color); border-bottom:1px solid var(--divider-color); }
       .zone-facts div { display:grid; grid-template-columns:125px minmax(0,1fr); gap:10px; padding:4px 0; }
       dt { color:var(--secondary-text-color); }
