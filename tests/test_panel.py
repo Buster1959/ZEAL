@@ -111,7 +111,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=10"
+        "/zeal-panel.js?v=11"
     )
 
     static_routes = {
@@ -206,8 +206,12 @@ def test_frontend_contains_live_overview_demand_contracts():
     source = PANEL_FILE.read_text()
     assert "Heating actuator" in source
     assert 'icon="mdi:radiator"' in source
-    assert "On · zone heating" in source
-    assert "Off · no zone heat" in source
+    assert 'label: "On", cssClass: "heating"' in source
+    assert 'label: "Off", cssClass: "idle"' in source
+    assert "Heat demand" in source
+    assert 'hasDemand ? "Present" : "None"' in source
+    assert "Demand is present while the actuator is off" in source
+    assert "re-enable delay or held by Manual Override or a safety condition" in source
     assert "Setpoint ${this._formatScheduleTemperature" in source
     assert "Temperature ${this._formatScheduleTemperature" in source
     assert 'label: demanding ? "Demand" : "Satisfied"' in source

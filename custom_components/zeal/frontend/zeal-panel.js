@@ -411,12 +411,21 @@ class ZealPanel extends HTMLElement {
   }
 
   _overviewDemandBody(zone, switchEntity) {
-    const actuator = this._actuatorOverviewState(zone.switch);
     const rooms = (zone.rooms || []).map((room) => this._roomDemandOverview(room));
+    const hasDemand = rooms.some((room) => room.cssClass === "demanding");
+    const actuator = this._actuatorOverviewState(zone.switch);
     return `<div class="actuator-status ${actuator.cssClass}">
       <ha-icon icon="mdi:radiator"></ha-icon>
       <div><span>Heating actuator</span><strong>${this._escape(actuator.label)}</strong></div>
+      <div class="zone-demand-state ${hasDemand ? "demanding" : "satisfied"}">
+        <span>Heat demand</span><strong>${hasDemand ? "Present" : "None"}</strong>
+      </div>
     </div>
+    ${
+      hasDemand && actuator.cssClass === "idle"
+        ? `<p class="actuator-explanation">Demand is present while the actuator is off. It may be waiting for the re-enable delay or held by Manual Override or a safety condition.</p>`
+        : ""
+    }
     <div class="demand-strip" tabindex="0" role="list" aria-label="Room demand, setpoint and temperature">
       ${
         rooms.length
@@ -433,8 +442,8 @@ class ZealPanel extends HTMLElement {
       return { label: "Unavailable", cssClass: "unknown" };
     }
     return state.state === "on"
-      ? { label: "On · zone heating", cssClass: "heating" }
-      : { label: "Off · no zone heat", cssClass: "idle" };
+      ? { label: "On", cssClass: "heating" }
+      : { label: "Off", cssClass: "idle" };
   }
 
   _roomDemandOverview(room) {
@@ -2320,9 +2329,13 @@ class ZealPanel extends HTMLElement {
       .actuator-status span, .actuator-status strong { display:block; }
       .actuator-status span { color:var(--secondary-text-color); font-size:11px; }
       .actuator-status strong { margin-top:1px; font-size:13px; }
+      .zone-demand-state { margin-left:auto; text-align:right; }
+      .zone-demand-state.demanding strong { color:var(--warning-color, #ef6c00); }
+      .zone-demand-state.satisfied strong { color:var(--success-color, #2e7d32); }
       .actuator-status.heating ha-icon, .actuator-status.heating strong { color:var(--warning-color, #ef6c00); }
       .actuator-status.idle ha-icon { color:var(--secondary-text-color); }
       .actuator-status.unknown ha-icon, .actuator-status.unknown strong { color:var(--error-color); }
+      .actuator-explanation { margin:-2px 0 9px; color:var(--secondary-text-color); font-size:11px; line-height:1.35; }
       .demand-strip { display:flex; gap:8px; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; padding:1px 0 5px; scroll-snap-type:x proximity; }
       .demand-chip { flex:0 0 auto; min-width:205px; display:grid; grid-template-columns:1fr auto; gap:3px 12px; padding:8px 10px; border-left:4px solid var(--divider-color); border-radius:7px; background:var(--card-background-color); scroll-snap-align:start; }
       .demand-chip strong { overflow:hidden; text-overflow:ellipsis; }

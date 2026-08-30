@@ -58,7 +58,10 @@ heat source, delay and equipment counts. Each Zone/Floor card also shows the liv
 heating-actuator state and a horizontally scrollable room-demand strip. Every
 room is labelled Demand, Satisfied, Off, Inactive or Unavailable alongside its
 current setpoint and measured temperature, making it easy to see why a zone is
-heating. Each room also separates its last scheduled setpoint from the currently
+heating. Heat demand and physical actuator state are displayed separately: a
+zone can have demand while its actuator is still off during the re-enable delay
+or because Manual Override or a safety condition is holding it. Each room also
+separates its last scheduled setpoint from the currently
 effective control source. Manual Home Assistant/TRV adjustments are shown as
 lasting until the next scheduled change; Quick Change shows its target and
 selected two-hour, four-hour or next-schedule duration.
