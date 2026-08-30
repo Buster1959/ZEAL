@@ -100,6 +100,20 @@ Both raw-event and proposal retention must be bounded. Exports and documentation
 must warn that this history may reveal occupancy routines even though it contains
 no Home Assistant credentials.
 
+### Planned room thermal-response documents
+
+Thermal learning should use a separate versioned observation store and derived
+per-room model store. Observations distinguish measured outdoor temperature from
+forecast temperature and retain source entity, timestamps, room temperatures,
+effective/scheduled target, heat-demand/actuator state, optional heat-input and
+disturbance signals, validity/exclusion reason and model version.
+
+Each derived room model records its effective thermal mass/heat-loss parameters,
+response delay, training range, evidence count, last trained time, model version
+and confidence. Raw observations remain the reproducible evidence; derived
+parameters can be rebuilt after a model migration. A model never crosses room
+IDs, and missing/stale weather data does not modify the saved schedule.
+
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
 information.

@@ -119,14 +119,16 @@ previous/requested target, cause and outcome. It records successful and skipped
 unavailable outcomes, contains no credentials or physical-TRV service payloads,
 survives integration restarts and retains only the newest 500 entries.
 
-The next major version may add a source-aware learning pipeline above this
-boundary. It will group comparable manual/Quick Change events by room and time
-window across multiple days, then create an explainable schedule proposal after
-a configurable evidence threshold (for example, three similar changes). The
-pipeline may recommend but cannot write `ScheduleConfiguration` directly.
+**ZEAL Learning — Schedule Adaptation** may add a source-aware learning pipeline
+above this boundary. It will group comparable manual/Quick Change events by room
+and time window across multiple days, then create an explainable schedule
+proposal after a configurable evidence threshold (for example, three similar
+changes). The pipeline may recommend but cannot write `ScheduleConfiguration`
+directly.
 Accepting or editing a proposal must use the existing validated, revision-checked
 schedule API; dismissal and snooze outcomes must also be retained to prevent
-repetitive prompting.
+repetitive prompting. The separate **ZEAL Learning — Room Thermal Response**
+workstream is defined in [the learning roadmap](LEARNING_ROADMAP.md).
 
 ## Away mode and precedence
 

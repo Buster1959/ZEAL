@@ -42,3 +42,15 @@ companion Wiki retains the longer chronological design history.
     normal revision-checked schedule API.
 18. Accepted, edited, dismissed and snoozed proposals are audited. Retention is
     bounded and treated as occupancy-sensitive data.
+19. The two named learning workstreams are **ZEAL Learning — Schedule
+    Adaptation** and **ZEAL Learning — Room Thermal Response**.
+20. Thermal Response selects standard Home Assistant outdoor-temperature and
+    weather entities by capability; Met Office, Open-Meteo and Pirate Weather
+    form the initial compatibility matrix, not an allow-list.
+21. Actual outdoor observations train the room model; forecasts are used only
+    for future optimum-start prediction and remain distinguishable in storage.
+22. Thermal models are per room and begin with an explainable first-order model.
+    PID is deferred unless ZEAL later controls a suitable proportional output.
+23. Optimum start begins as a recommendation. Any automatic start adjustment
+    requires explicit opt-in, sufficient confidence and safe fallback to the
+    unchanged weekly schedule.

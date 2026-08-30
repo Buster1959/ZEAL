@@ -193,7 +193,7 @@ checks will be repeated. Manifest `1.0.0`, tag and GitHub release remain gated
 on the pending live checks and mobile screenshots. The release will be
 distributed through the documented custom-HACS route.
 
-## Next major version — source-aware audit and schedule learning
+## ZEAL Learning — Schedule Adaptation
 
 This work begins only after V1 is released and its audit schema is stable.
 
@@ -222,3 +222,33 @@ schedule changes only after explicit user confirmation.
 
 Status: planned for the next major version; no V1 behaviour is changed by this
 roadmap item.
+
+## ZEAL Learning — Room Thermal Response
+
+This work follows the source-aware audit and begins in observation-only mode.
+
+- Add Settings selectors for a preferred local outdoor temperature sensor or a
+  compatible current-temperature weather entity, plus an optional hourly
+  forecast weather entity.
+- Integrate against Home Assistant's weather contract rather than provider
+  names; validate with Met Office, Open-Meteo and Pirate Weather-shaped entities.
+- Store actual observations separately from forecasts and retain the provenance,
+  quality and model version required to reproduce each estimate.
+- Fit a per-room first-order thermal response: heat-up rate, response delay,
+  cooldown/heat-loss behaviour and confidence as functions of the indoor/outdoor
+  temperature difference and available heat-input signals.
+- Reject or down-weight stale sensors, open-window periods, interrupted runs,
+  manual changes, unexplained heat sources and likely solar/occupancy gains.
+- Introduce advisory optimum start before any automatic behaviour. Show the
+  evidence, predicted start, target time/temperature and confidence.
+- Keep automatic optimum start behind a later explicit opt-in and confidence
+  threshold. Do not change the saved schedule period.
+- Reserve PID for later proportional outputs; do not layer it over binary zone
+  actuators or existing TRV/heat-source controllers.
+
+Acceptance: synthetic models, provider-contract fixtures and restart/stale-data
+tests prove parameter recovery, forecast/observation separation, per-room
+isolation, explainable confidence and safe fallback to the unchanged schedule.
+
+Status: planned for the next major version. The detailed specification and
+sequencing are in `docs/LEARNING_ROADMAP.md`.

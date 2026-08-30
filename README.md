@@ -180,6 +180,8 @@ If the button is unavailable, add the repository manually:
   and [V1 acceptance record](docs/V1_ACCEPTANCE_RECORD.md)
 - [Architecture](docs/ARCHITECTURE.md) and [data model](docs/DATA_MODEL.md)
 - [Decision summary](docs/DECISIONS.md) and [V1 block plan](docs/PROJECT_PLAN.md)
+- [ZEAL Learning roadmap](docs/LEARNING_ROADMAP.md) — Schedule Adaptation and
+  per-room Thermal Response
 - [Internationalisation roadmap](docs/I18N_ROADMAP.md)
 - [Draft V1 release notes](docs/RELEASE_NOTES_V1_DRAFT.md)
 
@@ -406,10 +408,11 @@ that instead.
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
 | 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed desktop screenshots added, mobile captures pending |
 | 6. HACS distribution, including the full ZEAL rename (domain, files and repository) | Custom-repository metadata, one-click installation and validation workflows done; the PolyForm Shield release remains outside the default HACS store |
-| 7. Learning and adaptive schedule suggestions | Next major version, planned: retain source-aware manual/Quick Change history, detect repeated changes in comparable time windows across multiple days, and ask the user whether to commit a proposed change to the weekly schedule. Suggestions are never auto-applied. |
+| 7. ZEAL Learning — Schedule Adaptation | Next major version, planned: retain source-aware manual/Quick Change history, detect repeated changes in comparable time windows across multiple days, and ask the user whether to commit a proposed change to the weekly schedule. Suggestions are never auto-applied. |
+| 8. ZEAL Learning — Room Thermal Response | Next major version, planned: learn each room's heat-up delay/rate and heat loss against observed outdoor temperature, then recommend optimum heating start from an hourly forecast. |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |
 
-### Next major version — learning from repeated changes
+### ZEAL Learning — Schedule Adaptation
 
 The planned learning layer will use a persistent, trackable audit of schedule,
 Quick Change, Home Assistant thermostat and physical-TRV setpoint changes. A
@@ -423,6 +426,22 @@ suggested setpoint and confidence/count. The user can accept, edit, dismiss or
 snooze it. Only explicit acceptance commits a new schedule revision; learning
 must never silently rewrite the saved week. Suggestions and their outcomes are
 themselves audited so ZEAL can avoid repeatedly offering a dismissed pattern.
+
+### ZEAL Learning — Room Thermal Response
+
+ZEAL will optionally learn a separate thermal-response model for each room from
+valid heating episodes and actual outdoor temperature observations. A local
+outdoor sensor is preferred; otherwise Setup can select a compatible Home
+Assistant weather entity, with a separate optional hourly forecast source.
+
+The first application is optimum start: estimate when heating should begin for
+the room to reach its existing scheduled temperature at the existing scheduled
+time. Start with an explainable first-order thermal model, not PID; PID remains
+a later possibility only for hardware with a genuinely proportional output.
+Weather providers are selected through Home Assistant's standard entity
+capabilities rather than a fixed allow-list. See the
+[ZEAL Learning roadmap](docs/LEARNING_ROADMAP.md) for the model, observations,
+provider test matrix, confidence rules and safety gates.
 
 ## Troubleshooting
 

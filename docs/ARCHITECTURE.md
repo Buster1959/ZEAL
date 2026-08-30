@@ -60,6 +60,7 @@ from decisions, and an all-valves-closed result forces the zone actuator off.
 
 ## Further technical detail
 
+- [ZEAL Learning roadmap](LEARNING_ROADMAP.md)
 - [Panel API architecture](PANEL_API_ARCHITECTURE.md)
 - [Scheduler architecture](SCHEDULER_ARCHITECTURE.md)
 - [Data model](DATA_MODEL.md)
