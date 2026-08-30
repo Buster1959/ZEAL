@@ -106,6 +106,7 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
         "schedule": schedule.to_dict(),
         "away_mode": data["schedule_runtime"].away_mode_state(),
         "quick_change": data["schedule_runtime"].quick_change_state(),
+        "zone_control": data["coordinator"].zone_control_snapshot(),
         "last_changes": data["audit_log"].latest_applied_by_room(),
         "catalog": configuration_catalog(hass, entry_id),
     }

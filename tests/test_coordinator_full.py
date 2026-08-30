@@ -15,6 +15,7 @@ Run with:
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -36,7 +37,7 @@ from custom_components.zeal.const import (
     ZONE_SWITCH,
 )
 from custom_components.zeal import coordinator as coordinator_module
-from custom_components.zeal.coordinator import ZealCoordinator
+from custom_components.zeal.coordinator import ZealCoordinator, ZoneStatus
 from homeassistant.helpers.storage import Store
 
 
@@ -101,6 +102,32 @@ async def coordinator(hass, floor1_zone) -> ZealCoordinator:
     store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
     coord = ZealCoordinator(hass, entry, store)
     return coord
+
+
+async def test_zone_control_snapshot_exposes_live_hold_timing(
+    coordinator, floor1_zone
+):
+    zone_id = floor1_zone[ZONE_ID]
+    last_off = datetime(2026, 8, 30, 22, 0, tzinfo=timezone.utc)
+    coordinator._last_off_time[zone_id] = last_off
+    coordinator.override_switches[zone_id] = SimpleNamespace(is_on=True)
+    coordinator.data = {
+        zone_id: ZoneStatus(
+            zone_id=zone_id,
+            zone_name=floor1_zone[ZONE_NAME],
+            needs_heat=True,
+            demand_lines=["Floor1 RoomA: DEMAND"],
+        )
+    }
+
+    control = coordinator.zone_control_snapshot()[zone_id]
+
+    assert control["needs_heat"] is True
+    assert control["manual_override"] is True
+    assert control["reenable_delay"] == 300
+    assert control["last_off_at"] == "2026-08-30T22:00:00+00:00"
+    assert control["blocked_until"] == "2026-08-30T22:05:00+00:00"
+    assert control["demand_lines"] == ["Floor1 RoomA: DEMAND"]
 
 
 @pytest.fixture(autouse=True)

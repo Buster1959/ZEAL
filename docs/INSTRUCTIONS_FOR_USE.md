@@ -60,7 +60,10 @@ room is labelled Demand, Satisfied, Off, Inactive or Unavailable alongside its
 current setpoint and measured temperature, making it easy to see why a zone is
 heating. Heat demand and physical actuator state are displayed separately: a
 zone can have demand while its actuator is still off during the re-enable delay
-or because Manual Override or a safety condition is holding it. Each room also
+or because Manual Override or a safety condition is holding it. While demand is
+waiting for the re-enable delay, the card shows the live seconds remaining. It
+also identifies Zone Manual Override and the all-TRVs-closed safety hold by name,
+so a normal delay is not mistaken for a fault. Each room also
 separates its last scheduled setpoint from the currently
 effective control source. Manual Home Assistant/TRV adjustments are shown as
 lasting until the next scheduled change; Quick Change shows its target and

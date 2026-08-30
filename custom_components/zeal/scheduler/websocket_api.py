@@ -31,6 +31,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
     for command in (
         ws_list_entries,
         ws_get_configuration,
+        ws_get_zone_control,
         ws_update_room_days,
         ws_copy_room_schedule,
         ws_save_away_mode,
@@ -81,6 +82,24 @@ def ws_get_configuration(hass, connection, msg) -> None:
         return
     connection.send_result(
         msg["id"], configuration_snapshot(hass, msg["entry_id"])
+    )
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "zeal/get_zone_control",
+        vol.Required("entry_id"): str,
+    }
+)
+@callback
+def ws_get_zone_control(hass, connection, msg) -> None:
+    data = _loaded_entry(hass, msg["entry_id"])
+    if data is None:
+        _send_not_found(connection, msg)
+        return
+    connection.send_result(
+        msg["id"], {"zones": data["coordinator"].zone_control_snapshot()}
     )
 
 

@@ -111,7 +111,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=11"
+        "/zeal-panel.js?v=12"
     )
 
     static_routes = {
@@ -210,8 +210,13 @@ def test_frontend_contains_live_overview_demand_contracts():
     assert 'label: "Off", cssClass: "idle"' in source
     assert "Heat demand" in source
     assert 'hasDemand ? "Present" : "None"' in source
-    assert "Demand is present while the actuator is off" in source
-    assert "re-enable delay or held by Manual Override or a safety condition" in source
+    assert 'type: "zeal/get_zone_control"' in source
+    assert "Waiting for re-enable delay" in source
+    assert 'second${remaining === 1 ? "" : "s"} remaining' in source
+    assert "Held by Zone Manual Override" in source
+    assert "Held off because every TRV is closed" in source
+    assert "blocked_until" in source
+    assert "_refreshZoneControl" in source
     assert "Setpoint ${this._formatScheduleTemperature" in source
     assert "Temperature ${this._formatScheduleTemperature" in source
     assert 'label: demanding ? "Demand" : "Satisfied"' in source

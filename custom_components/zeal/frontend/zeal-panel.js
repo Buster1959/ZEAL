@@ -77,6 +77,9 @@ class ZealPanel extends HTMLElement {
     this._notice = "";
     this._error = "";
     this._overviewDemandSignatures = new Map();
+    this._zoneControlLoading = false;
+    this._zoneControlLastFetch = 0;
+    this._zoneControlTimer = null;
     this.shadowRoot.addEventListener("pointerdown", (event) => this._onPointerDown(event));
     this.shadowRoot.addEventListener("pointermove", (event) => this._onPointerMove(event));
     this.shadowRoot.addEventListener("pointerup", (event) => this._onPointerUp(event));
@@ -99,6 +102,18 @@ class ZealPanel extends HTMLElement {
 
   connectedCallback() {
     this._render();
+    if (!this._zoneControlTimer) {
+      this._zoneControlTimer = window.setInterval(() => {
+        if (this._view !== "overview" || !this._configuration) return;
+        this._syncOverviewDemand();
+        this._refreshZoneControl({ minimumInterval: 5_000 });
+      }, 1_000);
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._zoneControlTimer) window.clearInterval(this._zoneControlTimer);
+    this._zoneControlTimer = null;
   }
 
   async _initialLoad() {
@@ -414,6 +429,7 @@ class ZealPanel extends HTMLElement {
     const rooms = (zone.rooms || []).map((room) => this._roomDemandOverview(room));
     const hasDemand = rooms.some((room) => room.cssClass === "demanding");
     const actuator = this._actuatorOverviewState(zone.switch);
+    const control = this._configuration?.zone_control?.[zone.zone_id];
     return `<div class="actuator-status ${actuator.cssClass}">
       <ha-icon icon="mdi:radiator"></ha-icon>
       <div><span>Heating actuator</span><strong>${this._escape(actuator.label)}</strong></div>
@@ -423,7 +439,9 @@ class ZealPanel extends HTMLElement {
     </div>
     ${
       hasDemand && actuator.cssClass === "idle"
-        ? `<p class="actuator-explanation">Demand is present while the actuator is off. It may be waiting for the re-enable delay or held by Manual Override or a safety condition.</p>`
+        ? `<p class="actuator-explanation">${this._escape(
+            this._actuatorHoldExplanation(control)
+          )}</p>`
         : ""
     }
     <div class="demand-strip" tabindex="0" role="list" aria-label="Room demand, setpoint and temperature">
@@ -444,6 +462,55 @@ class ZealPanel extends HTMLElement {
     return state.state === "on"
       ? { label: "On", cssClass: "heating" }
       : { label: "Off", cssClass: "idle" };
+  }
+
+  _actuatorHoldExplanation(control) {
+    if (control?.manual_override) {
+      return "Held by Zone Manual Override — automatic actuator control is paused.";
+    }
+    if (control?.demand_lines?.some((line) => line.startsWith("All TRVs off"))) {
+      return "Held off because every TRV is closed, protecting the pump from a closed loop.";
+    }
+    const blockedUntil = control?.blocked_until
+      ? new Date(control.blocked_until).getTime()
+      : NaN;
+    if (Number.isFinite(blockedUntil)) {
+      const remaining = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1_000));
+      if (remaining > 0) {
+        return `Waiting for re-enable delay · ${remaining} second${remaining === 1 ? "" : "s"} remaining`;
+      }
+      if (control?.needs_heat) {
+        return "Re-enable delay elapsed · waiting for actuator confirmation.";
+      }
+    }
+    return "Demand is present while the actuator is off; checking control state.";
+  }
+
+  async _refreshZoneControl({ minimumInterval = 2_000 } = {}) {
+    const now = Date.now();
+    if (
+      this._zoneControlLoading ||
+      !this._entryId ||
+      now - this._zoneControlLastFetch < minimumInterval
+    ) {
+      return;
+    }
+    this._zoneControlLoading = true;
+    this._zoneControlLastFetch = now;
+    try {
+      const response = await this._hass.callWS({
+        type: "zeal/get_zone_control",
+        entry_id: this._entryId,
+      });
+      if (this._configuration) {
+        this._configuration.zone_control = response.zones || {};
+        this._syncOverviewDemand();
+      }
+    } catch (_error) {
+      // The normal Home Assistant state stream still updates actuator/room state.
+    } finally {
+      this._zoneControlLoading = false;
+    }
   }
 
   _roomDemandOverview(room) {

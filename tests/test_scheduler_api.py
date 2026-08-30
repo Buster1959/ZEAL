@@ -233,6 +233,8 @@ async def test_schedule_save_updates_store_runtime_and_rejects_stale_revision(ha
     area, _, _, _, zone = create_registry_fixture(hass)
     entry = await setup_loaded_entry(hass, [zone])
     snapshot = configuration_snapshot(hass, entry.entry_id)
+    assert "zone_control" in snapshot
+    assert "ground_floor" in snapshot["zone_control"]
     configuration = ScheduleConfiguration(
         rooms={area.id: monday_schedule(area.id)},
         settings={"saved": True},

@@ -708,6 +708,35 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
             return None
         return self._room_temperature(room)
 
+    def zone_control_snapshot(self) -> dict[str, dict[str, Any]]:
+        """Return live, non-secret zone-control timing for the panel."""
+        snapshot: dict[str, dict[str, Any]] = {}
+        data = self.data or {}
+        for zone in self.zones:
+            zone_id = zone[ZONE_ID]
+            status = data.get(zone_id)
+            override = self.override_switches.get(zone_id)
+            last_off = self._last_off_time.get(zone_id)
+            reenable_delay = int(
+                zone.get(ZONE_REENABLE_DELAY, DEFAULT_REENABLE_DELAY)
+            )
+            snapshot[zone_id] = {
+                "needs_heat": status.needs_heat if status is not None else None,
+                "switches_ok": status.switches_ok if status is not None else None,
+                "manual_override": bool(
+                    override is not None and getattr(override, "is_on", False)
+                ),
+                "last_off_at": last_off.isoformat() if last_off else None,
+                "reenable_delay": reenable_delay,
+                "blocked_until": (
+                    (last_off + timedelta(seconds=reenable_delay)).isoformat()
+                    if last_off
+                    else None
+                ),
+                "demand_lines": list(status.demand_lines) if status else [],
+            }
+        return snapshot
+
     def own_thermostat_entity_ids(self) -> set[str]:
         """entity_id of every currently-loaded ZealRoomThermostat.
 
