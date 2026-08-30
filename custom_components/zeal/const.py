@@ -2,13 +2,13 @@
 
 DOMAIN = "zeal"
 
-# Admin-only Home Assistant panel. The query-string version is deliberately
+# Home Assistant panel with administrator-only Setup. The query-string version is deliberately
 # independent of the integration version so frontend-only fixes can invalidate
 # the browser cache without changing stored data or the manifest.
 PANEL_COMPONENT = "zeal-panel"
 PANEL_URL_PATH = DOMAIN
 PANEL_STATIC_URL = f"/{DOMAIN}_static"
-PANEL_ASSET_VERSION = "13"
+PANEL_ASSET_VERSION = "14"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
@@ -21,6 +21,8 @@ AUDIT_MAX_ENTRIES = 500
 # Keys used inside config_entry.options
 CONF_ZONES = "zones"
 CONF_SHOW_IN_SIDEBAR = "show_in_sidebar"
+CONF_STANDARD_USER_SCHEDULE = "standard_user_schedule"
+CONF_STANDARD_USER_QUICK_CHANGE = "standard_user_quick_change"
 
 # Zone dict keys. A Zone is a user-named group of Rooms (e.g. "Ground
 # Floor") with its own heating actuator switch(es) - it is NOT tied 1:1 to

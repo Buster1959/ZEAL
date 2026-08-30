@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 from typing import Any
+from functools import wraps
 
 import voluptuous as vol
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import Unauthorized
 
-from ..const import CONF_SHOW_IN_SIDEBAR, DOMAIN
+from ..const import (
+    CONF_SHOW_IN_SIDEBAR,
+    CONF_STANDARD_USER_QUICK_CHANGE,
+    CONF_STANDARD_USER_SCHEDULE,
+    DOMAIN,
+)
 from .configuration import (
     ConfigurationConflictError,
     async_save_away_mode,
@@ -56,7 +63,24 @@ def _send_not_found(connection, msg) -> None:
     )
 
 
-@websocket_api.require_admin
+def _require_feature(option: str):
+    """Allow administrators, or standard users explicitly enabled in Setup."""
+    def decorate(func):
+        @wraps(func)
+        def permitted(hass, connection, msg):
+            user = connection.user
+            entry = hass.config_entries.async_get_entry(msg.get("entry_id"))
+            if user is None or entry is None or (
+                not user.is_admin and not entry.options.get(option, False)
+            ):
+                raise Unauthorized
+            return func(hass, connection, msg)
+
+        return permitted
+
+    return decorate
+
+
 @websocket_api.websocket_command({vol.Required("type"): "zeal/list_entries"})
 @callback
 def ws_list_entries(hass, connection, msg) -> None:
@@ -68,7 +92,6 @@ def ws_list_entries(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"entries": entries})
 
 
-@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/get_configuration",
@@ -85,7 +108,6 @@ def ws_get_configuration(hass, connection, msg) -> None:
     )
 
 
-@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/get_zone_control",
@@ -103,7 +125,7 @@ def ws_get_zone_control(hass, connection, msg) -> None:
     )
 
 
-@websocket_api.require_admin
+@_require_feature(CONF_STANDARD_USER_SCHEDULE)
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/update_room_days",
@@ -145,7 +167,7 @@ async def ws_update_room_days(hass, connection, msg) -> None:
     )
 
 
-@websocket_api.require_admin
+@_require_feature(CONF_STANDARD_USER_SCHEDULE)
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/copy_room_schedule",
@@ -237,6 +259,8 @@ async def ws_save_away_mode(hass, connection, msg) -> None:
         vol.Required("expected_revision"): str,
         vol.Required("zones"): list,
         vol.Optional("show_in_sidebar"): bool,
+        vol.Optional("standard_user_schedule"): bool,
+        vol.Optional("standard_user_quick_change"): bool,
     }
 )
 @websocket_api.async_response
@@ -251,6 +275,8 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
             msg["zones"],
             expected_revision=msg["expected_revision"],
             show_in_sidebar=msg.get("show_in_sidebar"),
+            standard_user_schedule=msg.get("standard_user_schedule"),
+            standard_user_quick_change=msg.get("standard_user_quick_change"),
         )
     except ConfigurationConflictError as err:
         connection.send_error(msg["id"], ERR_CONFLICT, str(err))
@@ -267,11 +293,17 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
             CONF_SHOW_IN_SIDEBAR: hass.config_entries.async_get_entry(
                 msg["entry_id"]
             ).options.get(CONF_SHOW_IN_SIDEBAR, True),
+            CONF_STANDARD_USER_SCHEDULE: hass.config_entries.async_get_entry(
+                msg["entry_id"]
+            ).options.get(CONF_STANDARD_USER_SCHEDULE, False),
+            CONF_STANDARD_USER_QUICK_CHANGE: hass.config_entries.async_get_entry(
+                msg["entry_id"]
+            ).options.get(CONF_STANDARD_USER_QUICK_CHANGE, False),
         },
     )
 
 
-@websocket_api.require_admin
+@_require_feature(CONF_STANDARD_USER_QUICK_CHANGE)
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/get_quick_change",
@@ -287,7 +319,7 @@ def ws_get_quick_change(hass, connection, msg) -> None:
     connection.send_result(msg["id"], data["schedule_runtime"].quick_change_state())
 
 
-@websocket_api.require_admin
+@_require_feature(CONF_STANDARD_USER_QUICK_CHANGE)
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/set_temporary_override",
@@ -317,7 +349,7 @@ async def ws_set_temporary_override(hass, connection, msg) -> None:
     connection.send_result(msg["id"], data["schedule_runtime"].quick_change_state())
 
 
-@websocket_api.require_admin
+@_require_feature(CONF_STANDARD_USER_QUICK_CHANGE)
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "zeal/clear_temporary_override",

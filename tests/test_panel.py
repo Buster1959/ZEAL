@@ -90,7 +90,7 @@ async def test_native_options_flow_can_restore_a_hidden_sidebar_link(hass):
     }
 
 
-async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
+async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     """A fresh install immediately exposes the HTML setup surface."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -105,13 +105,13 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
 
     assert PANEL_URL_PATH in hass.data[frontend.DATA_PANELS]
     panel = hass.data[frontend.DATA_PANELS][PANEL_URL_PATH].to_response()
-    assert panel["require_admin"] is True
+    assert panel["require_admin"] is False
     assert panel["config_panel_domain"] == DOMAIN
     assert panel["title"] == "ZEAL"
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=13"
+        "/zeal-panel.js?v=14"
     )
 
     static_routes = {
@@ -313,3 +313,7 @@ def test_frontend_limits_setup_navigation_to_administrators():
     assert 'next === "setup" && !this._isAdmin()' in source
     assert "Setup is available only to Home Assistant administrators." in source
     assert "Ask a Home Assistant administrator to configure ZEAL." in source
+    assert "Allow standard users to use Schedule" in source
+    assert "Allow standard users to use Quick Change" in source
+    assert "this._configuration?.standard_user_schedule === true" in source
+    assert "this._configuration?.standard_user_quick_change === true" in source

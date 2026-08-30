@@ -10,8 +10,10 @@ While its optional sidebar link is visible, it is also the integration's
 Configure destination. When every loaded instance hides the link, Home
 Assistant's Configure action opens a native recovery Options Flow that can
 restore sidebar access; the direct `/zeal` route remains registered throughout.
-The panel route and every data command require an administrator. Its Overview is
-read-only; Setup works on a browser-side copy and submits the entire hierarchy
+The panel route and read-only Overview are available to every authenticated Home
+Assistant user. Administrators can separately grant standard users access to
+Schedule and Quick Change from Setup; both grants default off. Setup works on a
+browser-side copy and submits the entire hierarchy
 only when **Save setup** is selected. Existing config-entry options remain the
 source of truth, so configurations created with the retired Options Flow require
 no migration.
@@ -54,11 +56,12 @@ application while Away is active and displays the current authority globally.
 
 ## Security boundary
 
-Every `zeal/*` WebSocket command is protected by Home Assistant's admin-user
-requirement. A read-only authenticated user is rejected before configuration,
-entity catalog, Quick Change or download data is returned. Each command also
-requires an explicit loaded config-entry ID; no command silently selects the
-first ZEAL instance.
+Read-only panel bootstrap, configuration and zone-control commands accept an
+authenticated user. Schedule and Quick Change commands accept an administrator
+or a standard user explicitly granted that feature for the selected instance.
+Hierarchy, Away settings, downloads and audit commands retain Home Assistant's
+administrator requirement. Each command also requires an explicit loaded
+config-entry ID; no command silently selects the first ZEAL instance.
 
 The hierarchy writer treats browser data as untrusted. It validates:
 

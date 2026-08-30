@@ -11,6 +11,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.zeal.const import (
     AUDIT_MAX_ENTRIES,
     CONF_SHOW_IN_SIDEBAR,
+    CONF_STANDARD_USER_QUICK_CHANGE,
+    CONF_STANDARD_USER_SCHEDULE,
     CONF_ZONES,
     DOMAIN,
     ROOM_ACTIVE,
@@ -143,6 +145,8 @@ def test_revision_is_deterministic_and_changes_with_either_document():
         [{ZONE_ID: "one"}], schedule
     )
     assert first != configuration_revision([], schedule, False)
+    assert first != configuration_revision([], schedule, True, True, False)
+    assert first != configuration_revision([], schedule, True, False, True)
 
 
 def test_valid_hierarchy_is_normalized_from_home_assistant_registries(hass):
@@ -284,6 +288,8 @@ async def test_hierarchy_save_persists_and_survives_automatic_reload(hass):
         [edited_zone],
         expected_revision=revision,
         show_in_sidebar=False,
+        standard_user_schedule=True,
+        standard_user_quick_change=True,
     )
     assert zones[0][ZONE_NAME] == "Renamed Ground Floor"
     assert new_revision != revision
@@ -291,7 +297,11 @@ async def test_hierarchy_save_persists_and_survives_automatic_reload(hass):
     reloaded_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert reloaded_entry.options[CONF_ZONES][0][ZONE_NAME] == "Renamed Ground Floor"
     assert reloaded_entry.options[CONF_SHOW_IN_SIDEBAR] is False
+    assert reloaded_entry.options[CONF_STANDARD_USER_SCHEDULE] is True
+    assert reloaded_entry.options[CONF_STANDARD_USER_QUICK_CHANGE] is True
     assert configuration_snapshot(hass, entry.entry_id)[CONF_SHOW_IN_SIDEBAR] is False
+    assert configuration_snapshot(hass, entry.entry_id)[CONF_STANDARD_USER_SCHEDULE] is True
+    assert configuration_snapshot(hass, entry.entry_id)[CONF_STANDARD_USER_QUICK_CHANGE] is True
     assert area.id in hass.data[DOMAIN][entry.entry_id][
         "schedule_runtime"
     ].configuration.rooms
@@ -467,7 +477,7 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
     }
 
 
-async def test_non_admin_websocket_is_rejected(
+async def test_standard_user_gets_overview_and_only_enabled_controls(
     hass, hass_ws_client, hass_read_only_access_token
 ):
     _, _, _, _, zone = create_registry_fixture(hass)
@@ -475,6 +485,36 @@ async def test_non_admin_websocket_is_rejected(
     client = await hass_ws_client(access_token=hass_read_only_access_token)
     await client.send_json_auto_id(
         {"type": "zeal/get_configuration", "entry_id": entry.entry_id}
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    assert response["result"][CONF_STANDARD_USER_SCHEDULE] is False
+    assert response["result"][CONF_STANDARD_USER_QUICK_CHANGE] is False
+
+    await client.send_json_auto_id(
+        {"type": "zeal/get_quick_change", "entry_id": entry.entry_id}
+    )
+    response = await client.receive_json()
+    assert response["success"] is False
+    assert response["error"]["code"] == "unauthorized"
+
+    hass.config_entries.async_update_entry(
+        entry,
+        options={**entry.options, CONF_STANDARD_USER_QUICK_CHANGE: True},
+    )
+    await client.send_json_auto_id(
+        {"type": "zeal/get_quick_change", "entry_id": entry.entry_id}
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/save_hierarchy",
+            "entry_id": entry.entry_id,
+            "expected_revision": configuration_snapshot(hass, entry.entry_id)["revision"],
+            "zones": [zone],
+        }
     )
     response = await client.receive_json()
     assert response["success"] is False

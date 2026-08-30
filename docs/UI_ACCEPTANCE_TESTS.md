@@ -20,7 +20,10 @@ version for each test.
 - Select one of two instances, use **Delete this ZEAL instance**, cancel once,
   then confirm deletion and verify only the selected instance and its private
   setup/schedule/audit data are removed.
-- A non-administrator cannot access configuration commands.
+- A standard user can open ZEAL and see Overview.
+- With both Standard-user access options off, Schedule and Quick Change are
+  absent for a standard user. Enable each option in Setup and verify only the
+  corresponding tab and operation become available.
 - For an administrator, Overview, Setup, Schedule and Quick Change navigation
   stays visible and the active page is clear.
 - Setup and Modify setup are absent for a non-administrator, and a manually

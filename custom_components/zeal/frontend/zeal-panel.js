@@ -49,6 +49,8 @@ class ZealPanel extends HTMLElement {
     this._deleting = false;
     this._dirty = false;
     this._showInSidebar = true;
+    this._standardUserSchedule = false;
+    this._standardUserQuickChange = false;
     this._scheduleZoneId = null;
     this._scheduleRoomId = null;
     this._scheduleDays = null;
@@ -88,7 +90,11 @@ class ZealPanel extends HTMLElement {
 
   set hass(value) {
     this._hass = value;
-    if (!this._isAdmin() && this._view === "setup") this._view = "overview";
+    if (
+      (!this._isAdmin() && this._view === "setup") ||
+      (this._view === "schedule" && !this._canUseSchedule()) ||
+      (this._view === "quick" && !this._canUseQuickChange())
+    ) this._view = "overview";
     if (!this._started && value) {
       this._started = true;
       this._initialLoad();
@@ -161,6 +167,8 @@ class ZealPanel extends HTMLElement {
     this._configuration = configuration;
     this._draft = this._copy(configuration.zones || []);
     this._showInSidebar = configuration.show_in_sidebar !== false;
+    this._standardUserSchedule = configuration.standard_user_schedule === true;
+    this._standardUserQuickChange = configuration.standard_user_quick_change === true;
     this._dirty = false;
     this._loadAwayDraft();
     this._loadScheduleRoom({ keepSelection: true });
@@ -176,6 +184,14 @@ class ZealPanel extends HTMLElement {
 
   _isAdmin() {
     return this._hass?.user?.is_admin === true;
+  }
+
+  _canUseSchedule() {
+    return this._isAdmin() || this._configuration?.standard_user_schedule === true;
+  }
+
+  _canUseQuickChange() {
+    return this._isAdmin() || this._configuration?.standard_user_quick_change === true;
   }
 
   _message(error, fallback) {
@@ -269,8 +285,8 @@ class ZealPanel extends HTMLElement {
       </header>
       <nav aria-label="ZEAL sections">
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
-        <button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>
-        <button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>
+        ${this._canUseSchedule() ? `<button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>` : ""}
+        ${this._canUseQuickChange() ? `<button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>` : ""}
         ${
           this._isAdmin()
             ? `<button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>`
@@ -1628,6 +1644,7 @@ class ZealPanel extends HTMLElement {
       </section>
       ${this._renderAwaySettings()}
       ${this._renderDownloads()}
+      ${this._renderStandardUserAccess()}
       ${this._renderSidebarSetting()}
       ${this._renderInstanceManagement()}
       <div class="save-bar">
@@ -1655,6 +1672,19 @@ class ZealPanel extends HTMLElement {
       <label class="active-toggle"><input type="checkbox" data-action="sidebar-toggle" ${
         this._showInSidebar ? "checked" : ""
       } /><span><strong>Show ZEAL in the Home Assistant sidebar</strong><small>When hidden, open ZEAL from Settings → Devices & Services → ZEAL HVAC System → Configure. If you use multiple ZEAL instances, the shared sidebar link remains visible while any instance has this option enabled.</small></span></label>
+    </section>`;
+  }
+
+  _renderStandardUserAccess() {
+    return `<section class="sidebar-card"><h3>Standard-user access</h3>
+      <p>Overview is visible to every signed-in Home Assistant user. Choose which heating controls standard users may also use.</p>
+      <label class="active-toggle"><input type="checkbox" data-action="standard-user-schedule" ${
+        this._standardUserSchedule ? "checked" : ""
+      } /><span><strong>Allow standard users to use Schedule</strong><small>They can view and save weekly room schedules.</small></span></label>
+      <label class="active-toggle"><input type="checkbox" data-action="standard-user-quick-change" ${
+        this._standardUserQuickChange ? "checked" : ""
+      } /><span><strong>Allow standard users to use Quick Change</strong><small>They can apply and clear temporary room temperature changes.</small></span></label>
+      <small>Setup, Away configuration, downloads, audit and instance management remain administrator-only.</small>
     </section>`;
   }
 
@@ -1874,6 +1904,15 @@ class ZealPanel extends HTMLElement {
         if (next === "setup" && !this._isAdmin()) {
           this._view = "overview";
           this._error = "Setup is available only to Home Assistant administrators.";
+          this._render();
+          return;
+        }
+        if (
+          (next === "schedule" && !this._canUseSchedule()) ||
+          (next === "quick" && !this._canUseQuickChange())
+        ) {
+          this._view = "overview";
+          this._error = "Your Home Assistant administrator has not enabled this ZEAL feature for standard users.";
           this._render();
           return;
         }
@@ -2126,12 +2165,22 @@ class ZealPanel extends HTMLElement {
     this.shadowRoot.querySelector('[data-action="reset"]')?.addEventListener("click", () => {
       this._draft = this._copy(this._configuration.zones || []);
       this._showInSidebar = this._configuration.show_in_sidebar !== false;
+      this._standardUserSchedule = this._configuration.standard_user_schedule === true;
+      this._standardUserQuickChange = this._configuration.standard_user_quick_change === true;
       this._dirty = false;
       this._error = "";
       this._render();
     });
     this.shadowRoot.querySelector('[data-action="sidebar-toggle"]')?.addEventListener("change", (event) => {
       this._showInSidebar = event.target.checked;
+      this._markChanged();
+    });
+    this.shadowRoot.querySelector('[data-action="standard-user-schedule"]')?.addEventListener("change", (event) => {
+      this._standardUserSchedule = event.target.checked;
+      this._markChanged();
+    });
+    this.shadowRoot.querySelector('[data-action="standard-user-quick-change"]')?.addEventListener("change", (event) => {
+      this._standardUserQuickChange = event.target.checked;
       this._markChanged();
     });
     this.shadowRoot.querySelector('[data-action="manage-instances"]')?.addEventListener("click", () => {
@@ -2329,11 +2378,17 @@ class ZealPanel extends HTMLElement {
         expected_revision: this._configuration.revision,
         zones: this._draft,
         show_in_sidebar: this._showInSidebar,
+        standard_user_schedule: this._standardUserSchedule,
+        standard_user_quick_change: this._standardUserQuickChange,
       });
       this._configuration.zones = this._copy(response.zones);
       this._configuration.revision = response.revision;
       this._configuration.show_in_sidebar = response.show_in_sidebar;
+      this._configuration.standard_user_schedule = response.standard_user_schedule;
+      this._configuration.standard_user_quick_change = response.standard_user_quick_change;
       this._showInSidebar = response.show_in_sidebar;
+      this._standardUserSchedule = response.standard_user_schedule;
+      this._standardUserQuickChange = response.standard_user_quick_change;
       this._draft = this._copy(response.zones);
       this._dirty = false;
       this._notice = "Setup saved. ZEAL is reloading the updated configuration.";

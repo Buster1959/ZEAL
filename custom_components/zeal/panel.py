@@ -1,4 +1,4 @@
-"""Register ZEAL's versioned, admin-only Home Assistant panel."""
+"""Register ZEAL's versioned Home Assistant panel."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def _show_in_sidebar(hass: HomeAssistant) -> bool:
 
 
 async def async_sync_panel(hass: HomeAssistant) -> None:
-    """Expose the ZEAL configuration panel to administrators."""
+    """Expose ZEAL; its Setup view and configuration APIs remain admin-only."""
     lock = hass.data.setdefault(_PANEL_LOCK, asyncio.Lock())
     async with lock:
         show_in_sidebar = _show_in_sidebar(hass)
@@ -61,7 +61,7 @@ async def async_sync_panel(hass: HomeAssistant) -> None:
             module_url=f"{PANEL_STATIC_URL}/zeal-panel.js?v={PANEL_ASSET_VERSION}",
             sidebar_title="ZEAL" if show_in_sidebar else None,
             sidebar_icon="mdi:radiator" if show_in_sidebar else None,
-            require_admin=True,
+            require_admin=False,
             config_panel_domain=DOMAIN if show_in_sidebar else None,
         )
 

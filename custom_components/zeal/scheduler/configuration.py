@@ -15,6 +15,8 @@ from homeassistant.util import dt as dt_util
 
 from ..const import (
     CONF_SHOW_IN_SIDEBAR,
+    CONF_STANDARD_USER_QUICK_CHANGE,
+    CONF_STANDARD_USER_SCHEDULE,
     CONF_ZONES,
     DEFAULT_REENABLE_DELAY,
     DOMAIN,
@@ -54,6 +56,8 @@ def configuration_revision(
     zones: list[dict[str, Any]],
     schedule: ScheduleConfiguration,
     show_in_sidebar: bool = True,
+    standard_user_schedule: bool = False,
+    standard_user_quick_change: bool = False,
 ) -> str:
     """Return a stable token for hierarchy, schedule and panel preference."""
     payload = json.dumps(
@@ -61,6 +65,8 @@ def configuration_revision(
             "zones": zones,
             "schedule": schedule.to_dict(),
             CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
+            CONF_STANDARD_USER_SCHEDULE: standard_user_schedule,
+            CONF_STANDARD_USER_QUICK_CHANGE: standard_user_quick_change,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -85,6 +91,8 @@ def current_revision(hass: HomeAssistant, entry_id: str) -> str:
         list(entry.options.get(CONF_ZONES, [])),
         data["schedule_runtime"].configuration,
         entry.options.get(CONF_SHOW_IN_SIDEBAR, True),
+        entry.options.get(CONF_STANDARD_USER_SCHEDULE, False),
+        entry.options.get(CONF_STANDARD_USER_QUICK_CHANGE, False),
     )
 
 
@@ -97,11 +105,23 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
     schedule = data["schedule_runtime"].configuration
     zones = _json_copy(list(entry.options.get(CONF_ZONES, [])))
     show_in_sidebar = entry.options.get(CONF_SHOW_IN_SIDEBAR, True)
+    standard_user_schedule = entry.options.get(CONF_STANDARD_USER_SCHEDULE, False)
+    standard_user_quick_change = entry.options.get(
+        CONF_STANDARD_USER_QUICK_CHANGE, False
+    )
     return {
         "entry_id": entry_id,
         "title": entry.title,
-        "revision": configuration_revision(zones, schedule, show_in_sidebar),
+        "revision": configuration_revision(
+            zones,
+            schedule,
+            show_in_sidebar,
+            standard_user_schedule,
+            standard_user_quick_change,
+        ),
         CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
+        CONF_STANDARD_USER_SCHEDULE: standard_user_schedule,
+        CONF_STANDARD_USER_QUICK_CHANGE: standard_user_quick_change,
         "zones": zones,
         "schedule": schedule.to_dict(),
         "away_mode": data["schedule_runtime"].away_mode_state(),
@@ -466,6 +486,8 @@ async def async_save_hierarchy(
     *,
     expected_revision: str,
     show_in_sidebar: bool | None = None,
+    standard_user_schedule: bool | None = None,
+    standard_user_quick_change: bool | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
     """Validate/save hierarchy, reconcile schedules, then trigger safe reload."""
     entry = hass.config_entries.async_get_entry(entry_id)
@@ -475,10 +497,24 @@ async def async_save_hierarchy(
         raise ConfigurationConflictError("Configuration changed; reload and try again")
     if show_in_sidebar is not None and not isinstance(show_in_sidebar, bool):
         raise ValueError("show_in_sidebar must be true or false")
+    if standard_user_schedule is not None and not isinstance(standard_user_schedule, bool):
+        raise ValueError("standard_user_schedule must be true or false")
+    if standard_user_quick_change is not None and not isinstance(standard_user_quick_change, bool):
+        raise ValueError("standard_user_quick_change must be true or false")
     effective_show_in_sidebar = (
         entry.options.get(CONF_SHOW_IN_SIDEBAR, True)
         if show_in_sidebar is None
         else show_in_sidebar
+    )
+    effective_standard_user_schedule = (
+        entry.options.get(CONF_STANDARD_USER_SCHEDULE, False)
+        if standard_user_schedule is None
+        else standard_user_schedule
+    )
+    effective_standard_user_quick_change = (
+        entry.options.get(CONF_STANDARD_USER_QUICK_CHANGE, False)
+        if standard_user_quick_change is None
+        else standard_user_quick_change
     )
     zones = validate_hierarchy(hass, raw_zones)
     data = _entry_data(hass, entry_id)
@@ -497,6 +533,14 @@ async def async_save_hierarchy(
             **entry.options,
             CONF_ZONES: zones,
             CONF_SHOW_IN_SIDEBAR: effective_show_in_sidebar,
+            CONF_STANDARD_USER_SCHEDULE: effective_standard_user_schedule,
+            CONF_STANDARD_USER_QUICK_CHANGE: effective_standard_user_quick_change,
         },
     )
-    return zones, configuration_revision(zones, schedule, effective_show_in_sidebar)
+    return zones, configuration_revision(
+        zones,
+        schedule,
+        effective_show_in_sidebar,
+        effective_standard_user_schedule,
+        effective_standard_user_quick_change,
+    )
