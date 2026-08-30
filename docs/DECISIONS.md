@@ -29,3 +29,16 @@ companion Wiki retains the longer chronological design history.
 13. Audit retention is bounded at 500 outcomes and excludes credentials.
 14. V1 is heating-only. Cooling fields are reserved with safe defaults but are
     not exposed or acted upon.
+
+## Next-major-version design constraints
+
+15. Learning uses source-aware, persistent setpoint history and explainable
+    evidence; it must not infer patterns solely from the current thermostat
+    value.
+16. Repetition thresholds, comparable time windows and observation periods are
+    configurable rather than hidden constants.
+17. A learned pattern creates a proposal, not a schedule mutation. The saved
+    week changes only after explicit user acceptance or editing through the
+    normal revision-checked schedule API.
+18. Accepted, edited, dismissed and snoozed proposals are audited. Retention is
+    bounded and treated as occupancy-sensitive data.

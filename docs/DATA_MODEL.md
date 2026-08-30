@@ -80,6 +80,26 @@ The configuration snapshot exposes the newest successful audit record for each
 room as `last_changes`; this is a derived Overview view, not a fourth persisted
 document.
 
+### Planned next-major-version learning audit
+
+Learning requires a schema migration rather than overloading the V1 application
+audit. The future event model should record a stable event ID, room, timestamp,
+source (`schedule`, Home Assistant/canonical thermostat, physical TRV, Quick
+Change, Away or accepted suggestion), scheduled baseline, requested/effective
+target, temporary duration/expiry and outcome. Source attribution must be based
+on ZEAL's control boundary and write-echo guards, not inferred from display text.
+
+Repeated-change candidates should be stored separately from raw events. A
+candidate records its evidence event IDs, count, comparable time window,
+observation period, current schedule period, proposed schedule edit and state
+(`pending`, `accepted`, `edited`, `dismissed`, `snoozed` or `expired`). Accepting
+or editing a proposal creates a normal schedule revision plus an audit event;
+the learner never mutates the schedule document directly.
+
+Both raw-event and proposal retention must be bounded. Exports and documentation
+must warn that this history may reveal occupancy routines even though it contains
+no Home Assistant credentials.
+
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
 information.

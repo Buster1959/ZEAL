@@ -406,8 +406,23 @@ that instead.
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
 | 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed desktop screenshots added, mobile captures pending |
 | 6. HACS distribution, including the full ZEAL rename (domain, files and repository) | Custom-repository metadata, one-click installation and validation workflows done; the PolyForm Shield release remains outside the default HACS store |
-| 7. Adaptive schedule suggestions (learns from manual boost history, notifies rather than auto-applies) | Post-v1, planned |
+| 7. Learning and adaptive schedule suggestions | Next major version, planned: retain source-aware manual/Quick Change history, detect repeated changes in comparable time windows across multiple days, and ask the user whether to commit a proposed change to the weekly schedule. Suggestions are never auto-applied. |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |
+
+### Next major version — learning from repeated changes
+
+The planned learning layer will use a persistent, trackable audit of schedule,
+Quick Change, Home Assistant thermostat and physical-TRV setpoint changes. A
+candidate rule is: when a room receives at least a configurable number of
+similar manual changes (for example, three) within the same configurable time
+window across a configurable observation period, ZEAL may propose the repeated
+target as a schedule change.
+
+The proposal must show the evidence, affected room/day/time, existing setpoint,
+suggested setpoint and confidence/count. The user can accept, edit, dismiss or
+snooze it. Only explicit acceptance commits a new schedule revision; learning
+must never silently rewrite the saved week. Suggestions and their outcomes are
+themselves audited so ZEAL can avoid repeatedly offering a dismissed pattern.
 
 ## Troubleshooting
 

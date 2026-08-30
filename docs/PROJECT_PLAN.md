@@ -192,3 +192,33 @@ initial candidate. The live acceptance matrix is recorded in
 checks will be repeated. Manifest `1.0.0`, tag and GitHub release remain gated
 on the pending live checks and mobile screenshots. The release will be
 distributed through the documented custom-HACS route.
+
+## Next major version — source-aware audit and schedule learning
+
+This work begins only after V1 is released and its audit schema is stable.
+
+- Extend the audit from canonical application outcomes to source-aware user
+  intent: weekly schedule, Home Assistant/canonical thermostat, physical TRV,
+  Quick Change, Away and later ZEAL suggestions.
+- Retain the scheduled baseline, requested/effective target, timestamp, room,
+  source, temporary duration/expiry and outcome needed to explain each event.
+- Detect repeated manual changes in comparable time windows. Threshold count,
+  time-window tolerance and observation period must be configurable; an initial
+  example is three similar changes within the same part of the day across a
+  defined number of days.
+- Create a reviewable proposal containing the supporting events, current
+  schedule period and proposed replacement target/time.
+- Offer Accept, Edit, Dismiss and Snooze. Accepting writes through the normal
+  validated schedule API and creates a new revision; no learned change is ever
+  auto-applied.
+- Audit proposal creation and user disposition so dismissed suggestions are not
+  repeatedly presented without materially new evidence.
+- Bound retention and document privacy because occupancy habits can be inferred
+  from temperature-change history.
+
+Acceptance: deterministic tests prove grouping, threshold/tolerance behaviour,
+restart persistence, source attribution, dismissal suppression and that a saved
+schedule changes only after explicit user confirmation.
+
+Status: planned for the next major version; no V1 behaviour is changed by this
+roadmap item.
