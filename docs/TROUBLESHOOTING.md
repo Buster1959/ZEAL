@@ -53,6 +53,17 @@ Restart Home Assistant, then hard-refresh the browser or fully close and reopen
 the Companion app. The panel asset is versioned, but an already open WebView can
 still retain an earlier document.
 
+## A standard user cannot see ZEAL in the sidebar
+
+Standard-user panel access requires ZEAL `0.13.6` or later. Confirm that version
+is installed, then restart Home Assistant; refreshing the browser alone does not
+replace an already registered administrator-only panel. Sign out and back in as
+the standard user, or open `/zeal` directly once, to refresh Home Assistant's
+panel list. Also confirm **Setup → Home Assistant sidebar → Show ZEAL in the Home
+Assistant sidebar** is enabled. Setup remains administrator-only; Schedule and
+Quick Change appear for standard users only when their separate Setup options
+are enabled.
+
 ## The actuator does not switch
 
 Check the zone's Manual override entity first. When it is on, ZEAL deliberately
