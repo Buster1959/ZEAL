@@ -21,8 +21,10 @@ version for each test.
   then confirm deletion and verify only the selected instance and its private
   setup/schedule/audit data are removed.
 - A non-administrator cannot access configuration commands.
-- Overview, Setup, Schedule and Quick Change navigation stays visible and the
-  active page is clear.
+- For an administrator, Overview, Setup, Schedule and Quick Change navigation
+  stays visible and the active page is clear.
+- Setup and Modify setup are absent for a non-administrator, and a manually
+  requested Setup view falls back to Overview.
 
 ## Setup
 

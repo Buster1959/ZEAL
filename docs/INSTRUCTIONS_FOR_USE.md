@@ -50,6 +50,10 @@ heat source, then review the suggested re-enable delay. Add one or more Home
 Assistant Areas as rooms and choose the non-ZEAL physical thermostats/TRVs and
 temperature sensors in each Area. Mark unused rooms inactive and save.
 
+Setup and the **Modify setup** action are shown only to Home Assistant
+administrators. The Overview updates demand, actuator state and any active
+re-enable countdown automatically; it does not need a manual refresh control.
+
 ![ZEAL Setup page showing a Zone or Floor, its heating actuator, canonical ZEAL scheduling targets and physical room equipment](images/zeal-zone-and-room-setup-desktop.png)
 
 The physical equipment picker intentionally excludes ZEAL's own room

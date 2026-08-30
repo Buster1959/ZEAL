@@ -88,6 +88,7 @@ class ZealPanel extends HTMLElement {
 
   set hass(value) {
     this._hass = value;
+    if (!this._isAdmin() && this._view === "setup") this._view = "overview";
     if (!this._started && value) {
       this._started = true;
       this._initialLoad();
@@ -171,6 +172,10 @@ class ZealPanel extends HTMLElement {
 
   _copy(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  _isAdmin() {
+    return this._hass?.user?.is_admin === true;
   }
 
   _message(error, fallback) {
@@ -266,7 +271,11 @@ class ZealPanel extends HTMLElement {
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
         <button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>
         <button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>
-        <button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>
+        ${
+          this._isAdmin()
+            ? `<button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>`
+            : ""
+        }
       </nav>`;
   }
 
@@ -353,7 +362,9 @@ class ZealPanel extends HTMLElement {
     }</p></div>${
       active
         ? `<button class="primary compact" data-away-action="end">End Away now</button>`
-        : `<button class="secondary compact" data-view="setup">Away settings</button>`
+        : this._isAdmin()
+          ? `<button class="secondary compact" data-view="setup">Away settings</button>`
+          : ""
     }</aside>`;
   }
 
@@ -371,8 +382,11 @@ class ZealPanel extends HTMLElement {
     return `
       <section class="page-heading">
         <div><h2>System overview</h2><p>Heating zones and the Home Assistant equipment ZEAL controls.</p></div>
-        <div><button class="secondary" data-action="refresh-configuration">Refresh</button>
-        <button class="primary" data-view="setup">${zones.length ? "Modify setup" : "Start setup"}</button></div>
+        ${
+          this._isAdmin()
+            ? `<div><button class="primary" data-view="setup">${zones.length ? "Modify setup" : "Start setup"}</button></div>`
+            : ""
+        }
       </section>
       <section class="summary-grid" aria-label="Configuration summary">
         ${this._summaryCard("Heating zones", zones.length, "mdi:radiator")}
@@ -384,7 +398,15 @@ class ZealPanel extends HTMLElement {
           ? `<section class="zone-grid">${zones
               .map((zone) => this._overviewZone(zone))
               .join("")}</section>`
-          : `<section class="empty-card"><h3>No heating zones yet</h3><p>Use Setup to connect Home Assistant Areas, thermostatic valves, temperature sensors and a heating actuator.</p><button class="primary" data-view="setup">Configure ZEAL</button></section>`
+          : `<section class="empty-card"><h3>No heating zones yet</h3><p>${
+              this._isAdmin()
+                ? "Use Setup to connect Home Assistant Areas, thermostatic valves, temperature sensors and a heating actuator."
+                : "Ask a Home Assistant administrator to configure ZEAL."
+            }</p>${
+              this._isAdmin()
+                ? '<button class="primary" data-view="setup">Configure ZEAL</button>'
+                : ""
+            }</section>`
       }`;
   }
 
@@ -1849,6 +1871,12 @@ class ZealPanel extends HTMLElement {
     this.shadowRoot.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", async () => {
         const next = button.dataset.view;
+        if (next === "setup" && !this._isAdmin()) {
+          this._view = "overview";
+          this._error = "Setup is available only to Home Assistant administrators.";
+          this._render();
+          return;
+        }
         if (next === this._view) return;
         if ((this._dirty || this._awayDirty) && this._view === "setup" && !window.confirm("Discard unsaved setup or Away changes?")) return;
         if (this._scheduleDirty && this._view === "schedule" && !window.confirm("Discard unsaved schedule changes?")) return;
@@ -1875,7 +1903,6 @@ class ZealPanel extends HTMLElement {
       this._started = false;
       this._initialLoad();
     });
-    this.shadowRoot.querySelector('[data-action="refresh-configuration"]')?.addEventListener("click", () => this._loadConfiguration({ preserveNotice: true }));
     this.shadowRoot.querySelector('[data-action="select-entry"]')?.addEventListener("change", async (event) => {
       if ((this._dirty || this._scheduleDirty || this._awayDirty) && !window.confirm("Discard unsaved changes?")) {
         event.target.value = this._entryId;

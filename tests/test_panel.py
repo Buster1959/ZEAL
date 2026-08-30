@@ -111,7 +111,7 @@ async def test_empty_entry_registers_admin_configuration_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=12"
+        "/zeal-panel.js?v=13"
     )
 
     static_routes = {
@@ -301,7 +301,15 @@ def test_frontend_refreshes_schedule_navigation_after_setup_reload():
     source = PANEL_FILE.read_text()
     assert 'if (next === "schedule" || next === "overview") {' in source
     assert "await this._loadConfiguration({ preserveNotice: true });" in source
-    assert 'data-action="refresh-configuration"' in source
+    assert 'data-action="refresh-configuration"' not in source
     assert "for (let attempt = 0; attempt < 40; attempt += 1)" in source
     assert "No active scheduled setpoint" in source
     assert "runtime.scheduled_period_started_at" in source
+
+
+def test_frontend_limits_setup_navigation_to_administrators():
+    source = PANEL_FILE.read_text()
+    assert "this._hass?.user?.is_admin === true" in source
+    assert 'next === "setup" && !this._isAdmin()' in source
+    assert "Setup is available only to Home Assistant administrators." in source
+    assert "Ask a Home Assistant administrator to configure ZEAL." in source
