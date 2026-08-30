@@ -58,8 +58,10 @@ heat source, delay and equipment counts. Each Zone/Floor card also shows the liv
 heating-actuator state and a horizontally scrollable room-demand strip. Every
 room is labelled Demand, Satisfied, Off, Inactive or Unavailable alongside its
 current setpoint and measured temperature, making it easy to see why a zone is
-heating. Overview also shows the local time and
-setpoint of each room's latest successful ZEAL target change.
+heating. Each room also separates its last scheduled setpoint from the currently
+effective control source. Manual Home Assistant/TRV adjustments are shown as
+lasting until the next scheduled change; Quick Change shows its target and
+selected two-hour, four-hour or next-schedule duration.
 
 Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and
 select **Save setup** if you do not want a permanent sidebar link. ZEAL keeps

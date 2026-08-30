@@ -150,6 +150,31 @@ async def test_startup_reconciles_only_stable_zeal_room_ids(hass, monkeypatch):
     assert coordinator.refreshes == 1
 
 
+async def test_quick_change_state_reports_active_schedule_start(hass, monkeypatch):
+    """Overview can distinguish the active schedule from later overrides."""
+    now = datetime(2026, 8, 24, 12, 0)
+    monkeypatch.setattr(
+        "custom_components.zeal.scheduler.runtime.dt_util.now", lambda: now
+    )
+    install_timer_capture(monkeypatch)
+    coordinator = FakeCoordinator()
+    coordinator.available = {"living_room"}
+    runtime = ScheduleRuntime(hass, coordinator)
+    await runtime.async_start(
+        schedule_configuration(
+            schedule_room(
+                "living_room",
+                "Living Room",
+                (SchedulePeriod("morning", "morning", "Morning", "07:00", 20),),
+            )
+        )
+    )
+
+    room = runtime.quick_change_state()["rooms"][0]
+    assert room["scheduled_temperature"] == 20
+    assert room["scheduled_period_started_at"] == "2026-08-24T07:00:00"
+
+
 async def test_runtime_never_calls_home_assistant_climate_service_directly(
     hass, monkeypatch
 ):

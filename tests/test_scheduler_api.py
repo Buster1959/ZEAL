@@ -435,6 +435,7 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
     room_state = response["result"]["rooms"][0]
     assert room_state["effective_temperature"] == 22
     assert room_state["override"]["duration"] == "2h"
+    assert room_state["scheduled_period_started_at"] is not None
     assert (
         hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
         == saved_schedule

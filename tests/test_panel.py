@@ -214,6 +214,12 @@ def test_frontend_contains_live_overview_demand_contracts():
     assert 'this._hass?.states?.[thermostat.entity_id]' in source
     assert "overflow-x:auto" in source
     assert "_syncOverviewDemand" in source
+    assert "Last schedule" in source
+    assert "Manual change via Home Assistant or TRV" in source
+    assert "Quick Change · Setpoint" in source
+    assert 'if (duration === "2h") return "2 hours"' in source
+    assert 'if (duration === "4h") return "4 hours"' in source
+    assert 'if (duration === "next_change") return "Until next scheduled change"' in source
 
 
 def test_frontend_contains_visual_scheduler_contracts():
@@ -288,5 +294,5 @@ def test_frontend_refreshes_schedule_navigation_after_setup_reload():
     assert "await this._loadConfiguration({ preserveNotice: true });" in source
     assert 'data-action="refresh-configuration"' in source
     assert "for (let attempt = 0; attempt < 40; attempt += 1)" in source
-    assert "No ZEAL target change recorded yet" in source
-    assert "Last change ${this._formatChangeTime" in source
+    assert "No active scheduled setpoint" in source
+    assert "runtime.scheduled_period_started_at" in source

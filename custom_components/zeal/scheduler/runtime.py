@@ -400,6 +400,9 @@ class ScheduleRuntime:
                     "room_id": room.room_id,
                     "room_name": room.room_name,
                     "scheduled_temperature": scheduled_temperature,
+                    "scheduled_period_started_at": (
+                        active.starts_at.isoformat() if active else None
+                    ),
                     "effective_temperature": (
                         self._away_mode.temperature
                         if away_applies

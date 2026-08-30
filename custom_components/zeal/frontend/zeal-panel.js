@@ -447,8 +447,12 @@ class ZealPanel extends HTMLElement {
     if (!state || ["unknown", "unavailable"].includes(state.state)) {
       return { name, label: "Unavailable", cssClass: "unknown", setpoint: null, temperature: null };
     }
-    const setpoint = Number(state.attributes?.temperature);
-    const temperature = Number(state.attributes?.current_temperature);
+    const setpoint =
+      state.attributes?.temperature == null ? NaN : Number(state.attributes.temperature);
+    const temperature =
+      state.attributes?.current_temperature == null
+        ? NaN
+        : Number(state.attributes.current_temperature);
     if (state.state === "off") {
       return { name, label: "Off", cssClass: "inactive", setpoint, temperature };
     }
@@ -501,12 +505,7 @@ class ZealPanel extends HTMLElement {
 
   _overviewRoom(room) {
     const zealThermostat = this._zealThermostat(room.room_id);
-    const lastChange = this._configuration?.last_changes?.[room.room_id];
-    const lastChangeText = lastChange
-      ? `Last change ${this._formatChangeTime(lastChange.timestamp)} · Setpoint ${this._formatScheduleTemperature(
-          lastChange.requested_temperature
-        )}`
-      : "No ZEAL target change recorded yet";
+    const control = this._roomControlSummary(room, zealThermostat);
     return `<div class="room-summary">
       <div><strong>${this._escape(room.name || this._areaName(room.room_id))}</strong><span>${this._escape(
         this._areaName(room.room_id)
@@ -514,11 +513,82 @@ class ZealPanel extends HTMLElement {
         (room.sensors || []).length
       } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span><span>ZEAL target: ${this._escape(
         zealThermostat ? this._entityLabel(zealThermostat) : "Not created"
-      )}</span><span>${this._escape(lastChangeText)}</span></div>
+      )}</span><span>${this._escape(control.schedule)}</span><span class="control-source ${
+        control.cssClass
+      }">${this._escape(control.effective)}</span></div>
       <span class="state ${room.active === false ? "inactive" : ""}">${
         room.active === false ? "Inactive" : "Active"
       }</span>
     </div>`;
+  }
+
+  _roomControlSummary(room, zealThermostat) {
+    const runtime = (this._configuration?.quick_change?.rooms || []).find(
+      (candidate) => candidate.room_id === room.room_id
+    );
+    const scheduled =
+      runtime?.scheduled_temperature == null
+        ? NaN
+        : Number(runtime.scheduled_temperature);
+    const schedule = Number.isFinite(scheduled)
+      ? `Last schedule ${this._formatChangeTime(
+          runtime.scheduled_period_started_at
+        )} · Setpoint ${this._formatScheduleTemperature(scheduled)}`
+      : "No active scheduled setpoint";
+    const entityState = zealThermostat
+      ? this._hass?.states?.[zealThermostat.entity_id]
+      : null;
+    const liveTarget =
+      entityState?.attributes?.temperature == null
+        ? NaN
+        : Number(entityState.attributes.temperature);
+    const override = runtime?.override;
+    if (runtime?.effective_source === "away") {
+      const target = Number(runtime.effective_temperature);
+      return {
+        schedule,
+        effective: Number.isFinite(target)
+          ? `Away mode · Setpoint ${this._formatScheduleTemperature(target)}`
+          : "Away mode",
+        cssClass: "away",
+      };
+    }
+    if (override) {
+      return {
+        schedule,
+        effective: `Quick Change · Setpoint ${this._formatScheduleTemperature(
+          override.temperature
+        )} · Duration: ${this._overrideDurationLabel(override.duration)}`,
+        cssClass: "temporary",
+      };
+    }
+    if (
+      Number.isFinite(liveTarget) &&
+      Number.isFinite(scheduled) &&
+      Math.abs(liveTarget - scheduled) >= 0.01
+    ) {
+      return {
+        schedule,
+        effective: `Manual change via Home Assistant or TRV · Setpoint ${this._formatScheduleTemperature(
+          liveTarget
+        )} · Duration: Until next scheduled change`,
+        cssClass: "manual",
+      };
+    }
+    return {
+      schedule,
+      effective: Number.isFinite(liveTarget)
+        ? `Following schedule · Setpoint ${this._formatScheduleTemperature(liveTarget)}`
+        : "Current setpoint unavailable",
+      cssClass: "schedule",
+    };
+  }
+
+  _overrideDurationLabel(duration) {
+    if (duration === "2h") return "2 hours";
+    if (duration === "4h") return "4 hours";
+    if (duration === "next_change") return "Until next scheduled change";
+    return "Unknown";
   }
 
   _acceptQuickChange(state) {
@@ -2273,6 +2343,9 @@ class ZealPanel extends HTMLElement {
       .room-summary { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px; border-radius:8px; background:var(--secondary-background-color); }
       .room-summary strong, .room-summary span { display:block; }
       .room-summary div > span { margin-top:3px; font-size:12px; color:var(--secondary-text-color); }
+      .room-summary .control-source { color:var(--primary-text-color); }
+      .room-summary .control-source.temporary, .room-summary .control-source.manual { color:var(--warning-color, #ef6c00); font-weight:600; }
+      .room-summary .control-source.away { color:var(--primary-color); font-weight:600; }
       .empty-card { padding:28px; text-align:center; }
       .empty-card > ha-icon { color:var(--primary-color); --mdc-icon-size:42px; margin-bottom:10px; }
       .empty-card p { color:var(--secondary-text-color); }
