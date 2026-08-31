@@ -202,6 +202,15 @@ only after acceptance. ZEAL includes an inspectable evidence trail, exact
 schedule diff, optimistic revision check and auditable revert. The detailed
 specification is in `docs/LEARNING_ROADMAP.md`.
 
+Implementation is one complete vertical pipeline from capture and classification
+through detection, recommendation, confirmation, commit and revert—not an
+observation-only release. Stable households
+may not produce enough natural changes for timely passive validation, so
+synthetic dated event streams must exercise the actual production classifier,
+proposal engine, authorisation and revision-checked commit path. Learning is
+disabled by default; automatic detection can create advice, while only explicit
+user confirmation can mutate a schedule.
+
 - Extend the audit from canonical application outcomes to source-aware user
   intent: weekly schedule, Home Assistant/canonical thermostat, physical TRV,
   Quick Change, Away and later ZEAL suggestions.

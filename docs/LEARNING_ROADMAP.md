@@ -199,6 +199,44 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 - Standard-user proposal visibility and approval are governed by the same
   administrator-controlled Schedule permission as ordinary schedule editing.
 
+### Implementation and validation strategy
+
+Schedule Adaptation will not be released as an observation-only feature before
+the proposal workflow exists. A household with a stable schedule may make too
+few natural adjustments to validate passive classification in a useful period.
+The implementation therefore delivers one complete vertical pipeline:
+
+```text
+Capture → Classify → Detect → Recommend → Review → Confirm → Commit → Revert
+```
+
+Learning is disabled by default until an administrator enables it. Enabling it
+allows automatic capture, detection and advice; it never authorises an automatic
+schedule write. The safety boundary is explicit authenticated confirmation of a
+visible schedule diff through the existing optimistic-revision API, not a delay
+between observation and proposal generation.
+
+Tests use synthetic, dated event streams that pass through the same production
+capture, classification, grouping, proposal and commit code as real events. A
+test-only fixture or in-memory event source may provide controlled timestamps
+and sources, but production code must not contain a hidden UI or service for
+forging learning evidence. Required programmatic scenarios include:
+
+- three qualifying occurrences across three dates create one proposal;
+- repeated adjustments during one occurrence count only once;
+- adjacent periods, weekdays and schedule revisions never share evidence;
+- timing and temperature interpretations remain distinct;
+- ambiguous boundaries, ZEAL writes and device echoes are excluded;
+- opposing or insufficient evidence creates no actionable proposal;
+- accept, edited accept, dismiss, snooze, conflict and revert survive restart;
+- an accepted proposal changes only its evidenced weekday and exact period;
+- backend authorisation and optimistic revision checks cannot be bypassed.
+
+Real-home testing then validates the full non-destructive recommendation
+experience. A mistaken recommendation can be inspected and dismissed without
+changing heating. No deliberate schedule disturbance or months-long passive
+observation is a prerequisite for completing the implementation.
+
 ## 2. ZEAL Learning — Room Thermal Response
 
 Room Thermal Response learns how each room and its surrounding building fabric
@@ -338,8 +376,10 @@ begins in preparation for that target.
 ## Sequencing
 
 1. Ship and validate V1 without learning dependencies.
-2. Add the source-aware event audit required by Schedule Adaptation.
-3. Build Schedule Adaptation proposals and approval workflow.
+2. Implement the complete source-aware Schedule Adaptation vertical pipeline,
+   including persistence, notifications, approval, commit and revert.
+3. Validate that pipeline with deterministic synthetic event timelines and then
+   the non-destructive proposal experience in a real Home Assistant installation.
 4. Add outdoor-source selection and observation-only thermal data collection.
 5. Validate per-room models offline before showing recommendations.
 6. Release advisory optimum start.

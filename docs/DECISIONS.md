@@ -54,3 +54,10 @@ companion Wiki retains the longer chronological design history.
 23. Optimum start begins as a recommendation. Any automatic start adjustment
     requires explicit opt-in, sufficient confidence and safe fallback to the
     unchanged weekly schedule.
+24. Schedule Adaptation is implemented and tested as one complete
+    capture–classify–detect–recommend–confirm–commit–revert pipeline rather than
+    shipping an observation-only phase first. Synthetic dated event streams
+    exercise the production classifier and proposal engine because a stable
+    household may generate too few natural changes for timely passive
+    validation. Automatic detection may create advice, but only an explicit,
+    authorised, revision-checked confirmation may change the saved schedule.
