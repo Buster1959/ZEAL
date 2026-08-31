@@ -23,6 +23,13 @@ PANEL_FILE = (
     / "frontend"
     / "zeal-panel.js"
 )
+PANEL_ENTRY_FILE = (
+    Path(__file__).parents[1]
+    / "custom_components"
+    / "zeal"
+    / "frontend"
+    / "zeal-panel-entry.js"
+)
 
 
 async def test_initial_flow_only_names_an_empty_instance(hass):
@@ -111,7 +118,7 @@ async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=17"
+        "/zeal-panel-entry.js?v=18"
     )
 
     static_routes = {
@@ -119,6 +126,7 @@ async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     }
     assert "/zeal_static" in static_routes
     assert PANEL_FILE.is_file()
+    assert PANEL_ENTRY_FILE.is_file()
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {})
@@ -288,6 +296,19 @@ def test_frontend_contains_away_mode_and_precedence_contracts():
     assert "End Away now" in source
 
 
+def test_frontend_entry_moves_away_mode_to_overrides():
+    """The normal-operation page owns Quick Change and administrator Away controls."""
+    source = PANEL_ENTRY_FILE.read_text()
+    assert 'data-view="quick">Overrides</button>' in source
+    assert 'data-view="quick">Away settings</button>' in source
+    assert "Temporary room changes and Away Mode without editing weekly schedules." in source
+    assert "Apply temporary room temperature holds" in source
+    assert 'this._isAdmin() ? this._renderAwaySettings() : ""' in source
+    assert "baseRenderSetup.call(this).replace(awaySettings, \"\")" in source
+    assert "Discard unsaved Away changes?" in source
+    assert "Away Mode remains administrator-only" in source
+
+
 def test_frontend_places_safety_warning_only_on_setup_page():
     """The precaution belongs to administrator Setup, not normal operation."""
     source = PANEL_FILE.read_text()
@@ -310,12 +331,13 @@ def test_frontend_refreshes_schedule_navigation_after_setup_reload():
 
 def test_frontend_limits_setup_navigation_to_administrators():
     source = PANEL_FILE.read_text()
+    entry_source = PANEL_ENTRY_FILE.read_text()
     assert "this._hass?.user?.is_admin === true" in source
     assert 'next === "setup" && !this._isAdmin()' in source
     assert "Setup is available only to Home Assistant administrators." in source
     assert "Ask a Home Assistant administrator to configure ZEAL." in source
     assert "Allow standard users to use Schedule" in source
-    assert "Allow standard users to use Quick Change" in source
+    assert "Allow standard users to use Overrides" in entry_source
     assert "this._configuration?.standard_user_schedule === true" in source
     assert "this._configuration?.standard_user_quick_change === true" in source
 
