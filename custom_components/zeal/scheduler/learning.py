@@ -40,7 +40,6 @@ class ClassifiedChange:
         return "|".join(
             (
                 self.adaptation_type,
-                self.weekday,
                 self.period_id,
                 self.original_time,
                 f"{self.original_temperature:.1f}",

@@ -39,7 +39,7 @@ def configuration() -> ScheduleConfiguration:
             "lounge": RoomSchedule(
                 "lounge",
                 "Lounge",
-                {day: monday if day == "monday" else () for day in WEEKDAYS},
+                {day: monday for day in WEEKDAYS},
             )
         },
         temperature_unit="°C",
@@ -71,7 +71,7 @@ def test_different_target_remains_with_active_adjacent_period():
     assert change.original_time == "07:00"
 
 
-async def test_three_matching_mondays_create_temperature_proposal():
+async def test_three_matching_distinct_days_create_temperature_proposal():
     store = LearningStore(None, "entry", store=MemoryStore())
     engine = learning(store)
     assert await engine.async_record_change(
@@ -80,14 +80,14 @@ async def test_three_matching_mondays_create_temperature_proposal():
     ) is None
     assert await engine.async_record_change(
         room_id="lounge", requested_temperature=19.5,
-        source="physical_trv", when=at(10, 7, 12)
+        source="physical_trv", when=at(4, 7, 12)
     ) is None
     proposal = await engine.async_record_change(
         room_id="lounge", requested_temperature=19.5,
-        source="quick_change", when=at(17, 7, 14)
+        source="quick_change", when=at(5, 7, 14)
     )
     assert proposal is not None
-    assert proposal["weekday"] == "monday"
+    assert proposal["weekday"] == "wednesday"
     assert proposal["period_id"] == "morning"
     assert proposal["proposed_temperature"] == 19.5
     assert proposal["evidence_count"] == 3
@@ -137,14 +137,14 @@ def test_apply_proposal_changes_only_exact_evidenced_period():
     updated = apply_proposal(configuration(), proposal)
     assert updated.rooms["lounge"].days["monday"][0].temperature == 19.5
     assert updated.rooms["lounge"].days["monday"][1].temperature == 20.0
-    assert updated.rooms["lounge"].days["tuesday"] == ()
+    assert updated.rooms["lounge"].days["tuesday"][0].temperature == 18.0
 
 
 async def test_dismissed_proposal_is_audited_and_not_actionable_again():
     store = LearningStore(None, "entry", store=MemoryStore())
     engine = learning(store)
     proposal = None
-    for day in (3, 10, 17):
+    for day in (3, 4, 5):
         proposal = await engine.async_record_change(
             room_id="lounge",
             requested_temperature=19.5,
@@ -155,7 +155,7 @@ async def test_dismissed_proposal_is_audited_and_not_actionable_again():
     decided = await engine.async_set_status(
         proposal["proposal_id"],
         "dismissed",
-        decided_at=at(17, 8),
+        decided_at=at(5, 8),
         decided_by="user-one",
     )
     assert decided["status"] == "dismissed"
@@ -166,7 +166,7 @@ async def test_similar_timing_changes_share_pattern_and_use_median_time():
     store = LearningStore(None, "entry", store=MemoryStore())
     engine = learning(store)
     proposal = None
-    for day, minute in ((3, 35), (10, 30), (17, 40)):
+    for day, minute in ((3, 35), (4, 30), (5, 40)):
         proposal = await engine.async_record_change(
             room_id="lounge",
             requested_temperature=20,

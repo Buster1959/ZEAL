@@ -223,8 +223,9 @@ user confirmation can mutate a schedule.
   example is three similar changes within the same part of the day across a
   defined number of days.
 - Assign every event to one immutable room/weekday/period/revision snapshot.
-  Adjacent periods remain separate, ambiguous transition-boundary events are
-  excluded and evidence never transfers automatically to an unobserved weekday.
+  Adjacent periods remain separate and ambiguous transition-boundary events are
+  excluded. Comparable evidence may cross weekdays, but an accepted proposal
+  changes only the weekday on which it was raised.
 - Create a reviewable proposal containing the supporting events, current
   schedule period and proposed replacement target/time.
 - Offer Accept, Edit, Dismiss and Snooze. Accepting writes through the normal
@@ -243,7 +244,7 @@ schedule changes only after explicit user confirmation. Accepted suggestions
 must remain traceable and safely revertible unless a later schedule revision
 creates a visible conflict.
 
-Status: implemented for development validation in `0.14.0`. Production learning
+Status: implemented for development validation in `0.14.1`. Production learning
 is disabled by default. The remaining gates are full automated regression,
 Home Assistant user testing and live evidence/notification review before a
 learning release is declared stable.

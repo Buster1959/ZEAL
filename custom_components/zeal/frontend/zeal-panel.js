@@ -1711,7 +1711,7 @@ class ZealPanel extends HTMLElement {
       <label class="active-toggle"><input type="checkbox" data-action="learning-persistent-notifications" ${
         this._learningPersistentNotifications ? "checked" : ""
       } /><span><strong>Home Assistant Persistent Notifications</strong><small>Maintain one aggregated alert when Learning suggestions are ready for review.</small></span></label>
-      <small>Initial defaults: three qualifying dates for the same weekday and period within 21 days. Learning history may reveal household routines.</small>
+      <small>Initial defaults: three qualifying dates for the same comparable schedule period within 21 days. Learning history may reveal household routines.</small>
     </section>`;
   }
 
@@ -1742,7 +1742,7 @@ class ZealPanel extends HTMLElement {
     );
     const history = proposals.filter((proposal) => !actionable.includes(proposal));
     return `<section class="page-heading"><div><h2>Learning Notifications</h2><p>Review evidence-backed Schedule Adaptation suggestions. Nothing is committed without confirmation.</p></div></section>
-      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after three qualifying dates for the same room, weekday and schedule period.</p></section>`}
+      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after three qualifying dates for the same room and comparable schedule period.</p></section>`}
       ${history.length ? `<section class="setup-help"><strong>Proposal history</strong><p>${history.length} accepted, dismissed or conflicted proposal${history.length === 1 ? "" : "s"}.</p></section><section class="zone-grid">${history.map((proposal) => this._learningProposal(proposal, false)).join("")}</section>` : ""}`;
   }
 

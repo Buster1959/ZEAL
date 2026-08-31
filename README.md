@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.14.0`. It is feature
+> current candidate is on `main` at manifest version `0.14.1`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -416,9 +416,10 @@ that instead.
 
 The learning layer uses a persistent, bounded audit of Quick Change, Home
 Assistant thermostat and physical-TRV setpoint changes. A candidate is created
-when a room receives three similar manual changes on distinct dates within 21
-days for the same weekday, exact schedule period and schedule revision.
-Temperature and timing adaptations remain separate.
+when a room receives three similar manual changes on any three distinct dates
+within 21 days for the same comparable schedule period and schedule revision.
+Temperature and timing adaptations remain separate; accepting changes only the
+weekday on which the proposal was raised.
 
 The Learning Notifications page shows the evidence, affected room/day/time,
 existing setpoint, suggested setpoint and confidence/count. An authorised user

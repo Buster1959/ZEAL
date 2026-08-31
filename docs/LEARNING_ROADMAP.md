@@ -7,7 +7,7 @@ Neither workstream may silently alter the saved weekly schedule.
 
 ## 1. ZEAL Learning — Schedule Adaptation
 
-Implementation status (`0.14.0`): capture, deterministic classification,
+Implementation status (`0.14.1`): capture, deterministic classification,
 21-day/distinct-date pattern detection, persistent proposals, Learning
 Notifications, optional Home Assistant persistent notifications, authorised
 accept/edit/dismiss/snooze, revision-checked commit and guarded revert are
@@ -117,18 +117,18 @@ request happened first, that event contributes to neither pattern.
 
 ### Evidence grouping and day scope
 
-Evidence is grouped by room, local weekday, original schedule-period ID,
-schedule revision, adaptation type and similar requested change. Distinct
-calendar dates for the same weekday can satisfy the repetition threshold; three
-adjustments during one occurrence of a period count as one qualifying date.
-Monday evidence does not count as Friday evidence even when both days happen to
-have identical start times and setpoints.
+Evidence is grouped by room, comparable original schedule period, schedule
+revision, adaptation type and similar requested change. Any three distinct
+calendar dates within 21 days can satisfy the threshold. A period is comparable
+only when its stable period ID, original start time and original setpoint match;
+this prevents a 07:00 period being combined with an adjacent 08:00 period.
+Three adjustments during one calendar date count as one qualifying date.
 
-A proposal changes only weekdays that independently contain qualifying evidence
-for the same exact adaptation. It does not offer arbitrary additional weekday
-checkboxes and does not extrapolate to structurally similar but unobserved days.
-Broader copying remains an ordinary, deliberate Schedule operation. The proposal
-shows this banner and action:
+Evidence may cross weekdays, but a proposal changes only the weekday and exact
+period on which that proposal is raised. It does not offer arbitrary additional
+weekday checkboxes or silently copy the accepted change to the other evidence
+days. Broader copying remains an ordinary, deliberate Schedule operation. The
+proposal shows this banner and action:
 
 ```text
 Apply this change to other days
@@ -147,7 +147,8 @@ causes the outstanding proposal to be revalidated or marked stale.
 
 “Two or more in the previous 21 days” means two earlier qualifying calendar
 dates plus the newly detected change, producing the default total of three.
-Evidence must match the same room, weekday, exact period and adaptation type.
+Evidence must match the same room, comparable exact period and adaptation type;
+it need not fall on the same weekday.
 
 ```mermaid
 flowchart TD
@@ -167,7 +168,7 @@ flowchart TD
     F -- Changes active period target --> H[Setpoint evidence<br/>for active period]
     F -- Neither or matches both --> X3[Exclude as ambiguous<br/>or immaterial]
 
-    G --> I[Group by room, weekday, period ID,<br/>revision, type and similar change]
+    G --> I[Group by room, comparable period ID/time/setpoint,<br/>revision, type and similar change]
     H --> I
     I --> J{At least two earlier qualifying<br/>dates in previous 21 days?}
 
@@ -221,9 +222,9 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 
 ### Suppression, confidence and safety
 
-- Default minimum evidence is three qualifying events across three distinct
-  calendar dates for the same weekday and exact schedule period; repeated
-  adjustments during one occurrence cannot create a proposal.
+- Default minimum evidence is three qualifying events across any three distinct
+  calendar dates for the same comparable schedule period; repeated adjustments
+  during one calendar date cannot create a proposal.
 - Confidence reflects evidence count, consistency of time/temperature change,
   data quality and how recently the events occurred—not an unexplained AI score.
 - Dismissed proposals remain suppressed until sufficient materially new evidence
@@ -252,8 +253,9 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
   proposal.
 - The proposal displays the exact current/proposed schedule diff and links every
   counted audit event.
-- Unobserved weekdays are never included or offered by Learning; broader changes
-  are handed off to the ordinary Schedule page without accepting the proposal.
+- Other weekdays are never included or offered by Learning merely because they
+  supplied comparable evidence; broader changes are handed off to the ordinary
+  Schedule page without accepting the proposal.
 - Accept and edited-accept use the existing validation and optimistic-revision
   checks; stale proposals cannot overwrite a newer schedule.
 - Dismiss, snooze, accept, edit, conflict and revert outcomes are audited and
@@ -287,7 +289,7 @@ forging learning evidence. Required programmatic scenarios include:
 
 - three qualifying occurrences across three dates create one proposal;
 - repeated adjustments during one occurrence count only once;
-- adjacent periods, weekdays and schedule revisions never share evidence;
+- adjacent/non-comparable periods and schedule revisions never share evidence;
 - timing and temperature interpretations remain distinct;
 - ambiguous boundaries, ZEAL writes and device echoes are excluded;
 - opposing or insufficient evidence creates no actionable proposal;

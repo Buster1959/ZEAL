@@ -111,7 +111,7 @@ async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=15"
+        "/zeal-panel.js?v=16"
     )
 
     static_routes = {
