@@ -10,9 +10,12 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import Unauthorized
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     CONF_SHOW_IN_SIDEBAR,
+    CONF_LEARNING_ENABLED,
+    CONF_LEARNING_PERSISTENT_NOTIFICATIONS,
     CONF_STANDARD_USER_QUICK_CHANGE,
     CONF_STANDARD_USER_SCHEDULE,
     DOMAIN,
@@ -26,6 +29,7 @@ from .configuration import (
     export_configuration,
 )
 from .editor import copy_room_schedule, update_room_days
+from .learning import apply_proposal
 
 _REGISTERED = f"{DOMAIN}_scheduler_websocket_registered"
 ERR_CONFLICT = "conflict"
@@ -48,6 +52,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_clear_temporary_override,
         ws_export_configuration,
         ws_get_audit_log,
+        ws_get_learning,
+        ws_decide_learning_proposal,
     ):
         websocket_api.async_register_command(hass, command)
     hass.data[_REGISTERED] = True
@@ -123,6 +129,145 @@ def ws_get_zone_control(hass, connection, msg) -> None:
     connection.send_result(
         msg["id"], {"zones": data["coordinator"].zone_control_snapshot()}
     )
+
+
+@_require_feature(CONF_STANDARD_USER_SCHEDULE)
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "zeal/get_learning",
+        vol.Required("entry_id"): str,
+    }
+)
+@callback
+def ws_get_learning(hass, connection, msg) -> None:
+    data = _loaded_entry(hass, msg["entry_id"])
+    if data is None:
+        _send_not_found(connection, msg)
+        return
+    connection.send_result(msg["id"], data["schedule_learning"].snapshot())
+
+
+@_require_feature(CONF_STANDARD_USER_SCHEDULE)
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "zeal/decide_learning_proposal",
+        vol.Required("entry_id"): str,
+        vol.Required("proposal_id"): str,
+        vol.Required("action"): vol.In(
+            ["accept", "edit_accept", "dismiss", "snooze", "revert"]
+        ),
+        vol.Optional("proposed_time"): str,
+        vol.Optional("proposed_temperature"): vol.Coerce(float),
+        vol.Optional("snoozed_until"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_decide_learning_proposal(hass, connection, msg) -> None:
+    data = _loaded_entry(hass, msg["entry_id"])
+    if data is None:
+        _send_not_found(connection, msg)
+        return
+    learning = data["schedule_learning"]
+    now = dt_util.now()
+    user_id = connection.user.id
+    try:
+        if msg["action"] == "dismiss":
+            await learning.async_set_status(
+                msg["proposal_id"],
+                "dismissed",
+                decided_at=now,
+                decided_by=user_id,
+            )
+        elif msg["action"] == "snooze":
+            snoozed_until = dt_util.parse_datetime(msg.get("snoozed_until", ""))
+            if snoozed_until is None or snoozed_until <= now:
+                raise ValueError("snoozed_until must be a future ISO datetime")
+            await learning.async_set_status(
+                msg["proposal_id"],
+                "snoozed",
+                decided_at=now,
+                decided_by=user_id,
+                snoozed_until=snoozed_until,
+            )
+        elif msg["action"] == "revert":
+            proposal = learning.proposal(msg["proposal_id"])
+            if proposal.get("status") != "accepted":
+                raise ValueError("Only an accepted proposal can be reverted")
+            reverse = {
+                **proposal,
+                "original_time": proposal["accepted_time"],
+                "original_temperature": proposal["accepted_temperature"],
+                "proposed_time": proposal["original_time"],
+                "proposed_temperature": proposal["original_temperature"],
+            }
+            configuration = apply_proposal(
+                data["schedule_runtime"].configuration, reverse
+            )
+            reverted_revision = await async_save_schedule(
+                hass,
+                msg["entry_id"],
+                configuration,
+                expected_revision=str(proposal["accepted_revision"]),
+            )
+            await learning.async_set_status(
+                msg["proposal_id"],
+                "reverted",
+                decided_at=now,
+                decided_by=user_id,
+                details={"reverted_revision": reverted_revision},
+            )
+        else:
+            proposal = learning.proposal(msg["proposal_id"])
+            configuration = apply_proposal(
+                data["schedule_runtime"].configuration,
+                proposal,
+                proposed_time=msg.get("proposed_time"),
+                proposed_temperature=msg.get("proposed_temperature"),
+            )
+            new_revision = await async_save_schedule(
+                hass,
+                msg["entry_id"],
+                configuration,
+                expected_revision=str(proposal["schedule_revision"]),
+            )
+            accepted_period = configuration.rooms[str(proposal["room_id"])].days[
+                str(proposal["weekday"])
+            ]
+            accepted = next(
+                period
+                for period in accepted_period
+                if period.id == proposal["period_id"]
+            )
+            await learning.async_set_status(
+                msg["proposal_id"],
+                "accepted",
+                decided_at=now,
+                decided_by=user_id,
+                details={
+                    "accepted_time": accepted.time,
+                    "accepted_temperature": accepted.temperature,
+                    "accepted_revision": new_revision,
+                    "edited_before_accept": msg["action"] == "edit_accept",
+                },
+            )
+    except ConfigurationConflictError as err:
+        try:
+            await learning.async_set_status(
+                msg["proposal_id"],
+                "conflicted",
+                decided_at=now,
+                decided_by=user_id,
+            )
+        except ValueError:
+            pass
+        connection.send_error(msg["id"], ERR_CONFLICT, str(err))
+        return
+    except (KeyError, StopIteration, ValueError) as err:
+        connection.send_error(
+            msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err)
+        )
+        return
+    connection.send_result(msg["id"], learning.snapshot())
 
 
 @_require_feature(CONF_STANDARD_USER_SCHEDULE)
@@ -261,6 +406,8 @@ async def ws_save_away_mode(hass, connection, msg) -> None:
         vol.Optional("show_in_sidebar"): bool,
         vol.Optional("standard_user_schedule"): bool,
         vol.Optional("standard_user_quick_change"): bool,
+        vol.Optional("learning_enabled"): bool,
+        vol.Optional("learning_persistent_notifications"): bool,
     }
 )
 @websocket_api.async_response
@@ -277,6 +424,10 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
             show_in_sidebar=msg.get("show_in_sidebar"),
             standard_user_schedule=msg.get("standard_user_schedule"),
             standard_user_quick_change=msg.get("standard_user_quick_change"),
+            learning_enabled=msg.get("learning_enabled"),
+            learning_persistent_notifications=msg.get(
+                "learning_persistent_notifications"
+            ),
         )
     except ConfigurationConflictError as err:
         connection.send_error(msg["id"], ERR_CONFLICT, str(err))
@@ -299,6 +450,12 @@ async def ws_save_hierarchy(hass, connection, msg) -> None:
             CONF_STANDARD_USER_QUICK_CHANGE: hass.config_entries.async_get_entry(
                 msg["entry_id"]
             ).options.get(CONF_STANDARD_USER_QUICK_CHANGE, False),
+            CONF_LEARNING_ENABLED: hass.config_entries.async_get_entry(
+                msg["entry_id"]
+            ).options.get(CONF_LEARNING_ENABLED, False),
+            CONF_LEARNING_PERSISTENT_NOTIFICATIONS: hass.config_entries.async_get_entry(
+                msg["entry_id"]
+            ).options.get(CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True),
         },
     )
 

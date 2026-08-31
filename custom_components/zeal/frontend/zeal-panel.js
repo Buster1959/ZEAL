@@ -51,6 +51,10 @@ class ZealPanel extends HTMLElement {
     this._showInSidebar = true;
     this._standardUserSchedule = false;
     this._standardUserQuickChange = false;
+    this._learningEnabled = false;
+    this._learningPersistentNotifications = true;
+    this._learning = { events: [], proposals: [] };
+    this._learningLoading = false;
     this._scheduleZoneId = null;
     this._scheduleRoomId = null;
     this._scheduleDays = null;
@@ -93,7 +97,8 @@ class ZealPanel extends HTMLElement {
     if (
       (!this._isAdmin() && this._view === "setup") ||
       (this._view === "schedule" && !this._canUseSchedule()) ||
-      (this._view === "quick" && !this._canUseQuickChange())
+      (this._view === "quick" && !this._canUseQuickChange()) ||
+      (this._view === "learning" && !this._canUseLearning())
     ) this._view = "overview";
     if (!this._started && value) {
       this._started = true;
@@ -169,6 +174,8 @@ class ZealPanel extends HTMLElement {
     this._showInSidebar = configuration.show_in_sidebar !== false;
     this._standardUserSchedule = configuration.standard_user_schedule === true;
     this._standardUserQuickChange = configuration.standard_user_quick_change === true;
+    this._learningEnabled = configuration.learning_enabled === true;
+    this._learningPersistentNotifications = configuration.learning_persistent_notifications !== false;
     this._dirty = false;
     this._loadAwayDraft();
     this._loadScheduleRoom({ keepSelection: true });
@@ -192,6 +199,10 @@ class ZealPanel extends HTMLElement {
 
   _canUseQuickChange() {
     return this._isAdmin() || this._configuration?.standard_user_quick_change === true;
+  }
+
+  _canUseLearning() {
+    return this._learningEnabled && this._canUseSchedule();
   }
 
   _message(error, fallback) {
@@ -255,6 +266,8 @@ class ZealPanel extends HTMLElement {
               ? this._renderSchedule()
               : this._view === "quick"
                 ? this._renderQuickChange()
+              : this._view === "learning"
+                ? this._renderLearning()
               : this._renderOverview()
         }
         ${this._warning()}
@@ -287,6 +300,7 @@ class ZealPanel extends HTMLElement {
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
         ${this._canUseSchedule() ? `<button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>` : ""}
         ${this._canUseQuickChange() ? `<button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>` : ""}
+        ${this._canUseLearning() ? `<button class="tab ${this._view === "learning" ? "active" : ""}" data-view="learning">Learning</button>` : ""}
         ${
           this._isAdmin()
             ? `<button class="tab ${this._view === "setup" ? "active" : ""}" data-view="setup">Setup</button>`
@@ -1644,6 +1658,7 @@ class ZealPanel extends HTMLElement {
       </section>
       ${this._renderAwaySettings()}
       ${this._renderDownloads()}
+      ${this._renderLearningSetting()}
       ${this._renderStandardUserAccess()}
       ${this._renderSidebarSetting()}
       ${this._renderInstanceManagement()}
@@ -1686,6 +1701,64 @@ class ZealPanel extends HTMLElement {
       } /><span><strong>Allow standard users to use Quick Change</strong><small>They can apply and clear temporary room temperature changes.</small></span></label>
       <small>Setup, Away configuration, downloads, audit and instance management remain administrator-only.</small>
     </section>`;
+  }
+
+  _renderLearningSetting() {
+    return `<section class="sidebar-card"><h3>ZEAL Learning</h3>
+      <label class="active-toggle"><input type="checkbox" data-action="learning-enabled" ${
+        this._learningEnabled ? "checked" : ""
+      } /><span><strong>Enable Schedule Adaptation</strong><small>Capture qualified manual intent and create reviewable schedule suggestions. ZEAL never changes a schedule without explicit confirmation.</small></span></label>
+      <label class="active-toggle"><input type="checkbox" data-action="learning-persistent-notifications" ${
+        this._learningPersistentNotifications ? "checked" : ""
+      } /><span><strong>Home Assistant Persistent Notifications</strong><small>Maintain one aggregated alert when Learning suggestions are ready for review.</small></span></label>
+      <small>Initial defaults: three qualifying dates for the same weekday and period within 21 days. Learning history may reveal household routines.</small>
+    </section>`;
+  }
+
+  async _loadLearning() {
+    if (!this._entryId || !this._canUseLearning()) return;
+    this._learningLoading = true;
+    this._render();
+    try {
+      this._learning = await this._hass.callWS({
+        type: "zeal/get_learning",
+        entry_id: this._entryId,
+      });
+      this._error = "";
+    } catch (error) {
+      this._error = this._message(error, "ZEAL Learning notifications could not be loaded.");
+    } finally {
+      this._learningLoading = false;
+      this._render();
+    }
+  }
+
+  _renderLearning() {
+    if (this._learningLoading) return `<div class="center-state"><div class="spinner"></div><p>Loading Learning notifications…</p></div>`;
+    const proposals = [...(this._learning?.proposals || [])].reverse();
+    const actionable = proposals.filter((proposal) =>
+      proposal.status === "new" ||
+      (proposal.status === "snoozed" && proposal.snoozed_until && new Date(proposal.snoozed_until).getTime() <= Date.now())
+    );
+    const history = proposals.filter((proposal) => !actionable.includes(proposal));
+    return `<section class="page-heading"><div><h2>Learning Notifications</h2><p>Review evidence-backed Schedule Adaptation suggestions. Nothing is committed without confirmation.</p></div></section>
+      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after three qualifying dates for the same room, weekday and schedule period.</p></section>`}
+      ${history.length ? `<section class="setup-help"><strong>Proposal history</strong><p>${history.length} accepted, dismissed or conflicted proposal${history.length === 1 ? "" : "s"}.</p></section><section class="zone-grid">${history.map((proposal) => this._learningProposal(proposal, false)).join("")}</section>` : ""}`;
+  }
+
+  _learningProposal(proposal, actionable) {
+    const room = (this._configuration.zones || []).flatMap((zone) => zone.rooms || []).find((item) => item.room_id === proposal.room_id);
+    const current = `${proposal.original_time} · ${this._formatScheduleTemperature(proposal.original_temperature)}`;
+    const proposed = `${proposal.proposed_time} · ${this._formatScheduleTemperature(proposal.proposed_temperature)}`;
+    const evidenceIds = new Set(proposal.evidence_ids || []);
+    const evidence = (this._learning?.events || [])
+      .filter((event) => evidenceIds.has(event.event_id))
+      .sort((left, right) => String(left.timestamp).localeCompare(String(right.timestamp)));
+    return `<article class="zone-card"><div class="zone-title"><div><h3>${this._escape(room?.name || proposal.room_id)}</h3><p>${this._escape(proposal.weekday)} · ${this._escape(proposal.adaptation_type)} adaptation</p></div><span class="pill">${this._escape(proposal.status)}</span></div>
+      <dl class="zone-facts"><div><dt>Current</dt><dd>${this._escape(current)}</dd></div><div><dt>Proposed</dt><dd>${this._escape(proposed)}</dd></div><div><dt>Evidence</dt><dd>${Number(proposal.evidence_count || 0)} qualifying dates · ${this._escape(proposal.confidence || "")}</dd></div></dl>
+      ${evidence.length ? `<details><summary>View supporting changes</summary><ul>${evidence.map((event) => `<li>${this._escape(new Date(event.timestamp).toLocaleString())} · ${this._escape(String(event.source || "unknown").replaceAll("_", " "))} · ${this._formatScheduleTemperature(event.requested_temperature)}</li>`).join("")}</ul></details>` : ""}
+      ${actionable ? `<div class="download-actions"><button class="primary" data-learning-action="accept" data-proposal-id="${this._escape(proposal.proposal_id)}">Accept</button><button class="secondary" data-learning-action="edit" data-proposal-id="${this._escape(proposal.proposal_id)}">Edit and accept</button><button class="secondary" data-learning-action="snooze" data-proposal-id="${this._escape(proposal.proposal_id)}">Snooze 7 days</button><button class="text-button" data-learning-action="dismiss" data-proposal-id="${this._escape(proposal.proposal_id)}">Dismiss</button><button class="text-button" data-learning-action="schedule" data-proposal-id="${this._escape(proposal.proposal_id)}">Open Schedule</button></div>` : proposal.status === "accepted" ? `<div class="download-actions"><button class="secondary" data-learning-action="revert" data-proposal-id="${this._escape(proposal.proposal_id)}">Revert schedule change</button></div>` : ""}
+    </article>`;
   }
 
   _renderInstanceManagement() {
@@ -1909,7 +1982,8 @@ class ZealPanel extends HTMLElement {
         }
         if (
           (next === "schedule" && !this._canUseSchedule()) ||
-          (next === "quick" && !this._canUseQuickChange())
+          (next === "quick" && !this._canUseQuickChange()) ||
+          (next === "learning" && !this._canUseLearning())
         ) {
           this._view = "overview";
           this._error = "Your Home Assistant administrator has not enabled this ZEAL feature for standard users.";
@@ -1923,6 +1997,8 @@ class ZealPanel extends HTMLElement {
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
         this._showInSidebar = this._configuration.show_in_sidebar !== false;
+        this._learningEnabled = this._configuration.learning_enabled === true;
+        this._learningPersistentNotifications = this._configuration.learning_persistent_notifications !== false;
         this._loadAwayDraft();
         if (next === "schedule" || next === "overview") {
           await this._loadConfiguration({ preserveNotice: true });
@@ -1933,6 +2009,10 @@ class ZealPanel extends HTMLElement {
         this._error = "";
         if (next === "quick") {
           await this._loadQuickChange();
+          return;
+        }
+        if (next === "learning") {
+          await this._loadLearning();
           return;
         }
         this._render();
@@ -2167,6 +2247,8 @@ class ZealPanel extends HTMLElement {
       this._showInSidebar = this._configuration.show_in_sidebar !== false;
       this._standardUserSchedule = this._configuration.standard_user_schedule === true;
       this._standardUserQuickChange = this._configuration.standard_user_quick_change === true;
+      this._learningEnabled = this._configuration.learning_enabled === true;
+      this._learningPersistentNotifications = this._configuration.learning_persistent_notifications !== false;
       this._dirty = false;
       this._error = "";
       this._render();
@@ -2182,6 +2264,17 @@ class ZealPanel extends HTMLElement {
     this.shadowRoot.querySelector('[data-action="standard-user-quick-change"]')?.addEventListener("change", (event) => {
       this._standardUserQuickChange = event.target.checked;
       this._markChanged();
+    });
+    this.shadowRoot.querySelector('[data-action="learning-enabled"]')?.addEventListener("change", (event) => {
+      this._learningEnabled = event.target.checked;
+      this._markChanged();
+    });
+    this.shadowRoot.querySelector('[data-action="learning-persistent-notifications"]')?.addEventListener("change", (event) => {
+      this._learningPersistentNotifications = event.target.checked;
+      this._markChanged();
+    });
+    this.shadowRoot.querySelectorAll('[data-learning-action]')?.forEach((button) => {
+      button.addEventListener("click", () => this._handleLearningAction(button));
     });
     this.shadowRoot.querySelector('[data-action="manage-instances"]')?.addEventListener("click", () => {
       window.location.assign("/config/integrations/integration/zeal");
@@ -2347,6 +2440,75 @@ class ZealPanel extends HTMLElement {
     this._markChanged();
   }
 
+  async _handleLearningAction(button) {
+    const proposal = (this._learning.proposals || []).find(
+      (item) => item.proposal_id === button.dataset.proposalId
+    );
+    if (!proposal) return;
+    const action = button.dataset.learningAction;
+    if (action === "schedule") {
+      this._view = "schedule";
+      this._scheduleRoomId = proposal.room_id;
+      const zone = (this._configuration.zones || []).find((item) =>
+        (item.rooms || []).some((room) => room.room_id === proposal.room_id)
+      );
+      this._scheduleZoneId = zone?.zone_id || null;
+      this._loadScheduleRoom({ keepSelection: true });
+      this._render();
+      return;
+    }
+    const payload = {
+      type: "zeal/decide_learning_proposal",
+      entry_id: this._entryId,
+      proposal_id: proposal.proposal_id,
+      action: action === "edit" ? "edit_accept" : action,
+    };
+    if (action === "accept" && !window.confirm(
+      `Apply ${proposal.proposed_time} · ${this._formatScheduleTemperature(proposal.proposed_temperature)} to ${proposal.weekday}?`
+    )) return;
+    if (action === "edit") {
+      const proposedTime = window.prompt("Proposed start time (HH:MM)", proposal.proposed_time);
+      if (proposedTime === null) return;
+      const proposedTemperature = window.prompt("Proposed temperature", proposal.proposed_temperature);
+      if (proposedTemperature === null) return;
+      payload.proposed_time = proposedTime;
+      payload.proposed_temperature = Number(proposedTemperature);
+      if (!Number.isFinite(payload.proposed_temperature)) {
+        this._error = "The proposed temperature must be a number.";
+        this._render();
+        return;
+      }
+      if (!window.confirm(
+        `Apply ${proposedTime} · ${this._formatScheduleTemperature(payload.proposed_temperature)} to ${proposal.weekday}?`
+      )) return;
+    }
+    if (action === "dismiss" && !window.confirm("Dismiss this learning suggestion?")) return;
+    if (action === "revert" && !window.confirm("Revert this accepted schedule change?")) return;
+    if (action === "snooze") {
+      payload.snoozed_until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000).toISOString();
+    }
+    try {
+      this._learning = await this._hass.callWS(payload);
+      this._notice = action === "accept" || action === "edit"
+        ? "Schedule Adaptation accepted and committed."
+        : action === "revert"
+          ? "Accepted Schedule Adaptation reverted."
+        : action === "dismiss"
+          ? "Learning suggestion dismissed."
+          : "Learning suggestion snoozed for 7 days.";
+      if (action === "accept" || action === "edit" || action === "revert") {
+        await this._loadConfiguration({ preserveNotice: true });
+        this._view = "learning";
+        await this._loadLearning();
+        return;
+      }
+      this._render();
+    } catch (error) {
+      this._error = this._message(error, "The Learning decision could not be saved.");
+      this._render();
+    }
+  }
+
   async _save() {
     if (this._saving || !this._dirty) return;
     if (this._awayDirty) {
@@ -2380,15 +2542,21 @@ class ZealPanel extends HTMLElement {
         show_in_sidebar: this._showInSidebar,
         standard_user_schedule: this._standardUserSchedule,
         standard_user_quick_change: this._standardUserQuickChange,
+        learning_enabled: this._learningEnabled,
+        learning_persistent_notifications: this._learningPersistentNotifications,
       });
       this._configuration.zones = this._copy(response.zones);
       this._configuration.revision = response.revision;
       this._configuration.show_in_sidebar = response.show_in_sidebar;
       this._configuration.standard_user_schedule = response.standard_user_schedule;
       this._configuration.standard_user_quick_change = response.standard_user_quick_change;
+      this._configuration.learning_enabled = response.learning_enabled;
+      this._configuration.learning_persistent_notifications = response.learning_persistent_notifications;
       this._showInSidebar = response.show_in_sidebar;
       this._standardUserSchedule = response.standard_user_schedule;
       this._standardUserQuickChange = response.standard_user_quick_change;
+      this._learningEnabled = response.learning_enabled;
+      this._learningPersistentNotifications = response.learning_persistent_notifications;
       this._draft = this._copy(response.zones);
       this._dirty = false;
       this._notice = "Setup saved. ZEAL is reloading the updated configuration.";

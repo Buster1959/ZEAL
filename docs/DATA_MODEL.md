@@ -80,25 +80,29 @@ The configuration snapshot exposes the newest successful audit record for each
 room as `last_changes`; this is a derived Overview view, not a fourth persisted
 document.
 
-### Planned next-major-version learning audit
+### Schedule Adaptation learning audit (`0.14.0`)
 
-Learning requires a schema migration rather than overloading the V1 application
-audit. The future event model should record a stable event ID, room, timestamp,
-source (`schedule`, Home Assistant/canonical thermostat, physical TRV, Quick
-Change, Away or accepted suggestion), scheduled baseline, requested/effective
-target, temporary duration/expiry and outcome. Source attribution must be based
+Learning uses a separate versioned Store rather than overloading the V1
+application audit. The initial event model records a stable event ID, room,
+timestamp/local date, source (Home Assistant/canonical thermostat, physical TRV
+or Quick Change), requested target, immutable schedule-period baseline and
+revision, adaptation type, pattern key and outcome. Source attribution is based
 on ZEAL's control boundary and write-echo guards, not inferred from display text.
+Room temperature, demand/actuator context, effective target and override expiry
+remain planned enrichments; the detector does not claim to use fields it has not
+captured.
 
-Repeated-change candidates should be stored separately from raw events. A
-candidate records its evidence event IDs, count, comparable time window,
-observation period, current schedule period, proposed schedule edit and state
-(`pending`, `accepted`, `edited`, `dismissed`, `snoozed` or `expired`). Accepting
-or editing a proposal creates a normal schedule revision plus an audit event;
-the learner never mutates the schedule document directly.
+Repeated-change proposals are stored separately from raw events. A proposal
+records its evidence event IDs/count, pattern, immutable current period,
+proposed schedule edit and state (`new`, `accepted`, `dismissed`, `snoozed`,
+`conflicted` or `reverted`). Accepting or editing a proposal creates a normal
+schedule revision and records the approving user and resulting revision; the
+learner never mutates the schedule document directly.
 
-Both raw-event and proposal retention must be bounded. Exports and documentation
-must warn that this history may reveal occupancy routines even though it contains
-no Home Assistant credentials.
+The Store retains at most 5,000 raw events and 500 proposals. Learning data is
+not included in the existing configuration/audit downloads. Any future Learning
+export must warn that this history may reveal occupancy routines even though it
+contains no Home Assistant credentials.
 
 ### Planned room thermal-response documents
 

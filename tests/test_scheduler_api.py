@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.zeal.const import (
     AUDIT_MAX_ENTRIES,
+    CONF_LEARNING_ENABLED,
     CONF_SHOW_IN_SIDEBAR,
     CONF_STANDARD_USER_QUICK_CHANGE,
     CONF_STANDARD_USER_SCHEDULE,
@@ -475,6 +476,59 @@ async def test_admin_websocket_applies_and_clears_quick_change(hass, hass_ws_cli
         "temporary_override_applied",
         "temporary_override_cleared",
     }
+
+
+async def test_admin_websocket_accepts_learning_proposal_with_revision_check(
+    hass, hass_ws_client
+):
+    area, _, _, _, zone = create_registry_fixture(hass)
+    entry = await setup_loaded_entry(hass, [zone])
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_LEARNING_ENABLED: True}
+    )
+    await hass.async_block_till_done()
+    snapshot = configuration_snapshot(hass, entry.entry_id)
+    await async_save_schedule(
+        hass,
+        entry.entry_id,
+        ScheduleConfiguration(
+            rooms={area.id: monday_schedule(area.id, temperature=20)},
+            temperature_unit="°C",
+        ),
+        expected_revision=snapshot["revision"],
+    )
+    learning = hass.data[DOMAIN][entry.entry_id]["schedule_learning"]
+    proposal = None
+    for day in (3, 10, 17):
+        proposal = await learning.async_record_change(
+            room_id=area.id,
+            requested_temperature=21.5,
+            source="home_assistant",
+            when=datetime(2026, 8, day, 0, 10, tzinfo=timezone.utc),
+        )
+    assert proposal is not None
+
+    client = await hass_ws_client()
+    await client.send_json_auto_id(
+        {"type": "zeal/get_learning", "entry_id": entry.entry_id}
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    assert response["result"]["proposals"][0]["status"] == "new"
+
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/decide_learning_proposal",
+            "entry_id": entry.entry_id,
+            "proposal_id": proposal["proposal_id"],
+            "action": "accept",
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    assert response["result"]["proposals"][0]["status"] == "accepted"
+    saved = hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
+    assert saved.rooms[area.id].days["monday"][0].temperature == 21.5
 
 
 async def test_standard_user_gets_overview_and_only_enabled_controls(

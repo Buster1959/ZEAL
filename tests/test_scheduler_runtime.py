@@ -662,6 +662,7 @@ async def test_remove_entry_deletes_only_that_instances_private_stores(
     assert removed == [
         (1, f"zeal_{entry.entry_id}"),
         (1, f"zeal.scheduler.{entry.entry_id}"),
-        (1, f"zeal.audit.{entry.entry_id}"),
-    ]
+            (1, f"zeal.audit.{entry.entry_id}"),
+            (1, f"zeal.learning.{entry.entry_id}"),
+        ]
     assert all("another-entry" not in key for _version, key in removed)

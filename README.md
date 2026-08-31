@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.13.6`. It is feature
+> current candidate is on `main` at manifest version `0.14.0`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -408,24 +408,24 @@ that instead.
 | 4. Scheduling (day/time/setpoint grid), calendar/date-range away mode, multi-TRV propagation | Model, runtime, secure panel API, seven-day visual Schedule panel, Quick Change, downloads, Away mode and precedence complete |
 | 5. Polish — diagnostics, translations, entity icons and documentation | Diagnostics, brand icon, setup-flow translations and aligned V1 documentation done; privacy-reviewed desktop screenshots added, mobile captures pending |
 | 6. HACS distribution, including the full ZEAL rename (domain, files and repository) | Custom-repository metadata, one-click installation and validation workflows done; the PolyForm Shield release remains outside the default HACS store |
-| 7. ZEAL Learning — Schedule Adaptation | Next major version, planned: retain source-aware manual/Quick Change history, detect repeated changes in comparable time windows across multiple days, and ask the user whether to commit a proposed change to the weekly schedule. Suggestions are never auto-applied. |
+| 7. ZEAL Learning — Schedule Adaptation | Implemented behind an administrator-controlled opt-in: retain source-aware manual/Quick Change history, detect three comparable changes across distinct days in 21 days, and ask an authorised user whether to commit the exact proposal to the weekly schedule. Suggestions are never auto-applied. |
 | 8. ZEAL Learning — Room Thermal Response | Next major version, planned: learn each room's heat-up delay/rate and heat loss against observed outdoor temperature, then recommend optimum heating start from an hourly forecast. |
 | — ASHP heating + cooling (long-term goal, contingent on a physical cooling-radiator retrofit) | Schema reserved (hidden, unused), design not finalised — see project doc §10 |
 
 ### ZEAL Learning — Schedule Adaptation
 
-The planned learning layer will use a persistent, trackable audit of schedule,
-Quick Change, Home Assistant thermostat and physical-TRV setpoint changes. A
-candidate rule is: when a room receives at least a configurable number of
-similar manual changes (for example, three) within the same configurable time
-window across a configurable observation period, ZEAL may propose the repeated
-target as a schedule change.
+The learning layer uses a persistent, bounded audit of Quick Change, Home
+Assistant thermostat and physical-TRV setpoint changes. A candidate is created
+when a room receives three similar manual changes on distinct dates within 21
+days for the same weekday, exact schedule period and schedule revision.
+Temperature and timing adaptations remain separate.
 
-The proposal must show the evidence, affected room/day/time, existing setpoint,
-suggested setpoint and confidence/count. The user can accept, edit, dismiss or
-snooze it. Only explicit acceptance commits a new schedule revision; learning
-must never silently rewrite the saved week. Suggestions and their outcomes are
-themselves audited so ZEAL can avoid repeatedly offering a dismissed pattern.
+The Learning Notifications page shows the evidence, affected room/day/time,
+existing setpoint, suggested setpoint and confidence/count. An authorised user
+can accept, edit and accept, dismiss, snooze, open Schedule or revert an
+accepted proposal. Only explicit acceptance commits a new schedule revision;
+learning never silently rewrites the saved week. Administrators can separately
+enable Home Assistant persistent-notification alerts for new advice.
 
 ### ZEAL Learning — Room Thermal Response
 

@@ -15,6 +15,8 @@ from homeassistant.util import dt as dt_util
 
 from ..const import (
     CONF_SHOW_IN_SIDEBAR,
+    CONF_LEARNING_ENABLED,
+    CONF_LEARNING_PERSISTENT_NOTIFICATIONS,
     CONF_STANDARD_USER_QUICK_CHANGE,
     CONF_STANDARD_USER_SCHEDULE,
     CONF_ZONES,
@@ -58,6 +60,8 @@ def configuration_revision(
     show_in_sidebar: bool = True,
     standard_user_schedule: bool = False,
     standard_user_quick_change: bool = False,
+    learning_enabled: bool = False,
+    learning_persistent_notifications: bool = True,
 ) -> str:
     """Return a stable token for hierarchy, schedule and panel preference."""
     payload = json.dumps(
@@ -67,6 +71,8 @@ def configuration_revision(
             CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
             CONF_STANDARD_USER_SCHEDULE: standard_user_schedule,
             CONF_STANDARD_USER_QUICK_CHANGE: standard_user_quick_change,
+            CONF_LEARNING_ENABLED: learning_enabled,
+            CONF_LEARNING_PERSISTENT_NOTIFICATIONS: learning_persistent_notifications,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -93,6 +99,8 @@ def current_revision(hass: HomeAssistant, entry_id: str) -> str:
         entry.options.get(CONF_SHOW_IN_SIDEBAR, True),
         entry.options.get(CONF_STANDARD_USER_SCHEDULE, False),
         entry.options.get(CONF_STANDARD_USER_QUICK_CHANGE, False),
+        entry.options.get(CONF_LEARNING_ENABLED, False),
+        entry.options.get(CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True),
     )
 
 
@@ -109,6 +117,10 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
     standard_user_quick_change = entry.options.get(
         CONF_STANDARD_USER_QUICK_CHANGE, False
     )
+    learning_enabled = entry.options.get(CONF_LEARNING_ENABLED, False)
+    learning_persistent_notifications = entry.options.get(
+        CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True
+    )
     return {
         "entry_id": entry_id,
         "title": entry.title,
@@ -118,10 +130,14 @@ def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]
             show_in_sidebar,
             standard_user_schedule,
             standard_user_quick_change,
+            learning_enabled,
+            learning_persistent_notifications,
         ),
         CONF_SHOW_IN_SIDEBAR: show_in_sidebar,
         CONF_STANDARD_USER_SCHEDULE: standard_user_schedule,
         CONF_STANDARD_USER_QUICK_CHANGE: standard_user_quick_change,
+        CONF_LEARNING_ENABLED: learning_enabled,
+        CONF_LEARNING_PERSISTENT_NOTIFICATIONS: learning_persistent_notifications,
         "zones": zones,
         "schedule": schedule.to_dict(),
         "away_mode": data["schedule_runtime"].away_mode_state(),
@@ -488,6 +504,8 @@ async def async_save_hierarchy(
     show_in_sidebar: bool | None = None,
     standard_user_schedule: bool | None = None,
     standard_user_quick_change: bool | None = None,
+    learning_enabled: bool | None = None,
+    learning_persistent_notifications: bool | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
     """Validate/save hierarchy, reconcile schedules, then trigger safe reload."""
     entry = hass.config_entries.async_get_entry(entry_id)
@@ -501,6 +519,12 @@ async def async_save_hierarchy(
         raise ValueError("standard_user_schedule must be true or false")
     if standard_user_quick_change is not None and not isinstance(standard_user_quick_change, bool):
         raise ValueError("standard_user_quick_change must be true or false")
+    if learning_enabled is not None and not isinstance(learning_enabled, bool):
+        raise ValueError("learning_enabled must be true or false")
+    if learning_persistent_notifications is not None and not isinstance(
+        learning_persistent_notifications, bool
+    ):
+        raise ValueError("learning_persistent_notifications must be true or false")
     effective_show_in_sidebar = (
         entry.options.get(CONF_SHOW_IN_SIDEBAR, True)
         if show_in_sidebar is None
@@ -515,6 +539,16 @@ async def async_save_hierarchy(
         entry.options.get(CONF_STANDARD_USER_QUICK_CHANGE, False)
         if standard_user_quick_change is None
         else standard_user_quick_change
+    )
+    effective_learning_enabled = (
+        entry.options.get(CONF_LEARNING_ENABLED, False)
+        if learning_enabled is None
+        else learning_enabled
+    )
+    effective_learning_persistent_notifications = (
+        entry.options.get(CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True)
+        if learning_persistent_notifications is None
+        else learning_persistent_notifications
     )
     zones = validate_hierarchy(hass, raw_zones)
     data = _entry_data(hass, entry_id)
@@ -535,12 +569,22 @@ async def async_save_hierarchy(
             CONF_SHOW_IN_SIDEBAR: effective_show_in_sidebar,
             CONF_STANDARD_USER_SCHEDULE: effective_standard_user_schedule,
             CONF_STANDARD_USER_QUICK_CHANGE: effective_standard_user_quick_change,
+            CONF_LEARNING_ENABLED: effective_learning_enabled,
+            CONF_LEARNING_PERSISTENT_NOTIFICATIONS: effective_learning_persistent_notifications,
         },
     )
+    if not effective_learning_persistent_notifications:
+        from homeassistant.components import persistent_notification
+
+        persistent_notification.async_dismiss(
+            hass, f"zeal_learning_{entry_id}"
+        )
     return zones, configuration_revision(
         zones,
         schedule,
         effective_show_in_sidebar,
         effective_standard_user_schedule,
         effective_standard_user_quick_change,
+        effective_learning_enabled,
+        effective_learning_persistent_notifications,
     )

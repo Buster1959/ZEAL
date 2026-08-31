@@ -13,6 +13,10 @@ from .const import (
     AUDIT_STORAGE_KEY_FMT,
     AUDIT_STORAGE_VERSION,
     CONF_ZONES,
+    CONF_LEARNING_ENABLED,
+    CONF_LEARNING_PERSISTENT_NOTIFICATIONS,
+    LEARNING_STORAGE_KEY_FMT,
+    LEARNING_STORAGE_VERSION,
     DOMAIN,
     ROOM_ID,
     ROOM_NAME,
@@ -27,6 +31,12 @@ from .const import (
 from .coordinator import ZealCoordinator
 from .panel import async_remove_panel, async_sync_panel
 from .scheduler.audit import AuditLog
+from .scheduler.configuration import current_revision
+from .scheduler.learning import (
+    LearningStore,
+    ScheduleLearning,
+    sync_persistent_notification,
+)
 from .scheduler.rooms import reconcile_room_schedules
 from .scheduler.runtime import ScheduleRuntime
 from .scheduler.storage import ScheduleStorage
@@ -135,6 +145,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     audit_log = AuditLog(hass, entry.entry_id)
     await audit_log.async_load()
     schedule_runtime = ScheduleRuntime(hass, coordinator, audit_log)
+    learning_store = LearningStore(hass, entry.entry_id)
+    await learning_store.async_load()
+    schedule_learning = ScheduleLearning(
+        learning_store,
+        lambda: schedule_runtime.configuration,
+        lambda: current_revision(hass, entry.entry_id),
+        lambda: entry.options.get(CONF_LEARNING_ENABLED, False),
+        lambda state: sync_persistent_notification(hass, entry.entry_id, state)
+        if entry.options.get(CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True)
+        else None,
+    )
+    schedule_runtime.learning = schedule_learning
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -143,6 +165,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "schedule_storage": schedule_storage,
         "schedule_runtime": schedule_runtime,
         "audit_log": audit_log,
+        "learning_store": learning_store,
+        "schedule_learning": schedule_learning,
     }
     async_register_commands(hass)
 
@@ -203,6 +227,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         (STORAGE_VERSION, STORAGE_KEY_FMT),
         (SCHEDULE_STORAGE_VERSION, SCHEDULE_STORAGE_KEY_FMT),
         (AUDIT_STORAGE_VERSION, AUDIT_STORAGE_KEY_FMT),
+        (LEARNING_STORAGE_VERSION, LEARNING_STORAGE_KEY_FMT),
     ):
         await Store(
             hass,

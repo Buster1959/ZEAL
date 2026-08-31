@@ -8,7 +8,7 @@ DOMAIN = "zeal"
 PANEL_COMPONENT = "zeal-panel"
 PANEL_URL_PATH = DOMAIN
 PANEL_STATIC_URL = f"/{DOMAIN}_static"
-PANEL_ASSET_VERSION = "14"
+PANEL_ASSET_VERSION = "15"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
@@ -17,12 +17,22 @@ SCHEDULE_STORAGE_KEY_FMT = f"{DOMAIN}.scheduler.{{entry_id}}"
 AUDIT_STORAGE_VERSION = 1
 AUDIT_STORAGE_KEY_FMT = f"{DOMAIN}.audit.{{entry_id}}"
 AUDIT_MAX_ENTRIES = 500
+LEARNING_STORAGE_VERSION = 1
+LEARNING_STORAGE_KEY_FMT = f"{DOMAIN}.learning.{{entry_id}}"
+LEARNING_MAX_EVENTS = 5000
+LEARNING_MAX_PROPOSALS = 500
+LEARNING_OBSERVATION_DAYS = 21
+LEARNING_EVIDENCE_THRESHOLD = 3
+LEARNING_TEMPERATURE_TOLERANCE = 0.5
+LEARNING_TIMING_WINDOW_MINUTES = 30
 
 # Keys used inside config_entry.options
 CONF_ZONES = "zones"
 CONF_SHOW_IN_SIDEBAR = "show_in_sidebar"
 CONF_STANDARD_USER_SCHEDULE = "standard_user_schedule"
 CONF_STANDARD_USER_QUICK_CHANGE = "standard_user_quick_change"
+CONF_LEARNING_ENABLED = "learning_enabled"
+CONF_LEARNING_PERSISTENT_NOTIFICATIONS = "learning_persistent_notifications"
 
 # Zone dict keys. A Zone is a user-named group of Rooms (e.g. "Ground
 # Floor") with its own heating actuator switch(es) - it is NOT tied 1:1 to

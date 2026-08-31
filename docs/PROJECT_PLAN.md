@@ -195,7 +195,9 @@ distributed through the documented custom-HACS route.
 
 ## ZEAL Learning — Schedule Adaptation
 
-This work begins only after V1 is released and its audit schema is stable.
+The first complete vertical pipeline is implemented behind an administrator
+opt-in while V1 live regression work continues. It uses a separate versioned
+store, so it does not change the established scheduler audit schema.
 
 The user experience analyses habits, proposes an optimisation and applies it
 only after acceptance. ZEAL includes an inspectable evidence trail, exact
@@ -241,8 +243,10 @@ schedule changes only after explicit user confirmation. Accepted suggestions
 must remain traceable and safely revertible unless a later schedule revision
 creates a visible conflict.
 
-Status: planned for the next major version; no V1 behaviour is changed by this
-roadmap item.
+Status: implemented for development validation in `0.14.0`. Production learning
+is disabled by default. The remaining gates are full automated regression,
+Home Assistant user testing and live evidence/notification review before a
+learning release is declared stable.
 
 ## ZEAL Learning — Room Thermal Response
 

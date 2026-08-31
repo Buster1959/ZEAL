@@ -111,7 +111,7 @@ async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=14"
+        "/zeal-panel.js?v=15"
     )
 
     static_routes = {
@@ -317,3 +317,18 @@ def test_frontend_limits_setup_navigation_to_administrators():
     assert "Allow standard users to use Quick Change" in source
     assert "this._configuration?.standard_user_schedule === true" in source
     assert "this._configuration?.standard_user_quick_change === true" in source
+
+
+def test_frontend_contains_schedule_learning_workflow():
+    source = PANEL_FILE.read_text()
+    assert "Enable Schedule Adaptation" in source
+    assert "Home Assistant Persistent Notifications" in source
+    assert 'type: "zeal/get_learning"' in source
+    assert 'type: "zeal/decide_learning_proposal"' in source
+    assert "Learning Notifications" in source
+    assert "three qualifying dates" in source
+    assert "View supporting changes" in source
+    assert "Edit and accept" in source
+    assert "Snooze 7 days" in source
+    assert "Revert schedule change" in source
+    assert "Open Schedule" in source

@@ -45,6 +45,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, ROOM_ID, ROOM_NAME, ROOM_TRVS, ZONE_ID, ZONE_NAME, ZONE_ROOMS
 from .coordinator import ZealCoordinator
@@ -178,6 +179,16 @@ class ZealRoomThermostat(CoordinatorEntity[ZealCoordinator], RestoreEntity, Clim
             self._room_id, float(temp), source="manual_thermostat_change"
         )
         if applied:
+            learning = self.hass.data.get(DOMAIN, {}).get(
+                self._entry.entry_id, {}
+            ).get("schedule_learning")
+            if learning is not None:
+                await learning.async_record_change(
+                    room_id=self._room_id,
+                    requested_temperature=float(temp),
+                    source="home_assistant",
+                    when=dt_util.now(),
+                )
             await self.coordinator.async_request_refresh()
 
     def apply_target_setpoint(self, temp: float, *, source: str) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import event as event_helper
@@ -17,6 +18,9 @@ from .audit import AuditLog
 from .engine import active_period_at, next_transition_after
 from .models import ScheduleConfiguration
 from .overrides import TemporaryOverride, create_temporary_overrides
+
+if TYPE_CHECKING:
+    from .learning import ScheduleLearning
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +37,7 @@ class ScheduleRuntime:
         self._hass = hass
         self._coordinator = coordinator
         self._audit_log = audit_log
+        self.learning: ScheduleLearning | None = None
         self._configuration = ScheduleConfiguration.empty()
         self._cancel_next: Callable[[], None] | None = None
         self._unsub_coordinator: Callable[[], None] | None = None
@@ -356,6 +361,14 @@ class ScheduleRuntime:
         await self._async_apply_active_periods(
             now, cause="temporary_override_applied"
         )
+        if self.learning is not None:
+            for override in overrides:
+                await self.learning.async_record_change(
+                    room_id=override.room_id,
+                    requested_temperature=override.temperature,
+                    source="quick_change",
+                    when=now,
+                )
         self._schedule_next_transition(now)
         return overrides
 

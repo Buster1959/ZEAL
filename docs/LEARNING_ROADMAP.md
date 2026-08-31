@@ -1,10 +1,19 @@
 # ZEAL Learning Roadmap
 
-ZEAL Learning is planned for the next major version after V1. It is divided
-into two explainable, independently testable workstreams. Neither workstream may
-silently alter the saved weekly schedule.
+ZEAL Learning is divided into two explainable, independently testable
+workstreams. Schedule Adaptation has an initial complete implementation behind
+an administrator-controlled opt-in; Room Thermal Response remains planned.
+Neither workstream may silently alter the saved weekly schedule.
 
 ## 1. ZEAL Learning — Schedule Adaptation
+
+Implementation status (`0.14.0`): capture, deterministic classification,
+21-day/distinct-date pattern detection, persistent proposals, Learning
+Notifications, optional Home Assistant persistent notifications, authorised
+accept/edit/dismiss/snooze, revision-checked commit and guarded revert are
+implemented. The initial threshold is three qualifying dates and the timing
+window is 30 minutes. These values are constants pending sufficient validation
+to justify exposing advanced tuning controls.
 
 Schedule Adaptation learns from repeated user intent. It records source-aware
 setpoint events from Home Assistant/canonical thermostats, physical TRVs and
