@@ -27,6 +27,7 @@ class ClassifiedChange:
     """One unambiguous manual change tied to an immutable schedule period."""
 
     adaptation_type: str
+    adaptation_direction: str
     weekday: str
     period_id: str
     original_time: str
@@ -40,6 +41,7 @@ class ClassifiedChange:
         return "|".join(
             (
                 self.adaptation_type,
+                self.adaptation_direction,
                 self.period_id,
                 self.original_time,
                 f"{self.original_temperature:.1f}",
@@ -55,7 +57,7 @@ def classify_manual_change(
     requested_temperature: float,
     when: datetime,
 ) -> ClassifiedChange | None:
-    """Classify a manual target as active-period temperature or next timing."""
+    """Classify a manual target as temperature or earlier/later timing evidence."""
     room = configuration.rooms.get(room_id)
     if room is None:
         return None
@@ -77,6 +79,7 @@ def classify_manual_change(
         ):
             return ClassifiedChange(
                 adaptation_type="timing",
+                adaptation_direction="earlier",
                 weekday=following.day,
                 period_id=following.period.id,
                 original_time=following.period.time,
@@ -84,10 +87,35 @@ def classify_manual_change(
                 proposed_time=when.strftime("%H:%M"),
                 proposed_temperature=following.period.temperature,
             )
+    since_active = when - active.starts_at
+    if timedelta(0) < since_active <= timedelta(
+        minutes=LEARNING_TIMING_WINDOW_MINUTES
+    ):
+        previous = active_period_at(
+            room, active.starts_at - timedelta(microseconds=1)
+        )
+        if (
+            previous is not None
+            and abs(requested - previous.period.temperature)
+            <= LEARNING_TEMPERATURE_TOLERANCE
+            and abs(requested - active.period.temperature)
+            >= LEARNING_TEMPERATURE_TOLERANCE
+        ):
+            return ClassifiedChange(
+                adaptation_type="timing",
+                adaptation_direction="later",
+                weekday=active.day,
+                period_id=active.period.id,
+                original_time=active.period.time,
+                original_temperature=active.period.temperature,
+                proposed_time=when.strftime("%H:%M"),
+                proposed_temperature=active.period.temperature,
+            )
     if abs(requested - active.period.temperature) < LEARNING_TEMPERATURE_TOLERANCE:
         return None
     return ClassifiedChange(
         adaptation_type="temperature",
+        adaptation_direction="setpoint",
         weekday=active.day,
         period_id=active.period.id,
         original_time=active.period.time,
@@ -237,6 +265,7 @@ class ScheduleLearning:
             "requested_temperature": float(requested_temperature),
             "schedule_revision": self._revision_provider(),
             "adaptation_type": classified.adaptation_type,
+            "adaptation_direction": classified.adaptation_direction,
             "weekday": classified.weekday,
             "period_id": classified.period_id,
             "original_time": classified.original_time,
@@ -318,6 +347,7 @@ class ScheduleLearning:
             "weekday": latest["weekday"],
             "period_id": latest["period_id"],
             "adaptation_type": latest["adaptation_type"],
+            "adaptation_direction": latest["adaptation_direction"],
             "schedule_revision": latest["schedule_revision"],
             "pattern_key": latest["pattern_key"],
             "original_time": latest["original_time"],

@@ -58,9 +58,21 @@ def test_change_before_next_period_target_is_timing_evidence():
     change = classify_manual_change(configuration(), "lounge", 20, at(3, 7, 35))
     assert change is not None
     assert change.adaptation_type == "timing"
+    assert change.adaptation_direction == "earlier"
     assert change.period_id == "day"
     assert change.original_time == "08:00"
     assert change.proposed_time == "07:35"
+
+
+def test_previous_target_just_after_transition_is_later_timing_evidence():
+    change = classify_manual_change(configuration(), "lounge", 18, at(3, 8, 20))
+    assert change is not None
+    assert change.adaptation_type == "timing"
+    assert change.adaptation_direction == "later"
+    assert change.period_id == "day"
+    assert change.original_time == "08:00"
+    assert change.proposed_time == "08:20"
+    assert change.proposed_temperature == 20
 
 
 def test_different_target_remains_with_active_adjacent_period():
@@ -75,21 +87,21 @@ async def test_three_matching_distinct_days_create_temperature_proposal():
     store = LearningStore(None, "entry", store=MemoryStore())
     engine = learning(store)
     assert await engine.async_record_change(
-        room_id="lounge", requested_temperature=19.5,
-        source="home_assistant", when=at(3, 7, 10)
+        room_id="lounge", requested_temperature=19,
+        source="home_assistant", when=at(3, 7, 35)
     ) is None
     assert await engine.async_record_change(
-        room_id="lounge", requested_temperature=19.5,
-        source="physical_trv", when=at(4, 7, 12)
+        room_id="lounge", requested_temperature=19,
+        source="physical_trv", when=at(4, 7, 36)
     ) is None
     proposal = await engine.async_record_change(
-        room_id="lounge", requested_temperature=19.5,
-        source="quick_change", when=at(5, 7, 14)
+        room_id="lounge", requested_temperature=19,
+        source="quick_change", when=at(5, 7, 37)
     )
     assert proposal is not None
     assert proposal["weekday"] == "wednesday"
     assert proposal["period_id"] == "morning"
-    assert proposal["proposed_temperature"] == 19.5
+    assert proposal["proposed_temperature"] == 19.0
     assert proposal["evidence_count"] == 3
 
 
@@ -177,3 +189,22 @@ async def test_similar_timing_changes_share_pattern_and_use_median_time():
     assert proposal["adaptation_type"] == "timing"
     assert proposal["period_id"] == "day"
     assert proposal["proposed_time"] == "07:35"
+
+
+async def test_earlier_and_later_timing_evidence_never_mix():
+    store = LearningStore(None, "entry", store=MemoryStore())
+    engine = learning(store)
+    for day in (3, 4):
+        assert await engine.async_record_change(
+            room_id="lounge",
+            requested_temperature=20,
+            source="home_assistant",
+            when=at(day, 7, 40),
+        ) is None
+    assert await engine.async_record_change(
+        room_id="lounge",
+        requested_temperature=18,
+        source="home_assistant",
+        when=at(5, 8, 20),
+    ) is None
+    assert store.proposals == []

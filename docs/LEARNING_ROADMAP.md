@@ -7,7 +7,7 @@ Neither workstream may silently alter the saved weekly schedule.
 
 ## 1. ZEAL Learning — Schedule Adaptation
 
-Implementation status (`0.14.1`): capture, deterministic classification,
+Implementation status (`0.14.2`): capture, deterministic classification,
 21-day/distinct-date pattern detection, persistent proposals, Learning
 Notifications, optional Home Assistant persistent notifications, authorised
 accept/edit/dismiss/snooze, revision-checked commit and guarded revert are
@@ -98,20 +98,26 @@ For every external setpoint event, ZEAL applies these steps in order:
    saved revision.
 4. Compare the requested target with the active and following scheduled
    setpoints.
-5. Classify the event as **timing evidence for the following period** only when
-   it occurs before that transition, falls inside the configured timing window
-   and approximately requests the following period's target.
-6. Otherwise classify it as **temperature evidence for the active period** when
+5. Classify the event as **earlier timing evidence for the following period**
+   when it occurs before that transition, falls inside the configured timing
+   window and approximately requests the following period's target.
+6. Classify the event as **later timing evidence for the active period** when it
+   occurs shortly after that period began and approximately requests the
+   immediately preceding period's target. The proposed time is the event time;
+   the proposed temperature remains the active period's scheduled target.
+7. Otherwise classify it as **temperature evidence for the active period** when
    it materially differs from the active scheduled target.
-7. Reject the event as ambiguous when ordering around a transition cannot be
+8. Reject the event as ambiguous when ordering around a transition cannot be
    established, when it matches both interpretations equally, or when no exact
    period/revision can be recovered.
 
 This prevents adjacent periods from being combined. Given `07:00 · 18°C` and
 `08:00 · 20°C`, a change at 07:30 to approximately 20°C may support moving the
 08:00 transition earlier; a different target at 07:30 belongs to the 07:00
-period. A change after 08:00 belongs to the 08:00 period. Repeated adjustments
-in both intervals form two independent evidence patterns. If an event occurs on
+period. A change at 08:20 back to approximately 18°C may support moving the
+08:00 transition later to 08:20; another target after 08:00 is temperature
+evidence for the 08:00 period. Repeated adjustments in both intervals form
+independent evidence patterns. If an event occurs on
 the boundary and ZEAL cannot prove whether the scheduled transition or manual
 request happened first, that event contributes to neither pattern.
 
@@ -164,11 +170,13 @@ flowchart TD
     E -- No --> X2[Exclude as ambiguous<br/>Do not guess]
     E -- Yes --> F{Timing or setpoint change?}
 
-    F -- Requests next period target<br/>before transition --> G[Timing evidence<br/>for following period]
+    F -- Requests next period target<br/>before transition --> G[Earlier timing evidence<br/>for following period]
+    F -- Retains previous period target<br/>after transition --> G2[Later timing evidence<br/>for active period]
     F -- Changes active period target --> H[Setpoint evidence<br/>for active period]
     F -- Neither or matches both --> X3[Exclude as ambiguous<br/>or immaterial]
 
     G --> I[Group by room, comparable period ID/time/setpoint,<br/>revision, type and similar change]
+    G2 --> I
     H --> I
     I --> J{At least two earlier qualifying<br/>dates in previous 21 days?}
 
