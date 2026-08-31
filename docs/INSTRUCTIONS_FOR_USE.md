@@ -52,10 +52,12 @@ temperature sensors in each Area. Mark unused rooms inactive and save.
 
 Setup and the **Modify setup** action are shown only to Home Assistant
 administrators. Setup's **Standard-user access** card lets an administrator
-separately allow standard users to use Schedule and Quick Change; both are off
-until deliberately enabled. Overview remains available to every signed-in user.
-The Overview updates demand, actuator state and any active
-re-enable countdown automatically; it does not need a manual refresh control.
+separately allow standard users to use Schedule and Overrides; both are off
+until deliberately enabled. Standard users who are allowed into Overrides can
+use Quick Change, while Away Mode configuration remains administrator-only.
+Overview remains available to every signed-in user. The Overview updates demand,
+actuator state and any active re-enable countdown automatically; it does not
+need a manual refresh control.
 
 ![ZEAL Setup page showing a Zone or Floor, its heating actuator, canonical ZEAL scheduling targets and physical room equipment](images/zeal-zone-and-room-setup-desktop.png)
 
@@ -70,11 +72,11 @@ zone can have demand while its actuator is still off during the re-enable delay
 or because Manual Override or a safety condition is holding it. While demand is
 waiting for the re-enable delay, the card shows the live seconds remaining. It
 also identifies Zone Manual Override and the all-TRVs-closed safety hold by name,
-so a normal delay is not mistaken for a fault. Each room also
-separates its last scheduled setpoint from the currently
-effective control source. Manual Home Assistant/TRV adjustments are shown as
-lasting until the next scheduled change; Quick Change shows its target and
-selected two-hour, four-hour or next-schedule duration.
+so a normal delay is not mistaken for a fault. Each room also separates its last
+scheduled setpoint from the currently effective control source. Manual Home
+Assistant/TRV adjustments are shown as lasting until the next scheduled change;
+Quick Change shows its target and selected two-hour, four-hour or next-schedule
+duration.
 
 Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and
 select **Save setup** if you do not want a permanent sidebar link. ZEAL keeps
@@ -103,28 +105,24 @@ rooms without changing their equipment or identity:
 
 ## Make a temporary Quick Change
 
-Open **Quick Change**, select one room, a Zone/Floor, several rooms or the whole
-house, then choose −1°C, +1°C or an exact target. Select two hours, four hours
-or until the next schedule transition. Cancel a room's hold to return it to the
-current weekly target. The saved schedule is never edited.
+Open **Overrides → Quick Change**, select one room, a Zone/Floor, several rooms
+or the whole house, then choose −1°C, +1°C or an exact target. Select two hours,
+four hours or until the next schedule transition. Cancel a room's hold to return
+it to the current weekly target. The saved schedule is never edited.
 
-![ZEAL Quick Change page with room, Zone or Floor and whole-house selection](images/zeal-quick-change-desktop.png)
+![ZEAL Quick Change controls with room, Zone or Floor and whole-house selection](images/zeal-quick-change-desktop.png)
 
 ## Use Away mode
 
-Open **Setup → Away mode** and select Off, a dedicated Home Assistant Calendar,
-or one exact start/end period. Manual date/time choices use five-minute
-intervals. Choose the global Away target and save. Away applies to every active
-room in all zones; no separate zone selection is needed. If you return early,
-select **End Away now**; normal control resumes immediately.
+Administrators can open **Overrides → Away mode** and select Off, a dedicated
+Home Assistant Calendar, or one exact start/end period. Manual date/time choices
+use five-minute intervals. Choose the global Away target and save. Away applies
+to every active room in all zones; no separate zone selection is needed. If you
+return early, select **End Away now**; normal control resumes immediately.
 
 While Away is active, new Quick Changes are blocked. Existing holds pause and
-resume afterward only if they have not expired.
-
-The lower part of Setup keeps Away mode, safe downloads, the sidebar preference
-and selected-instance management together:
-
-![ZEAL Setup page showing Away mode, downloads, sidebar preference and selected-instance controls](images/zeal-away-downloads-and-instance-controls-desktop.png)
+resume afterward only if they have not expired. The Away banner's **Away
+settings** button also opens Overrides rather than Setup.
 
 ## Download configuration and audit trail
 
@@ -158,8 +156,8 @@ editing:
 
 - use exact time and target fields when dragging a graph point is awkward;
 - scroll within the page rather than using browser zoom;
-- save before leaving Schedule or Setup;
-- use Quick Change for routine temporary changes rather than editing a week;
+- save before leaving Schedule, Setup or edited Away settings in Overrides;
+- use Quick Change in Overrides for routine temporary changes rather than editing a week;
 - verify the confirmation or updated status after every save.
 
 ## Troubleshooting
