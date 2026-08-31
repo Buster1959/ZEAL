@@ -134,6 +134,60 @@ affected room and period, where the existing copy-to-days workflow and normal
 schedule validation apply. Any manual Schedule edit creates its own revision and
 causes the outstanding proposal to be revalidated or marked stale.
 
+### Schedule Adaptation decision flow
+
+“Two or more in the previous 21 days” means two earlier qualifying calendar
+dates plus the newly detected change, producing the default total of three.
+Evidence must match the same room, weekday, exact period and adaptation type.
+
+```mermaid
+flowchart TD
+    A([Manual thermostat change detected])
+
+    A --> B[Record event: time, weekday, requested and scheduled setpoints,<br/>initiator such as TRV, Home Assistant or Quick Change]
+    B --> C{Genuine user intent?}
+
+    C -- No: ZEAL write, echo<br/>or rejected change --> X1[Exclude from Learning<br/>Record reason]
+    C -- Yes --> D[Resolve room, schedule revision<br/>and exact active period]
+    D --> E{Period identified<br/>unambiguously?}
+
+    E -- No --> X2[Exclude as ambiguous<br/>Do not guess]
+    E -- Yes --> F{Timing or setpoint change?}
+
+    F -- Requests next period target<br/>before transition --> G[Timing evidence<br/>for following period]
+    F -- Changes active period target --> H[Setpoint evidence<br/>for active period]
+    F -- Neither or matches both --> X3[Exclude as ambiguous<br/>or immaterial]
+
+    G --> I[Group by room, weekday, period ID,<br/>revision, type and similar change]
+    H --> I
+    I --> J{At least two earlier qualifying<br/>dates in previous 21 days?}
+
+    J -- No --> K[Store evidence<br/>Wait for another occurrence]
+    J -- Yes: current event is third date --> L[Create Schedule Adaptation proposal]
+    L --> M[Show evidence, current schedule,<br/>proposed schedule and confidence]
+    M --> N[Add to ZEAL Learning Notifications]
+    N --> O[Optionally update one aggregated<br/>Home Assistant Persistent Notification]
+    O --> P{Authorised user decision}
+
+    P -- Snooze --> Q[Set return date<br/>Audit decision]
+    P -- Dismiss --> R[Suppress until materially new evidence<br/>Audit decision]
+    P -- Open Schedule --> S[Open affected room and period]
+    P -- Edit and accept --> T[Show edited before-and-after diff]
+    P -- Accept --> U[Show final before-and-after diff]
+
+    S --> AE[To apply this change to other days,<br/>use the Schedule page]
+    T --> V{Explicit confirmation<br/>and Schedule permission?}
+    U --> V
+
+    V -- No --> W[Do not change schedule]
+    V -- Yes --> Y{Original schedule revision<br/>still matches?}
+    Y -- No --> Z[Mark proposal conflicted<br/>Require fresh review]
+    Y -- Yes --> AA[Commit through validated schedule API]
+    AA --> AB[Create new schedule revision]
+    AB --> AC[Audit evidence, proposal,<br/>approving user and exact change]
+    AC --> AD([Adaptation complete<br/>Safe Revert available])
+```
+
 ### Proposal experience
 
 The Learning view should behave as an advice inbox rather than silently changing
