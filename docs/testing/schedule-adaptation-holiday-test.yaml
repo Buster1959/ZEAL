@@ -1,8 +1,10 @@
 # ZEAL Schedule Adaptation holiday test
 # Test window: 1–6 September 2026, Europe/London local time.
 # Import this as one Home Assistant automation and enable ZEAL Learning first.
-# It uses ZEAL's canonical room thermostats, never edits the saved schedule, and
-# restores the scheduled target five minutes after every test change.
+# It changes one physical TRV in each room so the full external-device path is
+# exercised: TRV -> ZEAL detection -> canonical room target -> sibling TRV sync
+# -> Learning evidence. It never edits the saved schedule and restores the
+# scheduled target five minutes after every test change.
 # Delete or disable the automation after 6 September 2026.
 
 alias: "ZEAL test - Schedule Adaptation - 1 to 6 September 2026"
@@ -67,7 +69,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_2_first_floor_bathroom_thermostat_zeal
+              entity_id: climate.bathroom_trv
             data:
               temperature: 18
 
@@ -81,7 +83,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_2_first_floor_bathroom_thermostat_zeal
+              entity_id: climate.bathroom_trv
             data:
               temperature: 16
 
@@ -95,7 +97,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_2_first_floor_master_bedroom_thermostat_zeal
+              entity_id: climate.master_bedroom_trv
             data:
               temperature: 16
 
@@ -109,7 +111,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_2_first_floor_master_bedroom_thermostat_zeal
+              entity_id: climate.master_bedroom_trv
             data:
               temperature: 18
 
@@ -123,7 +125,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_1_ground_lounge_thermostat_zeal
+              entity_id: climate.lounge_wall_trv
             data:
               temperature: 21.5
 
@@ -137,7 +139,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_1_ground_lounge_thermostat_zeal
+              entity_id: climate.lounge_wall_trv
             data:
               temperature: 20
 
@@ -151,7 +153,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_1_ground_dining_room_thermostat_zeal
+              entity_id: climate.dining_wall_trv
             data:
               temperature: 16.5
 
@@ -165,7 +167,7 @@ actions:
         sequence:
           - action: climate.set_temperature
             target:
-              entity_id: climate.zone_1_ground_dining_room_thermostat_zeal
+              entity_id: climate.dining_wall_trv
             data:
               temperature: 18
 

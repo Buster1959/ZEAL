@@ -4,15 +4,17 @@
 
 [`schedule-adaptation-holiday-test.yaml`](schedule-adaptation-holiday-test.yaml)
 is generated specifically from the ZEAL configuration exported on 31 August
-2026. It targets the canonical ZEAL room thermostats and the schedule values in
+2026. It targets one physical TRV in each test room and the schedule values in
 that export. Do not reuse it after changing those rooms, entity IDs or periods.
 
 Before enabling it:
 
 1. Update ZEAL to `0.14.3`, restart Home Assistant and hard-refresh the browser.
 2. Enable **Setup → ZEAL Learning → Enable Schedule Adaptation**.
-3. Confirm Home Assistant's time zone is Europe/London and all four canonical
-   thermostat entities in the automation exist.
+3. Confirm Home Assistant's time zone is Europe/London and these physical
+   entities exist and are available: `climate.bathroom_trv`,
+   `climate.master_bedroom_trv`, `climate.lounge_wall_trv` and
+   `climate.dining_wall_trv`.
 4. Confirm the physical heat source is intentionally disabled. ZEAL may still
    show demand and operate the configured dummy actuator switches during the
    five-minute test changes.
@@ -20,8 +22,11 @@ Before enabling it:
    action changes the configuration revision and deliberately separates the
    evidence.
 
-The automation makes each test request for five minutes and then restores the
-scheduled target. A restoration that matches the active schedule is ignored by
+The automation changes a physical TRV for five minutes and then restores the
+scheduled target through that same TRV. ZEAL should detect each external change,
+update its canonical room thermostat and synchronise any sibling TRV in the
+room. The Learning evidence source should therefore read `physical trv`, not
+`home assistant`. A restoration that matches the active schedule is ignored by
 Learning and does not count as opposite evidence.
 
 Expected proposals:
