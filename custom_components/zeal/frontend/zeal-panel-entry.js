@@ -12,6 +12,7 @@ const baseRenderAwayBanner = prototype._renderAwayBanner;
 const baseRenderQuickChange = prototype._renderQuickChange;
 const baseRenderSetup = prototype._renderSetup;
 const baseRenderStandardUserAccess = prototype._renderStandardUserAccess;
+const baseWarning = prototype._warning;
 const baseBindEvents = prototype._bindEvents;
 
 prototype._header = function () {
@@ -29,6 +30,10 @@ prototype._renderAwayBanner = function () {
 prototype._renderSetup = function () {
   const awaySettings = this._renderAwaySettings();
   return baseRenderSetup.call(this).replace(awaySettings, "");
+};
+
+prototype._warning = function () {
+  return this._view === "setup" ? baseWarning.call(this) : "";
 };
 
 prototype._renderQuickChange = function () {
