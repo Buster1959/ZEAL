@@ -111,7 +111,7 @@ async def test_empty_entry_registers_authenticated_panel_and_asset(hass):
     assert panel["component_name"] == "custom"
     assert panel["config"]["_panel_custom"]["name"] == "zeal-panel"
     assert panel["config"]["_panel_custom"]["module_url"].endswith(
-        "/zeal-panel.js?v=16"
+        "/zeal-panel.js?v=17"
     )
 
     static_routes = {
@@ -288,12 +288,13 @@ def test_frontend_contains_away_mode_and_precedence_contracts():
     assert "End Away now" in source
 
 
-def test_frontend_places_safety_warning_once_at_the_page_bottom():
-    """The shared warning follows the selected page instead of interrupting it."""
+def test_frontend_places_safety_warning_only_on_setup_page():
+    """The precaution belongs to administrator Setup, not normal operation."""
     source = PANEL_FILE.read_text()
-    assert source.count("${this._warning()}") == 1
+    assert source.count("this._warning()") == 1
     content = source[source.index("  _content() {") : source.index("  _header() {")]
-    assert content.index("${this._warning()}") > content.index("this._renderOverview()")
+    assert '${this._view === "setup" ? this._warning() : ""}' in content
+    assert content.index("this._warning()") > content.index("this._renderOverview()")
 
 
 def test_frontend_refreshes_schedule_navigation_after_setup_reload():

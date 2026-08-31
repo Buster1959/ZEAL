@@ -270,7 +270,7 @@ class ZealPanel extends HTMLElement {
                 ? this._renderLearning()
               : this._renderOverview()
         }
-        ${this._warning()}
+        ${this._view === "setup" ? this._warning() : ""}
       </div>`;
   }
 

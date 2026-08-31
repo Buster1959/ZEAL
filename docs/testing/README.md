@@ -9,7 +9,7 @@ that export. Do not reuse it after changing those rooms, entity IDs or periods.
 
 Before enabling it:
 
-1. Update ZEAL to `0.14.2`, restart Home Assistant and hard-refresh the browser.
+1. Update ZEAL to `0.14.3`, restart Home Assistant and hard-refresh the browser.
 2. Enable **Setup → ZEAL Learning → Enable Schedule Adaptation**.
 3. Confirm Home Assistant's time zone is Europe/London and all four canonical
    thermostat entities in the automation exist.
