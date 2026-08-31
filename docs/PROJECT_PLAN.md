@@ -197,11 +197,10 @@ distributed through the documented custom-HACS route.
 
 This work begins only after V1 is released and its audit schema is stable.
 
-The user experience follows the useful Hive+ Schedule Assist pattern—analyse
-habits, propose an optimisation and apply it only after acceptance—while ZEAL
-adds an inspectable evidence trail, exact schedule diff, optimistic revision
-check and auditable revert. The detailed specification is in
-`docs/LEARNING_ROADMAP.md`.
+The user experience analyses habits, proposes an optimisation and applies it
+only after acceptance. ZEAL includes an inspectable evidence trail, exact
+schedule diff, optimistic revision check and auditable revert. The detailed
+specification is in `docs/LEARNING_ROADMAP.md`.
 
 - Extend the audit from canonical application outcomes to source-aware user
   intent: weekly schedule, Home Assistant/canonical thermostat, physical TRV,

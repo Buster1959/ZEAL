@@ -10,19 +10,15 @@ Schedule Adaptation learns from repeated user intent. It records source-aware
 setpoint events from Home Assistant/canonical thermostats, physical TRVs and
 Quick Change, always retaining the scheduled baseline that was overridden.
 
-### Product pattern and ZEAL boundary
+### Product boundary
 
-The initial product pattern is informed by Hive+ Schedule Assist: analyse
-heating habits, thermostat/radiator use and outside temperature; present a
-personalised timing or temperature suggestion; require the user to accept it;
-and retain history so the result can be reviewed or reverted. Hive documents
-that approach in [Understanding Schedule Assist](https://support.hivehome.com/portal/app/portlets/results/viewsolution.jsp?solutionid=251009133459473).
-
-ZEAL adopts the useful interaction pattern, not an opaque copy of Hive's
-algorithm. Every ZEAL suggestion must show its supporting evidence and the
-exact schedule diff before approval. ZEAL never changes a weekly schedule merely
+Schedule Adaptation analyses heating habits, thermostat/TRV use and available
+context, presents a personalised timing or temperature suggestion, requires the
+user to accept it, and retains history so the result can be reviewed or
+reverted. Every suggestion must show its supporting evidence and the exact
+schedule diff before approval. ZEAL never changes a weekly schedule merely
 because it detected a pattern, and learning must continue to work locally when
-an external vendor service is unavailable.
+an external service is unavailable.
 
 ### Evidence captured
 
