@@ -10,6 +10,54 @@ Schedule Adaptation learns from repeated user intent. It records source-aware
 setpoint events from Home Assistant/canonical thermostats, physical TRVs and
 Quick Change, always retaining the scheduled baseline that was overridden.
 
+### Product pattern and ZEAL boundary
+
+The initial product pattern is informed by Hive+ Schedule Assist: analyse
+heating habits, thermostat/radiator use and outside temperature; present a
+personalised timing or temperature suggestion; require the user to accept it;
+and retain history so the result can be reviewed or reverted. Hive documents
+that approach in [Understanding Schedule Assist](https://support.hivehome.com/portal/app/portlets/results/viewsolution.jsp?solutionid=251009133459473).
+
+ZEAL adopts the useful interaction pattern, not an opaque copy of Hive's
+algorithm. Every ZEAL suggestion must show its supporting evidence and the
+exact schedule diff before approval. ZEAL never changes a weekly schedule merely
+because it detected a pattern, and learning must continue to work locally when
+an external vendor service is unavailable.
+
+### Evidence captured
+
+Each manual intent event should record:
+
+- room, timestamp and Home Assistant time zone;
+- scheduled setpoint and schedule period active at that moment;
+- requested setpoint and the effective setpoint actually applied;
+- source: canonical ZEAL thermostat, physical TRV, Home Assistant service/UI,
+  Quick Change or another identifiable integration/automation;
+- temporary-change duration or expiry, where applicable;
+- room temperature, demand state, zone actuator state and Away state;
+- observed outdoor temperature when a valid configured source is available;
+- outcome, including applied, superseded, rejected, unavailable or reverted.
+
+Events caused by ZEAL's own scheduled transition, setpoint echo or propagation
+to physical TRVs are not user intent and must never count as supporting manual
+evidence.
+
+### Candidate patterns
+
+The first implementation should detect two explainable proposal types:
+
+1. **Temperature adaptation** — repeated manual changes to a similar target
+   during the same room, schedule period and comparable time window.
+2. **Timing adaptation** — repeated changes shortly before or after the same
+   scheduled transition, suggesting that its start time is consistently wrong.
+
+For example, if Lounge is scheduled for 20°C at 18:00 but is manually changed
+to 21°C between 18:00 and 18:20 on three comparable days, ZEAL may propose
+changing that period to 21°C. If the same change repeatedly occurs around
+17:30, ZEAL may instead propose moving the 18:00 period earlier. ZEAL should not
+combine different rooms, unrelated schedule periods, opposing adjustments or
+events separated by a material schedule edit.
+
 A candidate pattern is a configurable number of similar manual changes—for
 example, three changes—within a comparable time window across a configurable
 number of days. Once the evidence threshold is met, ZEAL creates a proposal
@@ -25,6 +73,64 @@ Only Accept or Edit followed by confirmation writes a new schedule revision
 through the existing validated API. Proposal creation and disposition are
 audited, allowing ZEAL to suppress a dismissed pattern until materially new
 evidence exists.
+
+### Proposal experience
+
+The Learning view should behave as an advice inbox rather than silently changing
+control state. A proposal should read along these lines:
+
+```text
+Lounge · Evening schedule suggestion
+You changed 20°C to 21°C between 18:04 and 18:16 on 4 of the last 6 comparable days.
+
+Current: 18:00 · 20°C
+Proposed: 18:00 · 21°C
+Estimated effect: +1°C during this schedule period
+Confidence: High
+```
+
+The user can inspect the evidence events, accept the exact change, edit it before
+confirmation, dismiss it, or snooze it. Accepting creates a normal versioned
+schedule revision and an audit entry linking the proposal, evidence IDs, old
+value and new value. A one-action **Revert schedule change** remains available
+from proposal history while the affected period still matches the accepted
+revision; otherwise ZEAL shows the conflict and requires manual review.
+
+### Suppression, confidence and safety
+
+- Default minimum evidence is three qualifying events across three distinct
+  days; a single day of repeated adjustments cannot create a proposal.
+- Confidence reflects evidence count, consistency of time/temperature change,
+  data quality and how recently the events occurred—not an unexplained AI score.
+- Dismissed proposals remain suppressed until sufficient materially new evidence
+  accumulates. Snoozed proposals reappear only after their chosen date.
+- Away periods, unavailable/stale temperatures, open-window events when known,
+  competing scheduler activity and changes made during Setup/testing are excluded
+  or clearly down-weighted.
+- A schedule revision invalidates older unmatched evidence so ZEAL does not
+  recommend undoing a change the user has already made deliberately.
+- Suggestions never alter Zone Manual Override, safety holds, re-enable delays or
+  the actuator-control precedence model.
+- Learning can be disabled per room and globally. Disabling proposal generation
+  does not silently delete the audit record; retention/deletion controls remain
+  explicit.
+
+### Schedule Adaptation acceptance gates
+
+- Synthetic event streams deterministically produce the expected temperature or
+  timing proposal and do not combine unrelated rooms or periods.
+- ZEAL-originated schedule writes and physical-TRV echoes never become evidence.
+- Fewer than the configured number of distinct qualifying days produces no
+  proposal.
+- The proposal displays the exact current/proposed schedule diff and links every
+  counted audit event.
+- Accept and edited-accept use the existing validation and optimistic-revision
+  checks; stale proposals cannot overwrite a newer schedule.
+- Dismiss, snooze, accept, edit, conflict and revert outcomes are audited and
+  survive restart.
+- No proposal is applied without an authenticated, authorised user confirmation.
+- Standard-user proposal visibility and approval are governed by the same
+  administrator-controlled Schedule permission as ordinary schedule editing.
 
 ## 2. ZEAL Learning — Room Thermal Response
 
