@@ -211,6 +211,9 @@ specification is in `docs/LEARNING_ROADMAP.md`.
   time-window tolerance and observation period must be configurable; an initial
   example is three similar changes within the same part of the day across a
   defined number of days.
+- Assign every event to one immutable room/weekday/period/revision snapshot.
+  Adjacent periods remain separate, ambiguous transition-boundary events are
+  excluded and evidence never transfers automatically to an unobserved weekday.
 - Create a reviewable proposal containing the supporting events, current
   schedule period and proposed replacement target/time.
 - Offer Accept, Edit, Dismiss and Snooze. Accepting writes through the normal
@@ -218,6 +221,8 @@ specification is in `docs/LEARNING_ROADMAP.md`.
   auto-applied.
 - Audit proposal creation and user disposition so dismissed suggestions are not
   repeatedly presented without materially new evidence.
+- Keep broader day copying in the ordinary Schedule page; Learning proposals
+  include an **Open Schedule** handoff instead of offering unrelated weekdays.
 - Bound retention and document privacy because occupancy habits can be inferred
   from temperature-change history.
 

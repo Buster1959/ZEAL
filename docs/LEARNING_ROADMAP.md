@@ -70,6 +70,70 @@ through the existing validated API. Proposal creation and disposition are
 audited, allowing ZEAL to suppress a dismissed pattern until materially new
 evidence exists.
 
+### Deterministic period-assignment algorithm
+
+Learning must identify one exact schedule period before an event can become
+evidence. A period starts at its scheduled time, inclusive, and ends at the next
+period's start, exclusive. Each saved period needs a stable ID within its room,
+weekday and schedule revision. An evidence event retains that ID plus an
+immutable snapshot of the period start, next transition, scheduled setpoint and
+revision; it is not reassigned later merely because the schedule changes.
+
+For every external setpoint event, ZEAL applies these steps in order:
+
+1. Reject ZEAL's own scheduled write, physical-TRV propagation and confirmed
+   device echo.
+2. Resolve the room, local weekday, event timestamp and schedule revision that
+   were effective when the event occurred.
+3. Identify the active period and the immediately following period from that
+   saved revision.
+4. Compare the requested target with the active and following scheduled
+   setpoints.
+5. Classify the event as **timing evidence for the following period** only when
+   it occurs before that transition, falls inside the configured timing window
+   and approximately requests the following period's target.
+6. Otherwise classify it as **temperature evidence for the active period** when
+   it materially differs from the active scheduled target.
+7. Reject the event as ambiguous when ordering around a transition cannot be
+   established, when it matches both interpretations equally, or when no exact
+   period/revision can be recovered.
+
+This prevents adjacent periods from being combined. Given `07:00 · 18°C` and
+`08:00 · 20°C`, a change at 07:30 to approximately 20°C may support moving the
+08:00 transition earlier; a different target at 07:30 belongs to the 07:00
+period. A change after 08:00 belongs to the 08:00 period. Repeated adjustments
+in both intervals form two independent evidence patterns. If an event occurs on
+the boundary and ZEAL cannot prove whether the scheduled transition or manual
+request happened first, that event contributes to neither pattern.
+
+### Evidence grouping and day scope
+
+Evidence is grouped by room, local weekday, original schedule-period ID,
+schedule revision, adaptation type and similar requested change. Distinct
+calendar dates for the same weekday can satisfy the repetition threshold; three
+adjustments during one occurrence of a period count as one qualifying date.
+Monday evidence does not count as Friday evidence even when both days happen to
+have identical start times and setpoints.
+
+A proposal changes only weekdays that independently contain qualifying evidence
+for the same exact adaptation. It does not offer arbitrary additional weekday
+checkboxes and does not extrapolate to structurally similar but unobserved days.
+Broader copying remains an ordinary, deliberate Schedule operation. The proposal
+shows this banner and action:
+
+```text
+Apply this change to other days
+Learning suggestions include only days supported by qualifying evidence.
+To apply this change to additional days, use the Schedule page.
+
+[Open Schedule]
+```
+
+Opening Schedule does not accept the Learning proposal. It takes the user to the
+affected room and period, where the existing copy-to-days workflow and normal
+schedule validation apply. Any manual Schedule edit creates its own revision and
+causes the outstanding proposal to be revalidated or marked stale.
+
 ### Proposal experience
 
 The Learning view should behave as an advice inbox rather than silently changing
@@ -95,7 +159,8 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 ### Suppression, confidence and safety
 
 - Default minimum evidence is three qualifying events across three distinct
-  days; a single day of repeated adjustments cannot create a proposal.
+  calendar dates for the same weekday and exact schedule period; repeated
+  adjustments during one occurrence cannot create a proposal.
 - Confidence reflects evidence count, consistency of time/temperature change,
   data quality and how recently the events occurred—not an unexplained AI score.
 - Dismissed proposals remain suppressed until sufficient materially new evidence
@@ -115,11 +180,17 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 
 - Synthetic event streams deterministically produce the expected temperature or
   timing proposal and do not combine unrelated rooms or periods.
+- Adjacent 07:00 and 08:00 periods retain separate evidence, including when both
+  receive manual changes within the same morning.
+- Unresolvable transition-boundary events are excluded rather than assigned to
+  a convenient period.
 - ZEAL-originated schedule writes and physical-TRV echoes never become evidence.
 - Fewer than the configured number of distinct qualifying days produces no
   proposal.
 - The proposal displays the exact current/proposed schedule diff and links every
   counted audit event.
+- Unobserved weekdays are never included or offered by Learning; broader changes
+  are handed off to the ordinary Schedule page without accepting the proposal.
 - Accept and edited-accept use the existing validation and optimistic-revision
   checks; stale proposals cannot overwrite a newer schedule.
 - Dismiss, snooze, accept, edit, conflict and revert outcomes are audited and
