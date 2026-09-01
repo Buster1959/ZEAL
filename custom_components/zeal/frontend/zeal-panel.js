@@ -299,7 +299,7 @@ class ZealPanel extends HTMLElement {
       <nav aria-label="ZEAL sections">
         <button class="tab ${this._view === "overview" ? "active" : ""}" data-view="overview">Overview</button>
         ${this._canUseSchedule() ? `<button class="tab ${this._view === "schedule" ? "active" : ""}" data-view="schedule">Schedule</button>` : ""}
-        ${this._canUseQuickChange() ? `<button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Quick Change</button>` : ""}
+        ${this._canUseQuickChange() ? `<button class="tab ${this._view === "quick" ? "active" : ""}" data-view="quick">Overrides</button>` : ""}
         ${this._canUseLearning() ? `<button class="tab ${this._view === "learning" ? "active" : ""}" data-view="learning">Learning</button>` : ""}
         ${
           this._isAdmin()
@@ -393,7 +393,7 @@ class ZealPanel extends HTMLElement {
       active
         ? `<button class="primary compact" data-away-action="end">End Away now</button>`
         : this._isAdmin()
-          ? `<button class="secondary compact" data-view="setup">Away settings</button>`
+          ? `<button class="secondary compact" data-view="quick">Away settings</button>`
           : ""
     }</aside>`;
   }
@@ -797,9 +797,12 @@ class ZealPanel extends HTMLElement {
     }
     const rooms = this._quickRooms();
     const awayActive = Boolean(this._quickChange?.away_mode?.active);
+    const description = this._isAdmin()
+      ? "Temporary room changes and Away Mode without editing weekly schedules."
+      : "Temporary room changes without editing weekly schedules.";
     if (!rooms.length) {
-      return `<section class="page-heading"><div><h2>Quick Change</h2><p>Apply temporary changes without editing weekly schedules.</p></div><button class="secondary" data-view="setup">Open setup</button></section>
-        <section class="empty-card"><ha-icon icon="mdi:thermostat-auto"></ha-icon><h3>No schedulable rooms yet</h3><p>Save a room with at least one physical thermostat before applying a temporary hold.</p></section>`;
+      return `<section class="page-heading"><div><h2>Overrides</h2><p>${description}</p></div><button class="secondary" data-view="setup">Open setup</button></section>
+        <section class="empty-card"><ha-icon icon="mdi:thermostat-auto"></ha-icon><h3>No schedulable rooms yet</h3><p>Save a room with at least one physical thermostat before applying a temporary hold.</p></section>${this._isAdmin() ? this._renderAwaySettings() : ""}`;
     }
     const roomIds = rooms.map((room) => room.room_id);
     const wholeHouseSelected = roomIds.every((roomId) =>
@@ -828,10 +831,14 @@ class ZealPanel extends HTMLElement {
     const actionDescription = this._quickActionDescription();
     return `
       <section class="page-heading quick-heading">
-        <div><h2>Quick Change</h2><p>Temporary changes only. Saved weekly schedules are never edited.</p></div>
+        <div><h2>Overrides</h2><p>${description}</p></div>
         <div class="quick-heading-actions"><button class="secondary" data-quick-action="refresh">Refresh</button><button class="primary" data-quick-action="whole-house" ${awayActive ? "disabled" : ""}>${
           wholeHouseSelected ? "Clear selection" : "Select whole house"
         }</button></div>
+      </section>
+      <section class="setup-help">
+        <strong>Quick Change</strong>
+        <p>Apply temporary room temperature holds. Saved weekly schedules are never edited.</p>
       </section>
       ${
         awayActive
@@ -873,7 +880,7 @@ class ZealPanel extends HTMLElement {
         )}</span><button class="primary" data-quick-action="apply" ${
           awayActive || !selectedCount || !this._quickAction || this._quickSaving ? "disabled" : ""
         }>${this._quickSaving ? "Applying…" : "Apply temporary hold"}</button></div>
-      </section>`;
+      </section>${this._isAdmin() ? this._renderAwaySettings() : ""}`;
   }
 
   _renderQuickRoom(room) {
@@ -1656,7 +1663,6 @@ class ZealPanel extends HTMLElement {
             : `<div class="empty-card"><h3>Add your first heating zone</h3><p>A zone normally represents a floor, heating circuit or other group sharing one heating actuator.</p><button class="primary" data-action="add-zone">+ Add zone</button></div>`
         }
       </section>
-      ${this._renderAwaySettings()}
       ${this._renderDownloads()}
       ${this._renderLearningSetting()}
       ${this._renderStandardUserAccess()}
@@ -1698,8 +1704,8 @@ class ZealPanel extends HTMLElement {
       } /><span><strong>Allow standard users to use Schedule</strong><small>They can view and save weekly room schedules.</small></span></label>
       <label class="active-toggle"><input type="checkbox" data-action="standard-user-quick-change" ${
         this._standardUserQuickChange ? "checked" : ""
-      } /><span><strong>Allow standard users to use Quick Change</strong><small>They can apply and clear temporary room temperature changes.</small></span></label>
-      <small>Setup, Away configuration, downloads, audit and instance management remain administrator-only.</small>
+      } /><span><strong>Allow standard users to use Overrides</strong><small>They can use Quick Change to apply and clear temporary room temperature changes. Away Mode remains administrator-only.</small></span></label>
+      <small>Setup, Away Mode configuration, downloads, audit and instance management remain administrator-only.</small>
     </section>`;
   }
 
@@ -1994,6 +2000,7 @@ class ZealPanel extends HTMLElement {
           return;
         }
         if (next === this._view) return;
+        if (this._view === "quick" && next !== "quick" && this._awayDirty && !window.confirm("Discard unsaved Away changes?")) return;
         if ((this._dirty || this._awayDirty) && this._view === "setup" && !window.confirm("Discard unsaved setup or Away changes?")) return;
         if (this._scheduleDirty && this._view === "schedule" && !window.confirm("Discard unsaved schedule changes?")) return;
         this._view = next;

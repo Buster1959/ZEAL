@@ -58,7 +58,7 @@ async def async_sync_panel(hass: HomeAssistant) -> None:
             hass=hass,
             frontend_url_path=PANEL_URL_PATH,
             webcomponent_name=PANEL_COMPONENT,
-            module_url=f"{PANEL_STATIC_URL}/zeal-panel-entry.js?v={PANEL_ASSET_VERSION}",
+            module_url=f"{PANEL_STATIC_URL}/zeal-panel.js?v={PANEL_ASSET_VERSION}",
             sidebar_title="ZEAL" if show_in_sidebar else None,
             sidebar_icon="mdi:radiator" if show_in_sidebar else None,
             require_admin=False,
