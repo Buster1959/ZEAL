@@ -27,25 +27,57 @@ from .const import (
     DOMAIN,
     ROOM_ACTIVE,
     ROOM_ID,
-    ROOM_NAME,
     ROOM_SENSORS,
     ROOM_TRVS,
     ZONE_HEAT_SOURCE,
     ZONE_ID,
-    ZONE_NAME,
     ZONE_REENABLE_DELAY,
     ZONE_ROOMS,
     ZONE_SWITCH,
 )
 from .coordinator import ZealCoordinator
 
-# Anything that could plausibly be sensitive if this diagnostics dump got
-# pasted into a public GitHub issue. None of ZEAL's config is actually
-# sensitive (no credentials, no location data) - kept as an explicit empty
-# set rather than skipping redaction entirely, so it's obvious this was a
-# deliberate check, not an oversight, if the schema ever grows a field that
-# would need it.
-TO_REDACT: set[str] = set()
+# Defence in depth for future schema additions. Current diagnostics deliberately
+# omit readable names, entity IDs, schedules and evidence before this standard
+# Home Assistant redaction pass runs.
+TO_REDACT = {"access_token", "api_key", "password", "secret", "token"}
+
+
+def _schedule_summary(configuration, room_aliases: dict[str, str]) -> dict[str, Any]:
+    """Summarise schedule shape without exposing times or temperatures."""
+    rooms: dict[str, Any] = {}
+    for room_id, room in configuration.rooms.items():
+        alias = room_aliases.get(room_id, "unconfigured_room")
+        period_counts = {day: len(periods) for day, periods in room.days.items()}
+        rooms[alias] = {
+            "period_count": sum(period_counts.values()),
+            "period_counts_by_day": period_counts,
+        }
+    return {
+        "room_count": len(rooms),
+        "temperature_unit": configuration.temperature_unit,
+        "rooms": rooms,
+    }
+
+
+def _away_summary(state: dict[str, Any]) -> dict[str, Any]:
+    """Retain operational Away status while omitting dates and entities."""
+    return {
+        "mode": state.get("mode"),
+        "status": state.get("status"),
+        "active": state.get("active", False),
+    }
+
+
+def _quick_change_summary(state: dict[str, Any]) -> dict[str, Any]:
+    """Count holds without exposing their rooms, targets or expiry times."""
+    rooms = state.get("rooms", [])
+    return {
+        "room_count": len(rooms),
+        "active_hold_count": sum(
+            1 for room in rooms if isinstance(room, dict) and room.get("override")
+        ),
+    }
 
 
 async def async_get_config_entry_diagnostics(
@@ -55,22 +87,26 @@ async def async_get_config_entry_diagnostics(
     coordinator: ZealCoordinator = entry_data["coordinator"]
 
     zones_snapshot: list[dict[str, Any]] = []
-    for zone in coordinator.zones:
+    room_aliases: dict[str, str] = {}
+    for zone_index, zone in enumerate(coordinator.zones, start=1):
+        zone_alias = f"zone_{zone_index}"
         zone_id = zone.get(ZONE_ID)
         switch_entity = zone.get(ZONE_SWITCH)
         switch_state = hass.states.get(switch_entity) if switch_entity else None
 
         rooms_snapshot: list[dict[str, Any]] = []
-        for room in zone.get(ZONE_ROOMS, []):
+        for room_index, room in enumerate(zone.get(ZONE_ROOMS, []), start=1):
             room_id = room.get(ROOM_ID)
+            room_alias = f"{zone_alias}_room_{room_index}"
+            room_aliases[str(room_id)] = room_alias
             thermostat = coordinator.room_thermostats.get(room_id)
 
             trv_snapshot = []
-            for trv in room.get(ROOM_TRVS, []) or []:
+            for trv_index, trv in enumerate(room.get(ROOM_TRVS, []) or [], start=1):
                 state = hass.states.get(trv)
                 trv_snapshot.append(
                     {
-                        "entity_id": trv,
+                        "entity": f"trv_{trv_index}",
                         "state": state.state if state else "not_found",
                         "target_temperature": (
                             state.attributes.get("temperature") if state else None
@@ -81,19 +117,20 @@ async def async_get_config_entry_diagnostics(
                 )
 
             sensor_snapshot = []
-            for sensor in room.get(ROOM_SENSORS, []) or []:
+            for sensor_index, sensor in enumerate(
+                room.get(ROOM_SENSORS, []) or [], start=1
+            ):
                 state = hass.states.get(sensor)
                 sensor_snapshot.append(
                     {
-                        "entity_id": sensor,
+                        "entity": f"temperature_sensor_{sensor_index}",
                         "state": state.state if state else "not_found",
                     }
                 )
 
             rooms_snapshot.append(
                 {
-                    "room_id": room_id,
-                    "name": room.get(ROOM_NAME),
+                    "room": room_alias,
                     "active": room.get(ROOM_ACTIVE, True),
                     "trvs": trv_snapshot,
                     "sensors": sensor_snapshot,
@@ -101,7 +138,7 @@ async def async_get_config_entry_diagnostics(
                         room_id
                     ),
                     "thermostat": {
-                        "entity_id": getattr(thermostat, "entity_id", None),
+                        "entity": "canonical_thermostat",
                         "target_temperature": getattr(
                             thermostat, "target_temperature", None
                         ),
@@ -115,12 +152,11 @@ async def async_get_config_entry_diagnostics(
 
         zones_snapshot.append(
             {
-                "zone_id": zone_id,
-                "name": zone.get(ZONE_NAME),
+                "zone": zone_alias,
                 "heat_source": zone.get(ZONE_HEAT_SOURCE),
                 "reenable_delay": zone.get(ZONE_REENABLE_DELAY),
                 "switch": {
-                    "entity_id": switch_entity,
+                    "entity": "heating_actuator",
                     "state": switch_state.state if switch_state else "not_found",
                 },
                 "override_active": getattr(
@@ -134,13 +170,16 @@ async def async_get_config_entry_diagnostics(
     learning = entry_data["schedule_learning"].snapshot()
     payload = {
         "entry": {
-            "title": entry.title,
             "version": entry.version,
         },
         "zones": zones_snapshot,
-        "schedule": runtime.configuration.to_dict(),
-        "away_mode": runtime.away_mode_state(),
-        "quick_change": runtime.quick_change_state(),
+        "schedule_summary": _schedule_summary(
+            runtime.configuration, room_aliases
+        ),
+        "away_summary": _away_summary(runtime.away_mode_state()),
+        "quick_change_summary": _quick_change_summary(
+            runtime.quick_change_state()
+        ),
         "learning_summary": {
             "version": learning["version"],
             "event_count": len(learning["events"]),
