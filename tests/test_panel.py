@@ -350,3 +350,11 @@ def test_frontend_uses_responsive_tabs_and_non_repeating_period_names():
     assert "repeat(auto-fit, minmax(110px, 1fr))" in source
     assert '/^Period (\\d+)$/.exec(period.name || "")' in source
     assert "periods.length + 1" not in source
+
+
+def test_frontend_polls_zone_control_only_on_visible_overview():
+    source = PANEL_FILE.read_text()
+    assert 'document.addEventListener("visibilitychange", this._visibilityHandler)' in source
+    assert 'document.removeEventListener("visibilitychange", this._visibilityHandler)' in source
+    assert 'document.hidden || this._view !== "overview"' in source
+    assert "this._stopZoneControlTimer();" in source

@@ -86,6 +86,7 @@ class ZealPanel extends HTMLElement {
     this._zoneControlLoading = false;
     this._zoneControlLastFetch = 0;
     this._zoneControlTimer = null;
+    this._visibilityHandler = () => this._updateZoneControlTimer();
     this.shadowRoot.addEventListener("pointerdown", (event) => this._onPointerDown(event));
     this.shadowRoot.addEventListener("pointermove", (event) => this._onPointerMove(event));
     this.shadowRoot.addEventListener("pointerup", (event) => this._onPointerUp(event));
@@ -99,7 +100,10 @@ class ZealPanel extends HTMLElement {
       (this._view === "schedule" && !this._canUseSchedule()) ||
       (this._view === "quick" && !this._canUseQuickChange()) ||
       (this._view === "learning" && !this._canUseLearning())
-    ) this._view = "overview";
+    ) {
+      this._view = "overview";
+      this._updateZoneControlTimer();
+    }
     if (!this._started && value) {
       this._started = true;
       this._initialLoad();
@@ -114,18 +118,31 @@ class ZealPanel extends HTMLElement {
 
   connectedCallback() {
     this._render();
-    if (!this._zoneControlTimer) {
-      this._zoneControlTimer = window.setInterval(() => {
-        if (this._view !== "overview" || !this._configuration) return;
-        this._syncOverviewDemand();
-        this._refreshZoneControl({ minimumInterval: 5_000 });
-      }, 1_000);
-    }
+    document.addEventListener("visibilitychange", this._visibilityHandler);
+    this._updateZoneControlTimer();
   }
 
   disconnectedCallback() {
+    document.removeEventListener("visibilitychange", this._visibilityHandler);
+    this._stopZoneControlTimer();
+  }
+
+  _stopZoneControlTimer() {
     if (this._zoneControlTimer) window.clearInterval(this._zoneControlTimer);
     this._zoneControlTimer = null;
+  }
+
+  _updateZoneControlTimer() {
+    if (!this.isConnected || document.hidden || this._view !== "overview") {
+      this._stopZoneControlTimer();
+      return;
+    }
+    if (this._zoneControlTimer) return;
+    this._zoneControlTimer = window.setInterval(() => {
+      if (!this._configuration) return;
+      this._syncOverviewDemand();
+      this._refreshZoneControl({ minimumInterval: 5_000 });
+    }, 1_000);
   }
 
   async _initialLoad() {
@@ -2055,6 +2072,7 @@ class ZealPanel extends HTMLElement {
         if ((this._dirty || this._awayDirty) && this._view === "setup" && !window.confirm("Discard unsaved setup or Away changes?")) return;
         if (this._scheduleDirty && this._view === "schedule" && !window.confirm("Discard unsaved schedule changes?")) return;
         this._view = next;
+        this._updateZoneControlTimer();
         this._dirty = false;
         this._draft = this._copy(this._configuration.zones || []);
         this._showInSidebar = this._configuration.show_in_sidebar !== false;
