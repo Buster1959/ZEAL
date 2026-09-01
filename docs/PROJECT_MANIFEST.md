@@ -17,15 +17,6 @@ ZEAL includes its own scheduler and works without Visual Climate Scheduler.
 Visual Climate Scheduler works without ZEAL. Users should not let ZEAL or any
 other thermostat setpoint scheduler control the same thermostat entities.
 
-## ZEAL Flow naming boundary
-
-`Buster1959/ZEAL-flow` is currently the public mechanical retrofit project. The
-planned private heating-and-cooling V2 project has also been described as
-**ZEAL Flow**. That collision is unresolved; documentation and project skills
-must not silently assign the name to only one of them. Work referring to ZEAL
-Flow must identify the intended repository until a distinct product name is
-chosen.
-
 ## V1 status
 
 Blocks 0–9 are implemented and the V1 candidate has been fast-forwarded to

@@ -195,47 +195,62 @@ distributed through the documented custom-HACS route.
 
 ## Baseline close-down blocks before Room Thermal Response
 
-The post-review close-down work is tracked in GitHub so completed corrections
-and design decisions remain visible without mixing them into Thermal Response
-implementation. **Fixed** means committed, tested where applicable and closed;
-**Open** means discussion, evidence or implementation is still required.
+The remaining work is ordered by the owner's current importance list. Complete
+these blocks in sequence unless a release-critical defect interrupts them.
 
-### Close-down A — accuracy, access and privacy (High)
+### Close-down Block 1 — documentation source of truth
 
-| Issue | Status | Evidence |
-|---|---|---|
-| [#1 Correct panel access and Learning revision documentation](https://github.com/Buster1959/ZEAL/issues/1) | **Fixed** | `1d8b590` |
-| [#2 Separate privacy-safe diagnostics from readable exports](https://github.com/Buster1959/ZEAL/issues/2) | **Fixed** | `0076597`; ordinary diagnostics are pseudonymised and summary-only |
-| [#3 Disclose that Schedule permission includes Learning access](https://github.com/Buster1959/ZEAL/issues/3) | **Fixed** | `8e9617b`, `3148e01` |
-| [#9 Complete Learning guide, troubleshooting and screenshots](https://github.com/Buster1959/ZEAL/issues/9) | **Open** | Guide and troubleshooting are complete in `8e9617b`; four privacy-reviewed screenshots remain |
+Issue: [#8 Discuss README simplification and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8)
 
-Acceptance: access descriptions match backend authorisation, routine support
-diagnostics do not expose readable household routines, and the Learning guide
-has complete privacy-reviewed visual evidence.
+Priority: **1 — highest**. Decide how much detail belongs in README, the GitHub
+wiki and repository documentation. Preserve essential installation, safety and
+offline material while giving every subject one maintained source of truth.
 
-### Close-down B — release presentation and identity (Medium)
+Acceptance: an explicit document ownership map exists, duplicate material is
+removed or reduced to links, and no user guidance is lost during migration.
 
-| Issue | Status | Evidence |
-|---|---|---|
-| [#4 Complete V1 Learning release notes and README anchors](https://github.com/Buster1959/ZEAL/issues/4) | **Fixed** | `8c0c478` |
-| [#10 Align the ZEAL acronym across README and panel](https://github.com/Buster1959/ZEAL/issues/10) | **Fixed** | `200a37f` |
-| [#5 Resolve the ZEAL Flow naming collision](https://github.com/Buster1959/ZEAL/issues/5) | **Open** | Ambiguity remains deliberately recorded in `PROJECT_MANIFEST.md` pending a naming decision |
-| [#8 Discuss README simplification and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8) | **Open** | Design discussion required before removing or relocating repository documentation |
+### Close-down Block 2 — multi-module Learning interface
 
-Acceptance: the public identity is consistent, current V1 behaviour is easy to
-find, and each subject has one declared source of truth without losing essential
-installation, safety or offline documentation.
+Issue: [#7 Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7)
 
-### Close-down C — Thermal Response design gates (High)
+Priority: **2**. Agree the navigation and information architecture for Schedule
+Adaptation and Room Thermal Response before adding the second Learning module.
 
-| Issue | Status | Evidence |
-|---|---|---|
-| [#6 Define Home Assistant Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6) | **Open** | Design discussion; no MariaDB or separate SQLite database will be introduced |
-| [#7 Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7) | **Open** | UI/design discussion required before Thermal Response is added |
+Acceptance: module overview, evidence/status, recommendations, history, privacy,
+reset controls and the Setup/Learning boundary are specified before UI code.
 
-Acceptance: observation cadence, episode boundaries, retention, compaction,
-migration, restart deduplication, reset/export privacy and module navigation are
-agreed before observation collection code is written.
+### Close-down Block 3 — Learning documentation evidence
+
+Issue: [#9 Complete Learning guide, troubleshooting and screenshots](https://github.com/Buster1959/ZEAL/issues/9)
+
+Priority: **3**. The guide and troubleshooting are complete in `8e9617b`.
+Allow the holiday automation to create genuine Learning evidence, then capture
+the four privacy-reviewed screenshots without forging production events.
+
+Acceptance: settings, evidence progress, an actionable suggestion and proposal
+history/Revert are illustrated using privacy-reviewed captures.
+
+### Close-down Block 4 — Thermal Store volume and retention
+
+Issue: [#6 Define Home Assistant Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6)
+
+Priority: **4**. Define observation cadence, episode boundaries, retention,
+compaction, migration, restart deduplication, reset/deletion and export privacy.
+Use bounded, versioned Home Assistant Stores; do not introduce MariaDB or a
+separate SQLite database.
+
+Acceptance: the persistence and privacy contract is agreed before observation
+collection code is written.
+
+### Completed baseline corrections
+
+Issues [#1](https://github.com/Buster1959/ZEAL/issues/1),
+[#2](https://github.com/Buster1959/ZEAL/issues/2),
+[#3](https://github.com/Buster1959/ZEAL/issues/3),
+[#4](https://github.com/Buster1959/ZEAL/issues/4) and
+[#10](https://github.com/Buster1959/ZEAL/issues/10) are fixed and closed. Their
+commit evidence remains on each issue. ZEAL Flow work belongs to its independent
+repository/project and is not part of this close-down plan.
 
 ## ZEAL Learning — Schedule Adaptation
 
