@@ -5,12 +5,11 @@ scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
 
-Coverage: 131 collected cases against `pytest-homeassistant-custom-component`:
-39 Coordinator cases, 35 pure scheduler cases, 14 scheduler runtime/boundary
-cases, 24 configuration/audit/WebSocket cases and 6 Config Flow/HTML panel
-contract cases, plus one translation-schema case covering ten languages and
-three release-metadata cases. Test code is kept under `tests/`, not shipped
-inside `custom_components/zeal`. Verified result: 131/131 passing.
+The suite is pinned to `pytest-homeassistant-custom-component==0.13.205`, which
+provides Home Assistant `2025.1.4`. Test code is kept under `tests/`, not shipped
+inside `custom_components/zeal`. The exact collected count is intentionally not
+duplicated here; CI reports it from the current tree on every push and pull
+request.
 
 ## Running
 

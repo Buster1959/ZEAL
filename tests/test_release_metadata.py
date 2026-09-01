@@ -48,3 +48,17 @@ def test_hacs_and_hassfest_workflows_cover_release_events() -> None:
     assert "hacs/action@main" in hacs
     assert "category: integration" in hacs
     assert "home-assistant/actions/hassfest@master" in hassfest
+
+
+def test_python_workflow_runs_pinned_suite_and_compilation() -> None:
+    """Every push and pull request must execute reproducible Python checks."""
+    workflow = (
+        ROOT / ".github" / "workflows" / "tests.yml"
+    ).read_text(encoding="utf-8")
+    requirements = (ROOT / "requirements_test.txt").read_text(encoding="utf-8")
+    assert "push:" in workflow
+    assert "pull_request:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "python -m pytest tests/ -q" in workflow
+    assert "python -m compileall -q custom_components tests" in workflow
+    assert requirements.strip() == "pytest-homeassistant-custom-component==0.13.205"
