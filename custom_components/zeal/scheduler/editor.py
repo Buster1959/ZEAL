@@ -1,4 +1,4 @@
-"""Validated immutable updates used by ZEAL's future HTML editor."""
+"""Validated immutable updates used by ZEAL's HTML schedule editor."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ def update_room_days(
     room_id: str,
     days: Mapping[str, Any],
 ) -> ScheduleConfiguration:
+    """Replace all seven saved days for one room."""
     room = configuration.rooms.get(room_id)
     if room is None:
         raise KeyError(room_id)

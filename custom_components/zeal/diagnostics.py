@@ -16,12 +16,27 @@ portable troubleshooting document.
 """
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, ROOM_ID, ROOM_NAME, ROOM_SENSORS, ROOM_TRVS, ZONE_ID, ZONE_NAME, ZONE_ROOMS, ZONE_SWITCH
+from .const import (
+    DOMAIN,
+    ROOM_ACTIVE,
+    ROOM_ID,
+    ROOM_NAME,
+    ROOM_SENSORS,
+    ROOM_TRVS,
+    ZONE_HEAT_SOURCE,
+    ZONE_ID,
+    ZONE_NAME,
+    ZONE_REENABLE_DELAY,
+    ZONE_ROOMS,
+    ZONE_SWITCH,
+)
 from .coordinator import ZealCoordinator
 
 # Anything that could plausibly be sensitive if this diagnostics dump got
@@ -36,7 +51,8 @@ TO_REDACT: set[str] = set()
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    coordinator: ZealCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    entry_data = hass.data[DOMAIN][entry.entry_id]
+    coordinator: ZealCoordinator = entry_data["coordinator"]
 
     zones_snapshot: list[dict[str, Any]] = []
     for zone in coordinator.zones:
@@ -78,7 +94,7 @@ async def async_get_config_entry_diagnostics(
                 {
                     "room_id": room_id,
                     "name": room.get(ROOM_NAME),
-                    "active": room.get("active", True),
+                    "active": room.get(ROOM_ACTIVE, True),
                     "trvs": trv_snapshot,
                     "sensors": sensor_snapshot,
                     "computed_room_temperature": coordinator.room_current_temperature(
@@ -101,8 +117,8 @@ async def async_get_config_entry_diagnostics(
             {
                 "zone_id": zone_id,
                 "name": zone.get(ZONE_NAME),
-                "heat_source": zone.get("heat_source"),
-                "reenable_delay": zone.get("reenable_delay"),
+                "heat_source": zone.get(ZONE_HEAT_SOURCE),
+                "reenable_delay": zone.get(ZONE_REENABLE_DELAY),
                 "switch": {
                     "entity_id": switch_entity,
                     "state": switch_state.state if switch_state else "not_found",
@@ -114,10 +130,23 @@ async def async_get_config_entry_diagnostics(
             }
         )
 
-    return {
+    runtime = entry_data["schedule_runtime"]
+    learning = entry_data["schedule_learning"].snapshot()
+    payload = {
         "entry": {
             "title": entry.title,
             "version": entry.version,
         },
         "zones": zones_snapshot,
+        "schedule": runtime.configuration.to_dict(),
+        "away_mode": runtime.away_mode_state(),
+        "quick_change": runtime.quick_change_state(),
+        "learning_summary": {
+            "version": learning["version"],
+            "event_count": len(learning["events"]),
+            "event_outcomes": dict(Counter(str(item.get("outcome", "unknown")) for item in learning["events"])),
+            "proposal_count": len(learning["proposals"]),
+            "proposal_statuses": dict(Counter(str(item.get("status", "unknown")) for item in learning["proposals"])),
+        },
     }
+    return async_redact_data(payload, TO_REDACT)

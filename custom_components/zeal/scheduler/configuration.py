@@ -105,7 +105,7 @@ def current_revision(hass: HomeAssistant, entry_id: str) -> str:
 
 
 def configuration_snapshot(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
-    """Return the complete non-secret state required by the future panel."""
+    """Return the complete non-secret state required by the panel."""
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None:
         raise KeyError(entry_id)

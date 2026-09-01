@@ -14,7 +14,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, ZONE_ID, ZONE_NAME, ZONE_SWITCH
+from .const import DEVICE_MANUFACTURER, DEVICE_MODEL, DOMAIN, ZONE_ID, ZONE_NAME, ZONE_SWITCH
 from .coordinator import ZealCoordinator, ZoneStatus
 
 
@@ -53,7 +53,8 @@ class ZealDemandSensor(CoordinatorEntity[ZealCoordinator], SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.entry_id}_{self._zone_id}")},
             name=zone_name,
-            manufacturer="ZEAL HVAC System",
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL,
         )
 
     @property

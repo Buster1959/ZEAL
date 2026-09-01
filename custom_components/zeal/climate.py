@@ -47,7 +47,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, ROOM_ID, ROOM_NAME, ROOM_TRVS, ZONE_ID, ZONE_NAME, ZONE_ROOMS
+from .const import DEVICE_MANUFACTURER, DEVICE_MODEL, DOMAIN, ROOM_ID, ROOM_NAME, ROOM_TRVS, ZONE_ID, ZONE_NAME, ZONE_ROOMS
 from .coordinator import ZealCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -135,7 +135,8 @@ class ZealRoomThermostat(CoordinatorEntity[ZealCoordinator], RestoreEntity, Clim
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.entry_id}_{self._zone_id}")},
             name=zone.get(ZONE_NAME, self._zone_id),
-            manufacturer="ZEAL",
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL,
         )
 
     async def async_added_to_hass(self) -> None:

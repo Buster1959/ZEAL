@@ -1,4 +1,4 @@
-"""Admin-only WebSocket boundary for ZEAL's future HTML panel."""
+"""Authenticated WebSocket boundary for ZEAL's HTML panel."""
 
 from __future__ import annotations
 

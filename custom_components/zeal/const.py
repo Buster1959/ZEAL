@@ -1,6 +1,8 @@
 """Constants for the ZEAL HVAC System integration."""
 
 DOMAIN = "zeal"
+DEVICE_MANUFACTURER = "ZEAL"
+DEVICE_MODEL = "Zoned heating controller"
 
 # Home Assistant panel with administrator-only Setup. The query-string version is deliberately
 # independent of the integration version so frontend-only fixes can invalidate

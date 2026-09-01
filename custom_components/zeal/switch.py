@@ -10,6 +10,9 @@ The entity registers itself into `coordinator.override_switches[zone_id]` on
 add and removes itself on removal, so the Coordinator can check `.is_on`
 directly rather than going through hass.states.get() with a guessed
 entity_id.
+
+This entity deliberately does not inherit `CoordinatorEntity`: Manual override
+is restored user-owned state, not state derived from a coordinator refresh.
 """
 from __future__ import annotations
 
@@ -22,7 +25,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, ZONE_ID, ZONE_NAME, ZONE_SWITCH
+from .const import DEVICE_MANUFACTURER, DEVICE_MODEL, DOMAIN, ZONE_ID, ZONE_NAME, ZONE_SWITCH
 from .coordinator import ZealCoordinator
 
 
@@ -62,7 +65,8 @@ class ZealOverrideSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.entry_id}_{self._zone_id}")},
             name=zone_name,
-            manufacturer="ZEAL HVAC System",
+            manufacturer=DEVICE_MANUFACTURER,
+            model=DEVICE_MODEL,
         )
 
     async def async_added_to_hass(self) -> None:
