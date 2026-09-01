@@ -200,7 +200,7 @@ these blocks in sequence unless a release-critical defect interrupts them.
 
 ### Close-down Block 1 — documentation source of truth
 
-Issue: [#8 Discuss README simplification and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8)
+Issue: [#8 Block 1: Discuss README and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8)
 
 Priority: **1 — highest**. Decide how much detail belongs in README, the GitHub
 wiki and repository documentation. Preserve essential installation, safety and
@@ -211,7 +211,7 @@ removed or reduced to links, and no user guidance is lost during migration.
 
 ### Close-down Block 2 — multi-module Learning interface
 
-Issue: [#7 Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7)
+Issue: [#7 Block 2: Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7)
 
 Priority: **2**. Agree the navigation and information architecture for Schedule
 Adaptation and Room Thermal Response before adding the second Learning module.
@@ -221,7 +221,7 @@ reset controls and the Setup/Learning boundary are specified before UI code.
 
 ### Close-down Block 3 — Learning documentation evidence
 
-Issue: [#9 Complete Learning guide, troubleshooting and screenshots](https://github.com/Buster1959/ZEAL/issues/9)
+Issue: [#9 Block 3: Complete Learning guide screenshots](https://github.com/Buster1959/ZEAL/issues/9)
 
 Priority: **3**. The guide and troubleshooting are complete in `8e9617b`.
 Allow the holiday automation to create genuine Learning evidence, then capture
@@ -232,7 +232,7 @@ history/Revert are illustrated using privacy-reviewed captures.
 
 ### Close-down Block 4 — Thermal Store volume and retention
 
-Issue: [#6 Define Home Assistant Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6)
+Issue: [#6 Block 4: Define Thermal Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6)
 
 Priority: **4**. Define observation cadence, episode boundaries, retention,
 compaction, migration, restart deduplication, reset/deletion and export privacy.
