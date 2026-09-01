@@ -222,15 +222,21 @@ Issue: [#7 Block 2: Structure Learning as multiple modules](https://github.com/B
 Priority: **2**. Agree the navigation and information architecture for Schedule
 Adaptation and Room Thermal Response before adding the second Learning module.
 
-Agreed first decision: Schedule Adaptation is enabled Yes/No by an administrator
+Agreed design: Schedule Adaptation is enabled Yes/No by an administrator
 in Setup; Setup provides compact administrator progress. An actionable proposal
 reveals **Schedule Updates** to administrators and Schedule/Learning-authorised
-users. It hides from standard users when no action remains. Detailed
-multi-module Thermal Response navigation, history, privacy and reset placement
-remain under discussion.
+users and hides from standard users when no action remains. Thermal Response is
+entirely administrator-only: its persistent Learning page combines room status,
+confidence, evidence and response history in one graph view; Setup owns initial
+settings plus confirmed per-room/all-room resets. Administrator UI uses readable
+names, diagnostics are pseudonymised, and resets never alter schedules or other
+configuration.
 
 Acceptance: module overview, evidence/status, recommendations, history, privacy,
 reset controls and the Setup/Learning boundary are specified before UI code.
+
+Status: **complete**. Design decisions are recorded in
+`docs/LEARNING_ROADMAP.md` and `docs/DECISIONS.md`.
 
 ### Close-down Block 3 — Learning documentation evidence
 

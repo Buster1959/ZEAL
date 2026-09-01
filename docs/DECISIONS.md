@@ -78,3 +78,7 @@ companion Wiki retains the longer chronological design history.
     The EPC answer is only a starting estimate: continuous per-room observations
     refine the model without proposal acceptance, while automatic optimum start
     remains a separate future opt-in.
+28. Thermal Response is entirely administrator-only. When enabled, Learning
+    contains its persistent status and graph page; Setup contains its initiation,
+    privacy and confirmed per-room/all-room reset controls. Real names are used
+    in the administrator UI, while diagnostics remain pseudonymised.

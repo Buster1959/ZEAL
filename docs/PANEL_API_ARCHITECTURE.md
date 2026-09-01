@@ -104,16 +104,23 @@ overwritten.
 - `zeal/get_learning`: retained evidence and Schedule Adaptation proposals.
 - `zeal/decide_learning_proposal`: Schedule-authorised accept, edit-and-accept,
   snooze, dismiss and revert decisions; disabled while Learning is off.
+- `zeal/save_away_mode`: revision-protected persisted activation source and
+  global Away target.
+- `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.
+- `zeal/get_audit_log`: JSON-ready bounded application history.
 
 The planned presentation boundary keeps the existing authorization model:
 Setup owns the administrator Schedule Adaptation Yes/No control and a compact
 progress summary. **Schedule Updates** is shown only while actionable proposals
 exist and only to an administrator or a standard user with the Schedule/Learning
 grant. Hiding the page does not delete retained events or proposal history.
-- `zeal/save_away_mode`: revision-protected persisted activation source and
-  global Away target.
-- `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.
-- `zeal/get_audit_log`: JSON-ready bounded application history.
+
+Thermal Response has a separate administrator-only boundary. When enabled its
+Learning page remains visible for per-room status, confidence and graph history;
+standard users cannot retrieve or operate it. Setup owns onboarding, source and
+room scope, privacy disclosure, and confirmed reset-one/reset-all operations.
+Reset commands delete only the selected learned data and must not mutate
+configuration, schedules or overrides.
 
 ## Persistence and runtime ordering
 

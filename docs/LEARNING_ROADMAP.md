@@ -374,9 +374,29 @@ and [technical explanation of EPC metrics](https://www.gov.uk/government/consult
 Once enabled, model refinement is a permanent, continuous process for every
 included room and does not create Accept/Edit/Dismiss proposals. Any later
 automatic optimum-start control is a distinct feature and remains separately
-permissioned. Administrators can inspect observed and predicted room response
-on a Thermal Response graph; detailed graph design remains part of the Learning
-module UI work.
+permissioned.
+
+### Administrator view, history, privacy and reset
+
+Thermal Response is a system function and is administrator-only. When enabled,
+**Learning → Thermal Response** remains visible to administrators even while a
+room is still gathering evidence; it is never exposed to standard users.
+
+The page has a room selector, learning status, valid evidence count, confidence
+and one response graph. The graph overlays actual room temperature, predicted
+room temperature, effective target, observed outdoor temperature and heating
+activity for the selected retained period. This is both the current-status and
+model-history surface; a separate history page is unnecessary initially.
+
+Administrator screens use readable room names. Stored history is bounded and
+occupancy-sensitive. Ordinary diagnostic exports pseudonymise room, zone and
+entity identifiers; a deliberately requested readable export must carry the
+existing privacy warning.
+
+Setup contains **Reset selected room** and **Reset all Thermal Response
+learning**. Both are administrator-only, require explicit confirmation, are
+audited, and remove only learned observations/models. They never change room
+membership, weekly schedules, Quick Changes or Away settings.
 
 ### Weather and outdoor-temperature sources
 
@@ -507,6 +527,9 @@ begins in preparation for that target.
 - No schedule or heating start is changed without the required user approval.
 - Learning history has bounded retention, export/redaction rules and an explicit
   occupancy-privacy warning.
+- Thermal Response navigation, graphs and reset actions remain administrator-only.
+- Resetting one or all models leaves configuration and every control schedule
+  unchanged.
 
 ## Sequencing
 
