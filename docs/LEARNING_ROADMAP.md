@@ -418,6 +418,27 @@ Actual observed outdoor temperature trains the model. Forecast temperature is
 used only when predicting a future heating start. Forecast values must not be
 stored as if they were observations.
 
+For a future target, ZEAL retrieves `type: hourly` through Home Assistant's
+`weather.get_forecasts` action and uses each entry's timestamped `temperature`.
+It interpolates those hourly values across the candidate warm-up interval and
+solves backwards for the start time at which the room model reaches the target.
+It must not assume that the current outdoor temperature remains fixed until the
+target: a freezing pre-dawn observation and a substantially warmer post-sunrise
+forecast can therefore produce a different start estimate.
+
+The prediction retains the provider entity, retrieval time, any provider issue
+time when available, and the hourly values used. It is recalculated when the
+next target, current room temperature, relevant hourly forecast or room model
+changes. A forecast must not silently replace the preferred local sensor's
+**current outside temperature** display.
+
+If an hourly forecast is unavailable or stale, advisory mode may calculate
+conservatively using the current observed outdoor temperature as constant, but
+must label the result **Forecast unavailable — using current outside
+temperature** and lower its confidence. Future automatic optimum start must
+follow its separately agreed safe fallback rather than acting on an undisclosed
+or unusable forecast.
+
 Initial compatibility testing should cover:
 
 - [Met Office](https://www.home-assistant.io/integrations/metoffice/) — official
@@ -435,7 +456,8 @@ capabilities when the entity is selected and clearly report missing or stale
 data.
 
 Home Assistant's current weather contract and forecast action are documented at
-[Weather](https://www.home-assistant.io/integrations/weather/).
+[Weather](https://www.home-assistant.io/integrations/weather/) and
+[Get weather forecasts](https://www.home-assistant.io/actions/weather.get_forecasts/).
 
 ### Initial thermal model
 
@@ -530,10 +552,21 @@ then, for example:
 
 ```text
 Thermal model: Established
-Estimated heat-up rate: 0.62°C/hour at 5°C outside
-Estimated start for 20°C by 07:00: 05:48
+Current room temperature: 18°C
+Current outside temperature: −2°C · Local outdoor sensor
+Next target: 22°C at 07:00
+Forecast during warm-up: 3°C to 5°C · Pirate Weather
+Estimated warm-up: 50 minutes
+Recommended start: 06:10
 Confidence: Medium
 ```
+
+The status panel above the graph always separates the measured outside
+temperature **now** from forecast temperatures used for the future calculation.
+It shows the current room temperature, next scheduled target and time, estimated
+warm-up duration, recommended start, forecast range/provider and confidence.
+The graph overlays the same forecast path and marks the recommended start, so an
+administrator can see why a warmer morning forecast shortened the ramp-up.
 
 ZEAL should first offer an optimum-start recommendation for review. Enabling
 automatic optimum start must be a separate, explicit user choice after the room
@@ -548,6 +581,11 @@ begins in preparation for that target.
 - Provider contract tests cover Met Office, Open-Meteo and Pirate Weather-shaped
   weather entities without provider-specific control paths.
 - Forecast values and actual observations remain distinguishable in storage.
+- A multi-hour changing forecast is interpolated across the candidate warm-up
+  interval; prediction tests prove ZEAL does not substitute either the current
+  value or target-hour value for the whole interval.
+- The administrator status identifies the measured current source, forecast
+  provider/range, next target, warm-up duration and recommended start.
 - Restarts, missing forecasts and stale outdoor readings fail safely without
   losing the existing schedule.
 - Model recommendations include evidence, model version and confidence.

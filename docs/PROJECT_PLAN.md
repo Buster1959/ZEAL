@@ -346,6 +346,10 @@ The agreed Learning page/module structure is recorded in closed
   estimate only lengthens initial learning.
 - Use the preferred local outdoor sensor for observations and the compatible
   weather entity for fallback current temperature and hourly forecast.
+- For each next scheduled target, interpolate Home Assistant's timestamped
+  hourly forecast across the candidate warm-up interval and solve backwards for
+  the recommended start. Display current measured outside temperature separately
+  from the forecast range/provider used by that prediction.
 - Integrate against Home Assistant's weather contract rather than provider
   names; validate with Met Office, Open-Meteo and Pirate Weather-shaped entities.
 - Store actual observations separately from forecasts and retain the provenance,
@@ -363,7 +367,8 @@ The agreed Learning page/module structure is recorded in closed
   defined period back inside its expected response envelope. Do not change
   demand, schedules or thermostat/TRV targets.
 - Introduce advisory optimum start before any automatic behaviour. Show the
-  evidence, predicted start, target time/temperature and confidence.
+  current room/outside temperatures, next target/time, forecast range/provider,
+  predicted warm-up and start, evidence and confidence.
 - Keep automatic optimum start behind a later explicit opt-in and confidence
   threshold. Do not change the saved schedule period.
 - Reserve PID for later proportional outputs; do not layer it over binary zone

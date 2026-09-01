@@ -88,3 +88,9 @@ companion Wiki retains the longer chronological design history.
     affected samples until that room returns to its expected response envelope;
     it does not change demand, schedules or thermostat/TRV targets. No inventory
     of log burners or other independent heat sources is required.
+30. Optimum-start prediction separates measured current outdoor temperature from
+    forecast conditions. ZEAL interpolates the configured provider's standard
+    Home Assistant hourly forecast across the candidate warm-up period and
+    solves backwards from the next scheduled target. The administrator view
+    discloses both sources, forecast range/provider, target, warm-up duration,
+    recommended start and confidence; forecast fallback is always labelled.
