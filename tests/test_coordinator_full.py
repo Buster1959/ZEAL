@@ -27,6 +27,7 @@ from custom_components.zeal.const import (
     ROOM_ACTIVE,
     ROOM_ID,
     ROOM_NAME,
+    ROOM_OPENING_SENSORS,
     ROOM_SENSORS,
     ROOM_TRVS,
     SETPOINT_ECHO_TIMEOUT_SECONDS,
@@ -58,12 +59,20 @@ class FakeThermostat:
         self.external_setpoints.append(temperature)
 
 
-def make_room(room_id: str, name: str, trvs: list[str], sensors: list[str], active: bool = True) -> dict:
+def make_room(
+    room_id: str,
+    name: str,
+    trvs: list[str],
+    sensors: list[str],
+    active: bool = True,
+    opening_sensors: list[str] | None = None,
+) -> dict:
     return {
         ROOM_ID: room_id,
         ROOM_NAME: name,
         ROOM_TRVS: trvs,
         ROOM_SENSORS: sensors,
+        ROOM_OPENING_SENSORS: opening_sensors or [],
         ROOM_ACTIVE: active,
     }
 
@@ -242,6 +251,45 @@ async def test_inactive_room_never_demands_regardless_of_temperature(hass, coord
 
     needs_heat, demand_lines = coordinator._evaluate_zone(floor1_zone)
     assert needs_heat is False
+
+
+async def test_opening_sensor_suppresses_only_its_room_demand(
+    hass, coordinator, floor1_zone
+):
+    rooms = floor1_zone[ZONE_ROOMS]
+    rooms[0][ROOM_OPENING_SENSORS] = ["binary_sensor.rooma_window"]
+    coordinator.room_thermostats[rooms[0][ROOM_ID]] = FakeThermostat(25.0)
+    set_sensor(hass, rooms[0][ROOM_SENSORS][0], 18.0)
+    for room in rooms[1:]:
+        coordinator.room_thermostats[room[ROOM_ID]] = FakeThermostat(10.0)
+        set_sensor(hass, room[ROOM_SENSORS][0], 20.0)
+
+    hass.states.async_set("binary_sensor.rooma_window", "on")
+    needs_heat, demand_lines = coordinator._evaluate_zone(floor1_zone)
+
+    assert needs_heat is False
+    assert demand_lines == []
+    assert coordinator.room_thermostats[rooms[0][ROOM_ID]].target_temperature == 25.0
+
+
+@pytest.mark.parametrize("opening_state", ["off", "unknown", "unavailable"])
+async def test_opening_sensor_suppresses_only_when_exactly_on(
+    hass, coordinator, floor1_zone, opening_state
+):
+    rooms = floor1_zone[ZONE_ROOMS]
+    rooms[0][ROOM_OPENING_SENSORS] = ["binary_sensor.rooma_window"]
+    coordinator.room_thermostats[rooms[0][ROOM_ID]] = FakeThermostat(25.0)
+    set_sensor(hass, rooms[0][ROOM_SENSORS][0], 18.0)
+    for room in rooms[1:]:
+        coordinator.room_thermostats[room[ROOM_ID]] = FakeThermostat(10.0)
+        set_sensor(hass, room[ROOM_SENSORS][0], 20.0)
+    hass.states.async_set("binary_sensor.rooma_window", opening_state)
+
+    needs_heat, demand_lines = coordinator._evaluate_zone(floor1_zone)
+
+    assert needs_heat is True
+    assert len(demand_lines) == 1
+    assert "Floor1 RoomA" in demand_lines[0]
 
 
 async def test_thermostat_hvac_off_skips_room_regardless_of_temperature(hass, coordinator, floor1_zone):

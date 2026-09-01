@@ -30,7 +30,8 @@ framework Home Assistant Core itself uses to test its own integrations.
 - `_evaluate_zone` — the room-by-room demand threshold (`Setpoint −
   Temperature > 0`), any-one-room-demanding triggering the whole zone,
   inactive rooms never contributing, a thermostat in `hvac_mode: off`
-  being skipped, and the fallback to highest-TRV-setpoint when a room's
+  being skipped, configured open contacts suppressing only their room without
+  changing its target, and the fallback to highest-TRV-setpoint when a room's
   `ZealRoomThermostat` hasn't registered yet.
 - `_zone_all_trvs_off` — the pump-protection override: fires only when
   every TRV is *confirmed* off, never on an unavailable/uncertain

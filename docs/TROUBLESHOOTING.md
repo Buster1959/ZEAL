@@ -112,6 +112,12 @@ leaves the actuator untouched. Also check the re-enable delay, room active
 state, usable sensor readings and whether every physical TRV is confirmed
 closed.
 
+If a room is labelled **Window/door open**, one of its configured contact
+sensors currently reports `on`. ZEAL intentionally excludes that room from
+demand until all its contacts report closed. The room remains active and its
+thermostat target is unchanged. Check the contact entities in Home Assistant if
+the label does not match the physical opening.
+
 ## ZEAL reports an entity health warning
 
 Read the exact reason in the notification. A state of `unavailable` or

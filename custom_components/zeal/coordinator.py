@@ -60,6 +60,7 @@ from .const import (
     ROOM_ACTIVE,
     ROOM_ID,
     ROOM_NAME,
+    ROOM_OPENING_SENSORS,
     ROOM_SENSORS,
     ROOM_TRVS,
     RUNTIME_LAST_OFF,
@@ -325,6 +326,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                     continue
                 entity_ids.update(room.get(ROOM_TRVS, []) or [])
                 entity_ids.update(room.get(ROOM_SENSORS, []) or [])
+                entity_ids.update(room.get(ROOM_OPENING_SENSORS, []) or [])
 
         if not entity_ids:
             return
@@ -457,6 +459,15 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 _LOGGER.debug("  %s: inactive, skipping", room_name)
                 continue
 
+            open_entities = self._room_open_openings(room)
+            if open_entities:
+                _LOGGER.debug(
+                    "  %s: window/door open (%s), suppressing demand",
+                    room_name,
+                    ", ".join(open_entities),
+                )
+                continue
+
             room_id = room.get(ROOM_ID)
             thermostat = self.room_thermostats.get(room_id)
 
@@ -523,6 +534,15 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 )
 
         return needs_heat, demand_lines
+
+    def _room_open_openings(self, room: dict[str, Any]) -> list[str]:
+        """Return configured window/door sensors currently reporting open."""
+        return [
+            entity_id
+            for entity_id in room.get(ROOM_OPENING_SENSORS, []) or []
+            if (state := self.hass.states.get(entity_id)) is not None
+            and state.state == "on"
+        ]
 
     def _room_setpoint(self, room: dict[str, Any]) -> float | None:
         """Return the highest usable physical-TRV target as a startup fallback."""

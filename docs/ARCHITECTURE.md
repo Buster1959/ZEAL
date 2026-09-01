@@ -28,8 +28,9 @@ other.
 5. **Learning** — `scheduler/learning.py` captures qualified intent above the
    runtime boundary and creates reviewable proposals without writing schedules.
 6. **Heating control** — `coordinator.py` propagates that room target to the
-   configured physical TRVs, evaluates room demand and safely controls the
-   zone actuator.
+   configured physical TRVs, suppresses a room's demand while any configured
+   window/door contact is open, evaluates remaining room demand and safely
+   controls the zone actuator. Opening suppression never writes a setback.
 
 Each config entry owns independently keyed Coordinator, schedule, audit and Learning
 stores. Multiple entries can therefore run separate heating systems. Removing
@@ -45,6 +46,8 @@ TRV. Setup keeps two separate catalogs:
 - ZEAL room thermostats are shown as scheduling targets.
 - Non-ZEAL climate entities in the room's Home Assistant Area are shown as
   physical thermostat/TRV choices.
+- Window, door and opening-class binary sensors in that Area are offered as
+  optional demand-suppression contacts.
 
 The separation uses Home Assistant entity-registry ownership, so renaming an
 entity cannot make a ZEAL thermostat selectable as its own physical TRV.

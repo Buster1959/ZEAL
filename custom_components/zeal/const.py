@@ -10,7 +10,7 @@ DEVICE_MODEL = "Zoned heating controller"
 PANEL_COMPONENT = "zeal-panel"
 PANEL_URL_PATH = DOMAIN
 PANEL_STATIC_URL = f"/{DOMAIN}_static"
-PANEL_ASSET_VERSION = "26"
+PANEL_ASSET_VERSION = "27"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FMT = f"{DOMAIN}_{{entry_id}}"
@@ -101,6 +101,10 @@ ROOM_ID = "room_id"
 ROOM_NAME = "name"
 ROOM_TRVS = "trvs"
 ROOM_SENSORS = "sensors"
+# Optional window/door contact sensors. If any configured entity is exactly
+# "on" (open), the room remains active but is temporarily excluded from zone
+# demand. ZEAL does not change or restore TRV targets for this feature.
+ROOM_OPENING_SENSORS = "opening_sensors"
 # Manual "does this room take part in heating demand" toggle, ported from
 # the `active` flag in the old ashp_rooms.json (e.g. an unoccupied guest
 # room, or a room like Ensuite/Bathroom that was permanently disabled).

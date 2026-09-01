@@ -543,3 +543,12 @@ begins in preparation for that target.
 6. Release advisory optimum start.
 7. Consider explicitly enabled automatic optimum start.
 8. Consider PID only for future hardware with a suitable proportional output.
+
+## Possible V2 opening-setback extension
+
+V1 opening handling is deliberately suppression-only: an open configured
+window/door contact excludes that room from zone demand without writing a lower
+target to its TRVs. A possible V2 feature may apply an active setback while an
+opening is open, but it must include a safe restore-on-close path through the
+canonical `async_propagate_room_setpoint` boundary, preserve intervening manual
+or scheduled changes, and be designed separately before implementation.

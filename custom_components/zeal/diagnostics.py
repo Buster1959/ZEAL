@@ -27,6 +27,7 @@ from .const import (
     DOMAIN,
     ROOM_ACTIVE,
     ROOM_ID,
+    ROOM_OPENING_SENSORS,
     ROOM_SENSORS,
     ROOM_TRVS,
     ZONE_HEAT_SOURCE,
@@ -128,12 +129,25 @@ async def async_get_config_entry_diagnostics(
                     }
                 )
 
+            opening_snapshot = []
+            for opening_index, opening in enumerate(
+                room.get(ROOM_OPENING_SENSORS, []) or [], start=1
+            ):
+                state = hass.states.get(opening)
+                opening_snapshot.append(
+                    {
+                        "entity": f"opening_sensor_{opening_index}",
+                        "state": state.state if state else "not_found",
+                    }
+                )
+
             rooms_snapshot.append(
                 {
                     "room": room_alias,
                     "active": room.get(ROOM_ACTIVE, True),
                     "trvs": trv_snapshot,
                     "sensors": sensor_snapshot,
+                    "opening_sensors": opening_snapshot,
                     "computed_room_temperature": coordinator.room_current_temperature(
                         room_id
                     ),

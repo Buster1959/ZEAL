@@ -29,6 +29,7 @@ from ..const import (
     ROOM_COOLING_CAPABLE,
     ROOM_ID,
     ROOM_NAME,
+    ROOM_OPENING_SENSORS,
     ROOM_SENSORS,
     ROOM_TRVS,
     ASHP_CAPABILITY_HEAT_AND_COOL,
@@ -174,6 +175,7 @@ def configuration_catalog(
         "zeal_room_thermostats": [],
         "physical_room_thermostats": [],
         "temperature_sensors": [],
+        "opening_sensors": [],
     }
     for entity in entity_registry.entities.values():
         if entity.disabled_by is not None or entity.platform == DOMAIN:
@@ -197,6 +199,10 @@ def configuration_catalog(
             entity.device_class or entity.original_device_class
         ) == "temperature":
             catalog["temperature_sensors"].append(item)
+        elif entity.domain == "binary_sensor" and (
+            entity.device_class or entity.original_device_class
+        ) in {"door", "garage_door", "opening", "window"}:
+            catalog["opening_sensors"].append(item)
     data = _entry_data(hass, entry_id)
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None:
@@ -227,6 +233,7 @@ def configuration_catalog(
         "zeal_room_thermostats",
         "physical_room_thermostats",
         "temperature_sensors",
+        "opening_sensors",
     ):
         catalog[key].sort(
             key=lambda item: (str(item["name"]).casefold(), item["entity_id"])
@@ -387,6 +394,10 @@ def validate_hierarchy(
             sensors = _require_unique_strings(
                 raw_room.get(ROOM_SENSORS, []), f"{field}.sensors"
             )
+            opening_sensors = _require_unique_strings(
+                raw_room.get(ROOM_OPENING_SENSORS, []),
+                f"{field}.opening_sensors",
+            )
             for entity_id in trvs:
                 entity = registry_entity(entity_id, "climate", f"{field}.trvs")
                 if effective_area_id(entity) != room_id:
@@ -398,13 +409,24 @@ def validate_hierarchy(
                     raise ValueError(f"{entity_id} is not a temperature sensor")
                 if effective_area_id(entity) != room_id:
                     raise ValueError(f"{entity_id} does not belong to Area {room_id}")
-            duplicates = used_room_entities.intersection((*trvs, *sensors))
+            for entity_id in opening_sensors:
+                entity = registry_entity(
+                    entity_id, "binary_sensor", f"{field}.opening_sensors"
+                )
+                device_class = entity.device_class or entity.original_device_class
+                if device_class not in {"door", "garage_door", "opening", "window"}:
+                    raise ValueError(f"{entity_id} is not a window/door sensor")
+                if effective_area_id(entity) != room_id:
+                    raise ValueError(f"{entity_id} does not belong to Area {room_id}")
+            duplicates = used_room_entities.intersection(
+                (*trvs, *sensors, *opening_sensors)
+            )
             if duplicates:
                 raise ValueError(
                     "room equipment is assigned more than once: "
                     + ", ".join(sorted(duplicates))
                 )
-            used_room_entities.update((*trvs, *sensors))
+            used_room_entities.update((*trvs, *sensors, *opening_sensors))
             active = raw_room.get(ROOM_ACTIVE, True)
             if not isinstance(active, bool):
                 raise ValueError(f"{field}.active must be true or false")
@@ -419,6 +441,7 @@ def validate_hierarchy(
                     ROOM_NAME: area.name,
                     ROOM_TRVS: trvs,
                     ROOM_SENSORS: sensors,
+                    ROOM_OPENING_SENSORS: opening_sensors,
                     ROOM_ACTIVE: active,
                     ROOM_COOLING_CAPABLE: cooling_capable,
                 }

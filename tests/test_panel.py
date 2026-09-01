@@ -210,6 +210,9 @@ def test_frontend_contains_live_overview_demand_contracts():
     assert "Setpoint ${this._formatScheduleTemperature" in source
     assert "Temperature ${this._formatScheduleTemperature" in source
     assert 'label: demanding ? "Demand" : "Satisfied"' in source
+    assert 'label: "Window/door open"' in source
+    assert "room.opening_sensors" in source
+    assert "does not request heat" in source
     assert 'this._hass?.states?.[thermostat.entity_id]' in source
     assert "overflow-x:auto" in source
     assert "_syncOverviewDemand" in source

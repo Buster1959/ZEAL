@@ -10,6 +10,8 @@ to `1.0.0`.
 - One canonical ZEAL room thermostat with synchronized physical TRVs.
 - Safe zone-demand control, re-enable delays, Manual override and device-health
   notifications.
+- Optional per-room window/door contacts suppress that room's demand while open
+  and appear distinctly on Overview without changing thermostat targets.
 - Seven-day visual schedules with exact editing, day application and room copy.
 - Temporary Quick Change for rooms, zones, selections or the whole house.
 - Calendar or exact-date Away mode with an immediate **End Away now** action.

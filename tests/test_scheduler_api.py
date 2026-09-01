@@ -19,6 +19,7 @@ from custom_components.zeal.const import (
     ROOM_ACTIVE,
     ROOM_ID,
     ROOM_NAME,
+    ROOM_OPENING_SENSORS,
     ROOM_SENSORS,
     ROOM_TRVS,
     ZONE_ID,
@@ -152,11 +153,23 @@ def test_revision_is_deterministic_and_changes_with_either_document():
 
 def test_valid_hierarchy_is_normalized_from_home_assistant_registries(hass):
     area, switch, trv, sensor, zone = create_registry_fixture(hass)
+    registry = er.async_get(hass)
+    opening = registry.async_get_or_create(
+        "binary_sensor",
+        "test",
+        "living_window",
+        suggested_object_id="living_window",
+        original_name="Living Window",
+        original_device_class="window",
+    )
+    registry.async_update_entity(opening.entity_id, area_id=area.id)
+    zone[ZONE_ROOMS][0][ROOM_OPENING_SENSORS] = [opening.entity_id]
     normalized = validate_hierarchy(hass, [zone])
     room = normalized[0][ZONE_ROOMS][0]
     assert room[ROOM_NAME] == area.name
     assert room[ROOM_TRVS] == [trv.entity_id]
     assert room[ROOM_SENSORS] == [sensor.entity_id]
+    assert room[ROOM_OPENING_SENSORS] == [opening.entity_id]
     assert normalized[0][ZONE_SWITCH] == switch.entity_id
 
 
@@ -210,6 +223,16 @@ async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass)
         suggested_object_id="holidays",
         original_name="Holidays",
     )
+    opening = er.async_get(hass).async_get_or_create(
+        "binary_sensor",
+        "test",
+        "living_window",
+        suggested_object_id="living_window",
+        original_name="Living Window",
+        original_device_class="window",
+    )
+    er.async_get(hass).async_update_entity(opening.entity_id, area_id=area.id)
+    zone[ZONE_ROOMS][0][ROOM_OPENING_SENSORS] = [opening.entity_id]
     entry = await setup_loaded_entry(hass, [zone])
 
     catalog = configuration_snapshot(hass, entry.entry_id)["catalog"]
@@ -219,10 +242,15 @@ async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass)
     zeal_targets = catalog["zeal_room_thermostats"]
     sensor_ids = {item["entity_id"] for item in catalog["temperature_sensors"]}
     calendar_ids = {item["entity_id"] for item in catalog["calendars"]}
+    opening_ids = {item["entity_id"] for item in catalog["opening_sensors"]}
 
     assert trv.entity_id in physical_ids
     assert sensor.entity_id in sensor_ids
     assert calendar.entity_id in calendar_ids
+    assert opening.entity_id in opening_ids
+    assert configuration_snapshot(hass, entry.entry_id)["zones"][0][ZONE_ROOMS][0][
+        ROOM_OPENING_SENSORS
+    ] == [opening.entity_id]
     assert len(zeal_targets) == 1
     assert zeal_targets[0]["room_id"] == area.id
     assert zeal_targets[0]["zone_id"] == "ground_floor"

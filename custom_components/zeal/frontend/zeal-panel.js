@@ -589,6 +589,24 @@ class ZealPanel extends HTMLElement {
     }
     const thermostat = this._zealThermostat(room.room_id);
     const state = thermostat ? this._hass?.states?.[thermostat.entity_id] : null;
+    const openingIsOpen = (room.opening_sensors || []).some(
+      (entityId) => this._hass?.states?.[entityId]?.state === "on"
+    );
+    if (openingIsOpen) {
+      const setpoint = state?.attributes?.temperature == null
+        ? null
+        : Number(state.attributes.temperature);
+      const temperature = state?.attributes?.current_temperature == null
+        ? null
+        : Number(state.attributes.current_temperature);
+      return {
+        name,
+        label: "Window/door open",
+        cssClass: "suppressed",
+        setpoint: Number.isFinite(setpoint) ? setpoint : null,
+        temperature: Number.isFinite(temperature) ? temperature : null,
+      };
+    }
     if (!state || ["unknown", "unavailable"].includes(state.state)) {
       return { name, label: "Unavailable", cssClass: "unknown", setpoint: null, temperature: null };
     }
@@ -2004,6 +2022,9 @@ class ZealPanel extends HTMLElement {
     const sensors = (this._configuration.catalog.temperature_sensors || []).filter(
       (item) => item.area_id === room.room_id
     );
+    const openingSensors = (this._configuration.catalog.opening_sensors || []).filter(
+      (item) => item.area_id === room.room_id
+    );
     const zealThermostat = this._zealThermostat(room.room_id);
     return `<section class="room-editor">
       <div class="room-editor-title"><div><h4>${this._escape(
@@ -2035,6 +2056,15 @@ class ZealPanel extends HTMLElement {
           roomIndex,
           "sensors",
           "Choose the Area sensors ZEAL should use to measure room temperature."
+        )}
+        ${this._multiSelect(
+          "Window / door sensors",
+          openingSensors,
+          room.opening_sensors || [],
+          zoneIndex,
+          roomIndex,
+          "opening_sensors",
+          "While any selected contact is open, this room is shown as window/door open and does not request heat. ZEAL does not change its thermostat target."
         )}
       </div>
     </section>`;
@@ -2513,6 +2543,7 @@ class ZealPanel extends HTMLElement {
       name: area?.name || areaId,
       trvs: [],
       sensors: [],
+      opening_sensors: [],
       active: true,
       cooling_capable: false,
     });
@@ -2750,6 +2781,8 @@ class ZealPanel extends HTMLElement {
       .demand-chip.demanding em { color:var(--warning-color, #ef6c00); }
       .demand-chip.satisfied { border-left-color:var(--success-color, #2e7d32); }
       .demand-chip.satisfied em { color:var(--success-color, #2e7d32); }
+      .demand-chip.suppressed { border-left-color:var(--info-color, #039be5); }
+      .demand-chip.suppressed em { color:var(--info-color, #039be5); }
       .demand-chip.inactive, .demand-chip.unknown { opacity:.72; }
       .demand-chip.unknown { border-left-color:var(--error-color); }
       .demand-empty { color:var(--secondary-text-color); font-size:12px; }

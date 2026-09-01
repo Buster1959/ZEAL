@@ -54,7 +54,8 @@ room thermostats, sensors and actuators; it is not listed under Helpers.
 Open **ZEAL → Setup**. Add a Zone/Floor, select its single heating actuator and
 heat source, then review the suggested re-enable delay. Add one or more Home
 Assistant Areas as rooms and choose the non-ZEAL physical thermostats/TRVs and
-temperature sensors in each Area. Mark unused rooms inactive and save.
+temperature sensors in each Area. Optionally attach one or more window/door
+contact sensors. Mark unused rooms inactive and save.
 
 Setup and the **Modify setup** action are shown only to Home Assistant
 administrators. Setup's **Standard-user access** card lets an administrator
@@ -74,12 +75,15 @@ The physical equipment picker intentionally excludes ZEAL's own room
 thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
 heat source, delay and equipment counts. Each Zone/Floor card also shows the live
 heating-actuator state and a horizontally scrollable room-demand strip. Every
-room is labelled Demand, Satisfied, Off, Inactive or Unavailable alongside its
-current setpoint and measured temperature, making it easy to see why a zone is
+room is labelled Demand, Satisfied, Window/door open, Off, Inactive or
+Unavailable alongside its current setpoint and measured temperature, making it easy to see why a zone is
 heating. Heat demand and physical actuator state are displayed separately: a
 zone can have demand while its actuator is still off during the re-enable delay
 or because Manual Override or a safety condition is holding it. While demand is
-waiting for the re-enable delay, the card shows the live seconds remaining. It
+calculated, a room with any configured window/door sensor reporting open is
+shown distinctly and temporarily contributes no heat demand. Its thermostat
+target is not changed.
+While waiting for the re-enable delay, the card shows the live seconds remaining. It
 also identifies Zone Manual Override and the all-TRVs-closed safety hold by name,
 so a normal delay is not mistaken for a fault. Each room also separates its last
 scheduled setpoint from the currently effective control source. Manual Home

@@ -26,6 +26,7 @@ config-entry options.
           "name": "Example Room",
           "trvs": ["climate.example_trv"],
           "sensors": ["sensor.example_temperature"],
+          "opening_sensors": ["binary_sensor.example_window"],
           "active": true,
           "cooling_capable": false
         }
@@ -43,6 +44,11 @@ multiple loaded instances, the link is visible if any instance requests it.
 `room_id` is the stable Home Assistant Area ID. One Area can belong to only one
 ZEAL zone. `ashp_capability` and `cooling_capable` are reserved safe-default V2
 fields; no V1 cooling behavior uses them.
+
+`opening_sensors` contains optional window/door `binary_sensor` entities in the
+room's Area. If any reports `on`, the room remains active but contributes no
+zone heating demand. This state does not change its canonical or physical
+thermostat target.
 
 ## Schedule document
 
