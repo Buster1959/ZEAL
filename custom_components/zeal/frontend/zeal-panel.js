@@ -1737,7 +1737,7 @@ class ZealPanel extends HTMLElement {
       <label class="active-toggle"><input type="checkbox" data-action="learning-persistent-notifications" ${
         this._learningPersistentNotifications ? "checked" : ""
       } /><span><strong>Home Assistant Persistent Notifications</strong><small>Maintain one aggregated alert when Learning suggestions are ready for review.</small></span></label>
-      <small>Initial defaults: three qualifying dates for the same comparable schedule period within 21 days. Learning history may reveal household routines.</small>
+      <small>The current evidence threshold and observation window are shown on the Learning page. Learning history may reveal household routines.</small>
     </section>`;
   }
 
@@ -1767,15 +1767,22 @@ class ZealPanel extends HTMLElement {
       (proposal.status === "snoozed" && proposal.snoozed_until && new Date(proposal.snoozed_until).getTime() <= Date.now())
     );
     const history = proposals.filter((proposal) => !actionable.includes(proposal));
+    const threshold = Number(this._learning?.evidence_threshold);
+    const observationDays = Number(this._learning?.observation_days);
+    if (!Number.isInteger(threshold) || threshold < 1 || !Number.isInteger(observationDays) || observationDays < 1) {
+      return `<section class="empty-card"><h3>Learning policy unavailable</h3><p>Reload ZEAL. The evidence threshold and observation window were not returned by the integration.</p></section>`;
+    }
     return `<section class="page-heading"><div><h2>Learning Notifications</h2><p>Review evidence-backed Schedule Adaptation suggestions. Nothing is committed without confirmation.</p></div></section>
       ${this._learningEvidenceProgress()}
       <section class="learning-section-heading"><h3>Schedule suggestions</h3><p>Review, adjust, postpone or dismiss each suggestion.</p></section>
-      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after three qualifying dates for the same room and comparable schedule period.</p></section>`}
+      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after ${threshold} qualifying dates for the same room and comparable schedule period.</p></section>`}
       ${history.length ? `<section class="setup-help"><strong>Proposal history</strong><p>${history.length} accepted, dismissed or conflicted proposal${history.length === 1 ? "" : "s"}.</p></section><section class="zone-grid">${history.map((proposal) => this._learningProposal(proposal, false)).join("")}</section>` : ""}`;
   }
 
   _learningEvidenceProgress() {
-    const cutoff = Date.now() - 21 * 24 * 60 * 60 * 1_000;
+    const observationDays = Number(this._learning.observation_days);
+    const threshold = Number(this._learning.evidence_threshold);
+    const cutoff = Date.now() - observationDays * 24 * 60 * 60 * 1_000;
     const qualifying = (this._learning?.events || []).filter((event) =>
       event.outcome === "applied" && new Date(event.timestamp).getTime() >= cutoff
     );
@@ -1791,12 +1798,12 @@ class ZealPanel extends HTMLElement {
     const roomName = (roomId) => (this._configuration.zones || [])
       .flatMap((zone) => zone.rooms || [])
       .find((room) => room.room_id === roomId)?.name || roomId;
-    return `<section class="learning-progress"><div><h3>Learning is active</h3><p>${qualifying.length} qualifying change${qualifying.length === 1 ? "" : "s"} recorded across ${active.length} active pattern${active.length === 1 ? "" : "s"}. A suggestion needs changes on three separate dates within 21 days.</p></div>
+    return `<section class="learning-progress"><div><h3>Learning is active</h3><p>${qualifying.length} qualifying change${qualifying.length === 1 ? "" : "s"} recorded across ${active.length} active pattern${active.length === 1 ? "" : "s"}. A suggestion needs changes on ${threshold} separate dates within ${observationDays} days.</p></div>
       ${active.length ? `<ul>${active.map((events) => {
         const latest = events[events.length - 1];
         const dates = new Set(events.map((event) => event.local_date));
-        const expiry = new Date(new Date(events[0].timestamp).getTime() + 21 * 24 * 60 * 60 * 1_000);
-        return `<li><strong>${this._escape(roomName(latest.room_id))}</strong><span>${this._escape(this._learningAdaptationLabel(latest))} · ${Math.min(dates.size, 3)} of 3 qualifying dates</span><small>Oldest evidence expires ${this._escape(expiry.toLocaleDateString())}</small></li>`;
+        const expiry = new Date(new Date(events[0].timestamp).getTime() + observationDays * 24 * 60 * 60 * 1_000);
+        return `<li><strong>${this._escape(roomName(latest.room_id))}</strong><span>${this._escape(this._learningAdaptationLabel(latest))} · ${Math.min(dates.size, threshold)} of ${threshold} qualifying dates</span><small>Oldest evidence expires ${this._escape(expiry.toLocaleDateString())}</small></li>`;
       }).join("")}</ul>` : `<p class="learning-progress-empty">No qualifying manual changes have been recorded yet.</p>`}
     </section>`;
   }

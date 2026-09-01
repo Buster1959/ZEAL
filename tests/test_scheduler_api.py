@@ -518,6 +518,8 @@ async def test_admin_websocket_accepts_learning_proposal_with_revision_check(
     )
     response = await client.receive_json()
     assert response["success"] is True
+    assert response["result"]["evidence_threshold"] == 3
+    assert response["result"]["observation_days"] == 21
     assert response["result"]["proposals"][0]["status"] == "new"
 
     await client.send_json_auto_id(

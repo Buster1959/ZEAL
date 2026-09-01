@@ -393,6 +393,8 @@ class ScheduleLearning:
         """Return detached learning state for API consumers."""
         return {
             "version": LEARNING_STORAGE_VERSION,
+            "observation_days": LEARNING_OBSERVATION_DAYS,
+            "evidence_threshold": LEARNING_EVIDENCE_THRESHOLD,
             "events": [dict(item) for item in self._store.events],
             "proposals": [dict(item) for item in self._store.proposals],
         }
