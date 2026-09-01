@@ -1,5 +1,11 @@
 # ZEAL Troubleshooting
 
+> **Archived repository snapshot.** The maintained source of truth is now the
+> [ZEAL wiki Troubleshooting guide](https://github.com/Buster1959/ZEAL/wiki/Troubleshooting).
+> This snapshot is retained during the documentation transition so information
+> remains available offline and can be cross-checked. Do not update it as a
+> second guide; update the wiki owner page instead.
+
 ## A thermostat or sensor is missing from Setup
 
 Confirm the entity is enabled and assigned to the correct Home Assistant Area.

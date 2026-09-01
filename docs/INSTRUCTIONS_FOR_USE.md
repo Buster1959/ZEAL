@@ -1,5 +1,11 @@
 # ZEAL Instructions for Use — V1 Draft
 
+> **Archived repository snapshot.** The maintained source of truth is now the
+> [ZEAL wiki Instructions for Use](https://github.com/Buster1959/ZEAL/wiki/Instructions-for-Use).
+> This snapshot is retained during the documentation transition so information
+> remains available offline and can be cross-checked. Do not update it as a
+> second manual; update the wiki owner page instead.
+
 ZEAL combines room thermostats, heating-demand control and a weekly visual
 scheduler in one Home Assistant integration. V1 is still being prepared; use
 dummy or spare equipment first and complete the live test plan before relying

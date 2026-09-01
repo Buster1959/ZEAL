@@ -21,6 +21,26 @@
 > automatically pick up as `zeal` — remove the old integration instance and
 > add it fresh under the new domain.
 
+## Current capabilities
+
+ZEAL provides zone/room equipment setup, canonical synchronized room
+thermostats, safe demand/actuator control, seven-day schedules, Quick Change,
+Away mode and opt-in Schedule Adaptation Learning. Overview is available to
+every signed-in user; Setup remains administrator-only. Administrators can grant
+standard users Schedule and Learning access and/or Quick Change access.
+
+The [ZEAL wiki](../../wiki) owns current user instructions and troubleshooting.
+Code-adjacent architecture, schemas, tests and release evidence remain in this
+repository. See the wiki's
+[Documentation Ownership](../../wiki/Documentation-Ownership) map.
+
+<details>
+<summary>Archived pre-V1 feature and migration detail</summary>
+
+The material below is retained temporarily for information-loss cross-checking.
+It is not the maintained user manual; use the wiki links above for current
+guidance.
+
 ## What it does (today)
 
 - Define **Zones** — a Zone is whatever grouping makes sense for your house (e.g.
@@ -148,6 +168,8 @@ want your system to work:
   press a "start" button. Test with dummy/spare TRVs and switches before pointing it
   at your actual heating actuators.
 
+</details>
+
 ## Installation
 
 ### HACS (custom repository)
@@ -176,9 +198,10 @@ If the button is unavailable, add the repository manually:
 
 ## Documentation
 
-- [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) — installation, Setup,
-  Schedule, Quick Change, Away, downloads and mobile use
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Wiki — Getting Started](../../wiki/Getting-Started)
+- [Wiki — Instructions for Use](../../wiki/Instructions-for-Use)
+- [Wiki — Troubleshooting](../../wiki/Troubleshooting)
+- [Wiki — Documentation Ownership](../../wiki/Documentation-Ownership)
 - [Live test plan](TEST_PLAN.md), [UI acceptance tests](docs/UI_ACCEPTANCE_TESTS.md)
   and [V1 acceptance record](docs/V1_ACCEPTANCE_RECORD.md)
 - [Architecture](docs/ARCHITECTURE.md) and [data model](docs/DATA_MODEL.md)
@@ -192,7 +215,7 @@ If the button is unavailable, add the repository manually:
 
 ZEAL uses one Home Assistant panel for Overview, Schedule, Overrides, Learning
 and Setup. The screenshots below are from the generic V1 test
-installation; see the [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) for
+installation; see the [wiki Instructions for Use](../../wiki/Instructions-for-Use) for
 the complete guided tour.
 
 ### Zone and room setup
@@ -212,6 +235,13 @@ the complete guided tour.
 When an administrator enables Schedule Adaptation, **Learning** shows captured
 evidence, progress toward the three-date threshold, reviewable suggestions and
 proposal history. A dedicated release screenshot is still required before V1.
+
+<details>
+<summary>Archived README manual, roadmap and troubleshooting detail</summary>
+
+The maintained user instructions and troubleshooting are in the wiki. The
+technical roadmaps and contracts linked inside this archive remain owned by the
+repository.
 
 ## Configuration
 
@@ -559,6 +589,8 @@ Settings → Areas & Zones, and that at least one entity (TRV, sensor, or anythi
 else) is assigned to it — an Area with nothing in it still works as a room, but
 won't have anything to auto-discover.
 
+</details>
+
 ## Contributing
 
 Issues and pull requests welcome. This is a V1 release-candidate project moving
@@ -576,15 +608,8 @@ any bug fix.
 purpose, including commercially, with one restriction: you can't use it to build
 a competing product. See the [LICENSE](LICENSE) file for the full, official text.
 
----
-
-📖 **This repo has a companion [wiki](../../wiki)** with the full project
-definition, decisions log, and long-term design docs (including the ASHP
-heating+cooling roadmap) — more detail than belongs in a README, and edited
-far more often than the code itself. It's a **separate git repository** from
-this one (`git clone https://github.com/Buster1959/ZEAL.wiki.git`), so
-cloning or downloading this repo alone does **not** bring the wiki with it.
-If you're cloning for offline use or archival purposes, clone both:
+The [wiki](../../wiki) is a separate Git repository. Clone both for complete
+offline user and technical documentation:
 
 ```bash
 git clone https://github.com/Buster1959/ZEAL.git
