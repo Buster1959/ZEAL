@@ -26,6 +26,7 @@ from .configuration import (
     async_save_hierarchy,
     async_save_schedule,
     configuration_snapshot,
+    current_revision,
     export_configuration,
 )
 from .editor import copy_room_schedule, update_room_days
@@ -167,6 +168,14 @@ async def ws_decide_learning_proposal(hass, connection, msg) -> None:
     if data is None:
         _send_not_found(connection, msg)
         return
+    entry = hass.config_entries.async_get_entry(msg["entry_id"])
+    if entry is None or not entry.options.get(CONF_LEARNING_ENABLED, False):
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_NOT_ALLOWED,
+            "ZEAL Learning is disabled; re-enable it before deciding a proposal",
+        )
+        return
     learning = data["schedule_learning"]
     now = dt_util.now()
     user_id = connection.user.id
@@ -228,7 +237,7 @@ async def ws_decide_learning_proposal(hass, connection, msg) -> None:
                 hass,
                 msg["entry_id"],
                 configuration,
-                expected_revision=str(proposal["schedule_revision"]),
+                expected_revision=current_revision(hass, msg["entry_id"]),
             )
             accepted_period = configuration.rooms[str(proposal["room_id"])].days[
                 str(proposal["weekday"])

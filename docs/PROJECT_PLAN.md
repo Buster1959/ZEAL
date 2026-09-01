@@ -244,7 +244,7 @@ schedule changes only after explicit user confirmation. Accepted suggestions
 must remain traceable and safely revertible unless a later schedule revision
 creates a visible conflict.
 
-Status: implemented for development validation in `0.14.3`. Production learning
+Status: implemented for development validation in `0.14.4`. Production learning
 is disabled by default. The remaining gates are full automated regression,
 Home Assistant user testing and live evidence/notification review before a
 learning release is declared stable.

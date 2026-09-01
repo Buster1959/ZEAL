@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from hashlib import sha256
+import json
 from statistics import median
 from typing import Any, Callable
 from uuid import uuid4
@@ -13,6 +15,7 @@ from ..const import (
     LEARNING_MAX_EVENTS,
     LEARNING_MAX_PROPOSALS,
     LEARNING_OBSERVATION_DAYS,
+    LEARNING_RETENTION_DAYS,
     LEARNING_STORAGE_KEY_FMT,
     LEARNING_STORAGE_VERSION,
     LEARNING_TEMPERATURE_TOLERANCE,
@@ -42,13 +45,21 @@ class ClassifiedChange:
             (
                 self.adaptation_type,
                 self.adaptation_direction,
-                self.period_id,
                 self.original_time,
                 f"{self.original_temperature:.1f}",
                 "-",
                 f"{temperature:.1f}",
             )
         )
+
+
+def room_schedule_revision(configuration: ScheduleConfiguration, room_id: str) -> str:
+    """Fingerprint only the room schedule relevant to learning evidence."""
+    room = configuration.rooms.get(room_id)
+    if room is None:
+        raise ValueError("Learning event refers to an unknown room")
+    payload = json.dumps(room.to_dict(), sort_keys=True, separators=(",", ":"))
+    return sha256(payload.encode()).hexdigest()[:16]
 
 
 def classify_manual_change(
@@ -208,6 +219,13 @@ class LearningStore:
             ][-LEARNING_MAX_PROPOSALS:]
 
     async def async_save(self) -> None:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=LEARNING_RETENTION_DAYS)
+        self.events = [
+            event
+            for event in self.events
+            if (timestamp := event.get("timestamp"))
+            and datetime.fromisoformat(str(timestamp)) >= cutoff
+        ]
         self.events = self.events[-LEARNING_MAX_EVENTS:]
         self.proposals = self.proposals[-LEARNING_MAX_PROPOSALS:]
         await self._store.async_save(
@@ -228,12 +246,14 @@ class ScheduleLearning:
         configuration_provider: Callable[[], ScheduleConfiguration],
         revision_provider: Callable[[], str],
         enabled_provider: Callable[[], bool] = lambda: True,
+        exclusion_provider: Callable[[str], str | None] = lambda _room_id: None,
         notification_callback: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         self._store = store
         self._configuration_provider = configuration_provider
         self._revision_provider = revision_provider
         self._enabled_provider = enabled_provider
+        self._exclusion_provider = exclusion_provider
         self._notification_callback = notification_callback
 
     async def async_record_change(
@@ -264,6 +284,7 @@ class ScheduleLearning:
             "source": source,
             "requested_temperature": float(requested_temperature),
             "schedule_revision": self._revision_provider(),
+            "room_schedule_revision": room_schedule_revision(configuration, room_id),
             "adaptation_type": classified.adaptation_type,
             "adaptation_direction": classified.adaptation_direction,
             "weekday": classified.weekday,
@@ -275,8 +296,12 @@ class ScheduleLearning:
             "pattern_key": classified.pattern_key,
             "outcome": outcome,
         }
+        excluded_reason = self._exclusion_provider(room_id)
+        if excluded_reason:
+            event["outcome"] = "excluded"
+            event["excluded_reason"] = excluded_reason
         self._store.events.append(event)
-        proposal = self._detect(event, when)
+        proposal = None if excluded_reason else self._detect(event, when)
         if proposal is not None:
             self._store.proposals.append(proposal)
         await self._store.async_save()
@@ -293,14 +318,16 @@ class ScheduleLearning:
             for event in self._store.events
             if event.get("room_id") == latest["room_id"]
             and event.get("pattern_key") == latest["pattern_key"]
-            and event.get("schedule_revision") == latest["schedule_revision"]
+            and event.get("room_schedule_revision")
+            == latest["room_schedule_revision"]
             and datetime.fromisoformat(str(event["timestamp"])) >= cutoff
         ]
         dismissed = [
             proposal
             for proposal in self._store.proposals
             if proposal.get("pattern_key") == latest["pattern_key"]
-            and proposal.get("schedule_revision") == latest["schedule_revision"]
+            and proposal.get("room_schedule_revision")
+            == latest["room_schedule_revision"]
             and proposal.get("status") == "dismissed"
             and proposal.get("decided_at")
         ]
@@ -321,7 +348,8 @@ class ScheduleLearning:
             return None
         if any(
             proposal.get("pattern_key") == latest["pattern_key"]
-            and proposal.get("schedule_revision") == latest["schedule_revision"]
+            and proposal.get("room_schedule_revision")
+            == latest["room_schedule_revision"]
             and proposal.get("status") in ("new", "snoozed", "accepted")
             for proposal in self._store.proposals
         ):
@@ -349,6 +377,7 @@ class ScheduleLearning:
             "adaptation_type": latest["adaptation_type"],
             "adaptation_direction": latest["adaptation_direction"],
             "schedule_revision": latest["schedule_revision"],
+            "room_schedule_revision": latest["room_schedule_revision"],
             "pattern_key": latest["pattern_key"],
             "original_time": latest["original_time"],
             "original_temperature": latest["original_temperature"],
@@ -414,9 +443,10 @@ class ScheduleLearning:
 def sync_persistent_notification(hass, entry_id: str, state: dict[str, Any]) -> None:
     """Maintain one aggregated Home Assistant notification per ZEAL instance."""
     from homeassistant.components import persistent_notification
+    from homeassistant.util import dt as dt_util
 
     notification_id = f"zeal_learning_{entry_id}"
-    now = datetime.now().astimezone()
+    now = dt_util.now()
     actionable = [
         proposal
         for proposal in state.get("proposals", [])

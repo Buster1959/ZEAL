@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from custom_components.zeal.scheduler.learning import (
     LearningStore,
@@ -29,17 +29,20 @@ class MemoryStore:
         self.data = data
 
 
-def configuration() -> ScheduleConfiguration:
-    monday = (
-        SchedulePeriod("morning", "morning", "Morning", "07:00", 18),
-        SchedulePeriod("day", "day", "Day", "08:00", 20),
-    )
+def configuration(*, shared_period_ids: bool = True) -> ScheduleConfiguration:
+    days = {}
+    for day in WEEKDAYS:
+        suffix = "" if shared_period_ids else f"-{day}"
+        days[day] = (
+            SchedulePeriod(f"morning{suffix}", "morning", "Morning", "07:00", 18),
+            SchedulePeriod(f"day{suffix}", "day", "Day", "08:00", 20),
+        )
     return ScheduleConfiguration(
         rooms={
             "lounge": RoomSchedule(
                 "lounge",
                 "Lounge",
-                {day: monday for day in WEEKDAYS},
+                days,
             )
         },
         temperature_unit="°C",
@@ -85,7 +88,9 @@ def test_different_target_remains_with_active_adjacent_period():
 
 async def test_three_matching_distinct_days_create_temperature_proposal():
     store = LearningStore(None, "entry", store=MemoryStore())
-    engine = learning(store)
+    engine = ScheduleLearning(
+        store, lambda: configuration(shared_period_ids=False), lambda: "revision-one"
+    )
     assert await engine.async_record_change(
         room_id="lounge", requested_temperature=19,
         source="home_assistant", when=at(3, 7, 35)
@@ -100,9 +105,49 @@ async def test_three_matching_distinct_days_create_temperature_proposal():
     )
     assert proposal is not None
     assert proposal["weekday"] == "wednesday"
-    assert proposal["period_id"] == "morning"
+    assert proposal["period_id"] == "morning-wednesday"
     assert proposal["proposed_temperature"] == 19.0
     assert proposal["evidence_count"] == 3
+
+
+async def test_unrelated_global_revisions_do_not_reset_room_evidence():
+    store = LearningStore(None, "entry", store=MemoryStore())
+    revision = {"value": "revision-one"}
+    engine = ScheduleLearning(store, configuration, lambda: revision["value"])
+    proposal = None
+    for index, day in enumerate((3, 4, 5), start=1):
+        revision["value"] = f"unrelated-global-revision-{index}"
+        proposal = await engine.async_record_change(
+            room_id="lounge",
+            requested_temperature=19,
+            source="home_assistant",
+            when=at(day, 7, 35),
+        )
+    assert proposal is not None
+    assert proposal["evidence_count"] == 3
+
+
+async def test_away_change_is_audited_but_excluded_from_detection():
+    store = LearningStore(None, "entry", store=MemoryStore())
+    engine = ScheduleLearning(
+        store,
+        configuration,
+        lambda: "revision-one",
+        exclusion_provider=lambda _room_id: "away_mode_active",
+    )
+    for day in (3, 4, 5):
+        assert await engine.async_record_change(
+            room_id="lounge",
+            requested_temperature=19,
+            source="physical_trv",
+            when=at(day, 7, 35),
+        ) is None
+    assert len(store.events) == 3
+    assert {event["outcome"] for event in store.events} == {"excluded"}
+    assert {event["excluded_reason"] for event in store.events} == {
+        "away_mode_active"
+    }
+    assert store.proposals == []
 
 
 async def test_repeated_changes_on_one_date_count_once():
@@ -134,6 +179,18 @@ async def test_learning_store_round_trip():
     await restored.async_load()
     assert len(restored.events) == 1
     assert restored.events[0]["period_id"] == "morning"
+
+
+async def test_learning_store_prunes_events_outside_privacy_retention():
+    memory = MemoryStore()
+    store = LearningStore(None, "entry", store=memory)
+    now = datetime.now(timezone.utc)
+    store.events = [
+        {"event_id": "expired", "timestamp": (now - timedelta(days=43)).isoformat()},
+        {"event_id": "retained", "timestamp": (now - timedelta(days=41)).isoformat()},
+    ]
+    await store.async_save()
+    assert [event["event_id"] for event in store.events] == ["retained"]
 
 
 def test_apply_proposal_changes_only_exact_evidenced_period():

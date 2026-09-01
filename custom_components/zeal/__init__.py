@@ -152,6 +152,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         lambda: schedule_runtime.configuration,
         lambda: current_revision(hass, entry.entry_id),
         lambda: entry.options.get(CONF_LEARNING_ENABLED, False),
+        lambda _room_id: (
+            "away_mode_active"
+            if schedule_runtime.away_mode_state().get("active")
+            else None
+        ),
         lambda state: sync_persistent_notification(hass, entry.entry_id, state)
         if entry.options.get(CONF_LEARNING_PERSISTENT_NOTIFICATIONS, True)
         else None,
