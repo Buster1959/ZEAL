@@ -335,15 +335,17 @@ Thermal observations and derived room models will use bounded, versioned Home
 Assistant Store documents. ZEAL will not introduce MariaDB or a separate SQLite
 database for this feature. The volume, retention and compaction contract is a
 required design gate tracked in [#6](https://github.com/Buster1959/ZEAL/issues/6).
-The Learning page/module structure is separately gated by
+The agreed Learning page/module structure is recorded in closed
 [#7](https://github.com/Buster1959/ZEAL/issues/7).
 
-- Add an administrator Thermal Response Yes/No option. On first enable, ask for
-  one EPC band estimate (including Not sure), a preferred local outdoor
-  temperature sensor, a fallback weather provider and included rooms. Explain
-  that an inaccurate EPC estimate only lengthens initial learning.
-- Use the preferred local sensor for observations and the compatible weather
-  entity for fallback current temperature and hourly forecast.
+- Add an administrator Thermal Response Yes/No option. On first enable, ask one
+  plain-language “How easily does your home stay warm?” question (five choices
+  plus Not sure, with EPC bands only as an optional guide), a preferred local
+  outdoor-temperature sensor, a fallback weather provider and included rooms.
+  Do not ask for specialist building data. Explain that an inaccurate starting
+  estimate only lengthens initial learning.
+- Use the preferred local outdoor sensor for observations and the compatible
+  weather entity for fallback current temperature and hourly forecast.
 - Integrate against Home Assistant's weather contract rather than provider
   names; validate with Met Office, Open-Meteo and Pirate Weather-shaped entities.
 - Store actual observations separately from forecasts and retain the provenance,
@@ -356,6 +358,10 @@ The Learning page/module structure is separately gated by
   separate future opt-in.
 - Reject or down-weight stale sensors, open-window periods, interrupted runs,
   manual changes, unexplained heat sources and likely solar/occupancy gains.
+- Detect an abrupt unexplained per-room temperature rise, label it suspected
+  external heat, pause only that room's model training, and resume after a
+  defined period back inside its expected response envelope. Do not change
+  demand, schedules or thermostat/TRV targets.
 - Introduce advisory optimum start before any automatic behaviour. Show the
   evidence, predicted start, target time/temperature and confidence.
 - Keep automatic optimum start behind a later explicit opt-in and confidence

@@ -73,12 +73,18 @@ companion Wiki retains the longer chronological design history.
     bounds actuator cycling; adding a second hysteresis mechanism would obscure
     that control and previously proved ineffective in the source controller.
 27. Thermal Response has an administrator Yes/No control in Setup. Enabling it
-    asks one simple EPC question, selects a preferred local outdoor-temperature
-    sensor and fallback weather provider, and confirms the participating rooms.
-    The EPC answer is only a starting estimate: continuous per-room observations
-    refine the model without proposal acceptance, while automatic optimum start
+    asks one plain-language home heat-retention question, selects a preferred
+    local outdoor-temperature sensor and fallback weather provider, and confirms
+    the participating rooms. EPC bands are only an optional guide; specialist
+    building data is never required. Continuous per-room observations refine the
+    starting estimate without proposal acceptance, while automatic optimum start
     remains a separate future opt-in.
 28. Thermal Response is entirely administrator-only. When enabled, Learning
     contains its persistent status and graph page; Setup contains its initiation,
     privacy and confirmed per-room/all-room reset controls. Real names are used
     in the administrator UI, while diagnostics remain pseudonymised.
+29. An abrupt per-room temperature rise inconsistent with ZEAL-observed heating
+    creates a **suspected external heat** training hold. ZEAL excludes the
+    affected samples until that room returns to its expected response envelope;
+    it does not change demand, schedules or thermostat/TRV targets. No inventory
+    of log burners or other independent heat sources is required.

@@ -349,23 +349,28 @@ reaches its scheduled target at the scheduled time.
 Setup has an administrator **Enable Thermal Response: Yes/No** option. Selecting
 Yes opens a deliberately short initiation step:
 
-1. **Starting EPC estimate** — “If you know your current EPC, select it;
-   otherwise estimate where you believe your home sits on the EPC scale.” The
-   choices are A (92–100), B (81–91), C (69–80), D (55–68), E (39–54), F
-   (21–38), G (1–20), plus **Not sure**.
+1. **Starting heat-retention estimate** — “How easily does your home stay
+   warm?” The plain-language choices are **Very easy to heat** (takes little
+   heating to warm and keep warm), **Fairly easy to heat** (takes less heating
+   than most homes), **Average**, **Difficult to heat** (takes more heating than
+   average), **Very difficult to heat** (takes a lot of heating and loses heat
+   quickly), and **Not sure**. An optional guide maps EPC A–B, C, D, E and F–G
+   respectively to those five choices; the user is never asked for U-values,
+   airtightness, floor area or other specialist building data.
 2. **Outside temperature** — select a local outdoor-temperature sensor
    (**Recommended**) and a fallback weather provider.
 3. **Learning scope** — include all eligible rooms by default and allow the
    administrator to exclude individual rooms.
 
-The EPC selection seeds only the initial estimate; it is not treated as a
-measured room parameter or a permanent classification. The initiation step must
-say: “An inaccurate estimate will not prevent learning, but ZEAL may take
-longer to establish the true response of each room.” Choosing **Not sure** uses
-neutral starting values and does not block learning.
+The selection seeds only the initial estimate; it is not treated as a measured
+room parameter or a permanent classification. The initiation step must say:
+“This only gives ZEAL a starting estimate. An inaccurate selection will not
+prevent learning, but ZEAL may take longer to establish the true response of
+each room.” Choosing **Not sure** uses neutral starting values and does not block
+learning.
 
-The band ranges follow the domestic EPC scale. The headline SAP/EPC rating is a
-standardised whole-home energy-performance estimate, not a direct measurement
+The optional band guide follows the domestic EPC scale. The headline SAP/EPC
+rating is a standardised whole-home energy-performance estimate, not a direct measurement
 of a room's thermal mass or heat-loss coefficient; ZEAL therefore treats it only
 as initial context. See the UK government's
 [Standard Assessment Procedure guidance](https://www.gov.uk/guidance/standard-assessment-procedure)
@@ -491,6 +496,28 @@ episode, an unobserved secondary heat source or implausible temperature jumps.
 Solar gain and occupancy should initially reduce confidence unless corresponding
 data is available; they must not be mislabelled as radiator performance.
 
+An administrator is not required to inventory log burners, unused underfloor
+heating or other independent heat sources. Instead, ZEAL applies a per-room
+**unexpected temperature-rise hold** analogous to a thermostat's sudden-change
+open-window detection, but in the positive direction:
+
+1. Compare the observed rise with the room's expected response, zone heating
+   activity and outdoor conditions.
+2. If the temperature rises abruptly without enough ZEAL-observed heat input,
+   mark the episode **suspected external heat** and stop using new samples from
+   that room for Thermal Response training.
+3. Keep schedules, room demand and thermostat/TRV targets unchanged. This is a
+   learning-quality hold only.
+4. Resume training after the room's rate of change remains inside its normal
+   expected envelope for a defined recovery period. Preserve the excluded
+   episode and reason for the administrator graph/audit rather than deleting it.
+
+Detection and recovery thresholds are named, testable model constants and must
+account for model confidence. In early learning, when the expected envelope is
+not yet reliable, only strong evidence such as a rapid rise while zone heating
+is off should create this exclusion. Normal ASHP/radiator response must not be
+discarded merely for being faster than an immature estimate.
+
 ### User experience
 
 Overview should progress from observation to an explainable recommendation:
@@ -530,6 +557,8 @@ begins in preparation for that target.
 - Thermal Response navigation, graphs and reset actions remain administrator-only.
 - Resetting one or all models leaves configuration and every control schedule
   unchanged.
+- Synthetic external-heat episodes prove that only the affected room's training
+  pauses and resumes, with the exclusion retained and no control-state mutation.
 
 ## Sequencing
 
