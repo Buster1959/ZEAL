@@ -7,9 +7,9 @@ not substitute for live Home Assistant, thermostat and actuator checks.
 ## Candidate
 
 - Branch: `main`
-- Candidate commit tested: `f89ed22` before the `0.13.3` integration
-  classification fix; record the `0.13.3` commit when repeating affected UI checks
-- Manifest version during testing: `0.13.3`
+- Current implementation baseline: `a53aa6d`
+- Exact candidate commit tested: _pending after review closure_
+- Manifest version to test: `0.14.7`
 - Home Assistant version: _pending_
 - Desktop browser/version: _pending_
 - Companion app/platform/version: _pending_
@@ -22,13 +22,13 @@ the checks affected by that change.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Complete Python suite | Pass | 131/131 tests, 27 August 2026 |
-| Python compilation | Pass | `custom_components` and `tests` |
-| Frontend JavaScript syntax | Pass | `zeal-panel.js` parsed by Node.js |
-| JSON and workflow YAML syntax | Pass | All shipped metadata parsed |
-| Tracked cache/placeholder scan | Pass | No shipped cache or release placeholders |
-| Manifest/HACS metadata contracts | Pass | Automated release-metadata tests |
-| Hassfest | Pass | GitHub validation on the V1 feature branch |
+| Complete Python suite | Pending | CI must pass on the exact candidate; do not copy a historical test count |
+| Python compilation | Pending | Run on the exact candidate |
+| Frontend JavaScript syntax | Pending | Parse `zeal-panel.js` on the exact candidate |
+| JSON and workflow YAML syntax | Pending | Parse all shipped metadata on the exact candidate |
+| Tracked cache/placeholder scan | Pending | Repeat on the exact candidate |
+| Manifest/HACS metadata contracts | Pending | Automated release-metadata tests on the exact candidate |
+| Hassfest | Pending | GitHub validation on `main` at the exact candidate |
 | HACS validation | Expected policy failure | PolyForm Shield is intentionally retained; custom-repository distribution does not require default-store licence eligibility |
 
 ## Live Home Assistant gates
@@ -50,6 +50,10 @@ the checks affected by that change.
 | Precedence | Away, holds, manual room target, schedule and zone Manual override follow the documented order | Pending |
 | Device failure | Unavailable and stale TRVs/sensors notify, degrade safely and recover | Pending |
 | Persistence | Setup, schedules, Away and audit survive Home Assistant/integration restarts | Pending |
+| Learning capture | Three comparable manual changes on any three distinct dates within 21 days create one proposal, including independently created weekday period IDs | Pending |
+| Learning day scope | Accept writes exactly the evidenced weekday/period; the banner directs broader changes to Schedule | Pending |
+| Learning decisions | Edit-and-accept, snooze and dismiss persist across restart; accepted changes can be reverted | Pending |
+| Learning exclusions | Away-period changes remain audited as excluded and never count toward a proposal | Pending |
 | Desktop UI | Navigation, editing, confirmation and errors pass the UI acceptance plan | Pending |
 | Mobile UI | Narrow layout, exact schedule entry and controls pass in Companion app | Pending |
 | Privacy | Diagnostics, downloads and screenshots contain no credentials or personal installation details | Pending |
