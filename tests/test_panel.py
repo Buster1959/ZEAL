@@ -213,6 +213,9 @@ def test_frontend_contains_live_overview_demand_contracts():
     assert 'label: "Window/door open"' in source
     assert "room.opening_sensors" in source
     assert "does not request heat" in source
+    assert 'temperature sensor${room.sensorCount === 1 ? "" : "s"}' in source
+    assert 'Open: ${this._escape(room.openOpeningNames.join(", "))}' in source
+    assert "Opening sensor unavailable:" in source
     assert 'this._hass?.states?.[thermostat.entity_id]' in source
     assert "overflow-x:auto" in source
     assert "_syncOverviewDemand" in source

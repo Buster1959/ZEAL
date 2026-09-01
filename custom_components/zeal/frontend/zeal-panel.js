@@ -584,15 +584,33 @@ class ZealPanel extends HTMLElement {
 
   _roomDemandOverview(room) {
     const name = room.name || this._areaName(room.room_id);
+    const sensorCount = (room.sensors || []).length;
+    const openingContext = (room.opening_sensors || []).reduce(
+      (result, entityId) => {
+        const state = this._hass?.states?.[entityId];
+        const catalogEntity = (this._configuration?.catalog?.opening_sensors || []).find(
+          (candidate) => candidate.entity_id === entityId
+        );
+        const label = catalogEntity?.name || entityId;
+        if (state?.state === "on") result.open.push(label);
+        else if (!state || ["unknown", "unavailable"].includes(state.state)) {
+          result.unavailable.push(label);
+        }
+        return result;
+      },
+      { open: [], unavailable: [] }
+    );
+    const context = {
+      sensorCount,
+      openOpeningNames: openingContext.open,
+      unavailableOpeningNames: openingContext.unavailable,
+    };
     if (room.active === false) {
-      return { name, label: "Inactive", cssClass: "inactive", setpoint: null, temperature: null };
+      return { name, label: "Inactive", cssClass: "inactive", setpoint: null, temperature: null, ...context };
     }
     const thermostat = this._zealThermostat(room.room_id);
     const state = thermostat ? this._hass?.states?.[thermostat.entity_id] : null;
-    const openingIsOpen = (room.opening_sensors || []).some(
-      (entityId) => this._hass?.states?.[entityId]?.state === "on"
-    );
-    if (openingIsOpen) {
+    if (openingContext.open.length) {
       const setpoint = state?.attributes?.temperature == null
         ? null
         : Number(state.attributes.temperature);
@@ -605,10 +623,11 @@ class ZealPanel extends HTMLElement {
         cssClass: "suppressed",
         setpoint: Number.isFinite(setpoint) ? setpoint : null,
         temperature: Number.isFinite(temperature) ? temperature : null,
+        ...context,
       };
     }
     if (!state || ["unknown", "unavailable"].includes(state.state)) {
-      return { name, label: "Unavailable", cssClass: "unknown", setpoint: null, temperature: null };
+      return { name, label: "Unavailable", cssClass: "unknown", setpoint: null, temperature: null, ...context };
     }
     const setpoint =
       state.attributes?.temperature == null ? NaN : Number(state.attributes.temperature);
@@ -617,10 +636,10 @@ class ZealPanel extends HTMLElement {
         ? NaN
         : Number(state.attributes.current_temperature);
     if (state.state === "off") {
-      return { name, label: "Off", cssClass: "inactive", setpoint, temperature };
+      return { name, label: "Off", cssClass: "inactive", setpoint, temperature, ...context };
     }
     if (!Number.isFinite(setpoint) || !Number.isFinite(temperature)) {
-      return { name, label: "Unavailable", cssClass: "unknown", setpoint, temperature };
+      return { name, label: "Unavailable", cssClass: "unknown", setpoint, temperature, ...context };
     }
     const demanding = setpoint - temperature > 0;
     return {
@@ -629,6 +648,7 @@ class ZealPanel extends HTMLElement {
       cssClass: demanding ? "demanding" : "satisfied",
       setpoint,
       temperature,
+      ...context,
     };
   }
 
@@ -639,9 +659,21 @@ class ZealPanel extends HTMLElement {
             room.setpoint
           )} · Temperature ${this._formatScheduleTemperature(room.temperature)}</span>`
         : `<span>Temperature data unavailable</span>`;
+    const sensorSummary = `${room.sensorCount} temperature sensor${room.sensorCount === 1 ? "" : "s"}`;
+    const openingSummary = room.openOpeningNames?.length
+      ? `<span class="demand-context opening-open">Open: ${this._escape(room.openOpeningNames.join(", "))}</span>`
+      : "";
+    const unavailableSummary = room.unavailableOpeningNames?.length
+      ? `<span class="demand-context opening-unavailable">Opening sensor unavailable: ${this._escape(
+          room.unavailableOpeningNames.join(", ")
+        )}</span>`
+      : "";
     return `<div class="demand-chip ${room.cssClass}" role="listitem">
       <strong>${this._escape(room.name)}</strong>
       ${readings}
+      <span class="demand-context">${this._escape(sensorSummary)}</span>
+      ${openingSummary}
+      ${unavailableSummary}
       <em>${this._escape(room.label)}</em>
     </div>`;
   }
@@ -2776,6 +2808,9 @@ class ZealPanel extends HTMLElement {
       .demand-chip { flex:0 0 auto; min-width:205px; display:grid; grid-template-columns:1fr auto; gap:3px 12px; padding:8px 10px; border-left:4px solid var(--divider-color); border-radius:7px; background:var(--card-background-color); scroll-snap-align:start; }
       .demand-chip strong { overflow:hidden; text-overflow:ellipsis; }
       .demand-chip span { grid-column:1 / -1; color:var(--secondary-text-color); font-size:11px; }
+      .demand-chip .demand-context { font-size:10px; }
+      .demand-chip .opening-open { color:var(--info-color, #039be5); }
+      .demand-chip .opening-unavailable { color:var(--warning-color, #ef6c00); }
       .demand-chip em { grid-column:2; grid-row:1; align-self:center; font-size:11px; font-style:normal; font-weight:700; }
       .demand-chip.demanding { border-left-color:var(--warning-color, #ef6c00); }
       .demand-chip.demanding em { color:var(--warning-color, #ef6c00); }

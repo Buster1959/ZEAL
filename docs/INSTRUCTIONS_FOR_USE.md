@@ -82,7 +82,10 @@ zone can have demand while its actuator is still off during the re-enable delay
 or because Manual Override or a safety condition is holding it. While demand is
 calculated, a room with any configured window/door sensor reporting open is
 shown distinctly and temporarily contributes no heat demand. Its thermostat
-target is not changed.
+target is not changed. The room chip shows the number of configured temperature
+sensors. When an opening suppresses demand it names the open contact; a missing,
+unknown or unavailable contact is shown as a subdued warning but does not
+suppress demand.
 While waiting for the re-enable delay, the card shows the live seconds remaining. It
 also identifies Zone Manual Override and the all-TRVs-closed safety hold by name,
 so a normal delay is not mistaken for a fault. Each room also separates its last
