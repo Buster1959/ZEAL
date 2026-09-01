@@ -332,6 +332,12 @@ def test_frontend_contains_schedule_learning_workflow():
     assert 'type: "zeal/decide_learning_proposal"' in source
     assert "Learning Notifications" in source
     assert "three qualifying dates" in source
+    assert "Learning is active" in source
+    assert "of 3 qualifying dates" in source
+    assert "Oldest evidence expires" in source
+    assert "Apply this change to other days" in source
+    assert "This suggestion changes only" in source
+    assert "Schedule changed — review manually" in source
     assert "View supporting changes" in source
     assert "Edit and accept" in source
     assert "Snooze 7 days" in source

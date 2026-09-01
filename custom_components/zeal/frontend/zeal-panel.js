@@ -1751,8 +1751,53 @@ class ZealPanel extends HTMLElement {
     );
     const history = proposals.filter((proposal) => !actionable.includes(proposal));
     return `<section class="page-heading"><div><h2>Learning Notifications</h2><p>Review evidence-backed Schedule Adaptation suggestions. Nothing is committed without confirmation.</p></div></section>
+      ${this._learningEvidenceProgress()}
+      <section class="learning-section-heading"><h3>Schedule suggestions</h3><p>Review, adjust, postpone or dismiss each suggestion.</p></section>
       ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after three qualifying dates for the same room and comparable schedule period.</p></section>`}
       ${history.length ? `<section class="setup-help"><strong>Proposal history</strong><p>${history.length} accepted, dismissed or conflicted proposal${history.length === 1 ? "" : "s"}.</p></section><section class="zone-grid">${history.map((proposal) => this._learningProposal(proposal, false)).join("")}</section>` : ""}`;
+  }
+
+  _learningEvidenceProgress() {
+    const qualifying = (this._learning?.events || []).filter((event) => event.outcome === "applied");
+    const groups = new Map();
+    for (const event of qualifying) {
+      const key = `${event.room_id}|${event.pattern_key}|${event.room_schedule_revision}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(event);
+    }
+    const active = [...groups.values()]
+      .map((events) => events.sort((left, right) => String(left.timestamp).localeCompare(String(right.timestamp))))
+      .filter((events) => new Date(events[events.length - 1].timestamp).getTime() >= Date.now() - 21 * 24 * 60 * 60 * 1_000)
+      .sort((left, right) => String(right[right.length - 1].timestamp).localeCompare(String(left[left.length - 1].timestamp)));
+    const roomName = (roomId) => (this._configuration.zones || [])
+      .flatMap((zone) => zone.rooms || [])
+      .find((room) => room.room_id === roomId)?.name || roomId;
+    return `<section class="learning-progress"><div><h3>Learning is active</h3><p>${qualifying.length} qualifying change${qualifying.length === 1 ? "" : "s"} recorded across ${active.length} active pattern${active.length === 1 ? "" : "s"}. A suggestion needs changes on three separate dates within 21 days.</p></div>
+      ${active.length ? `<ul>${active.map((events) => {
+        const latest = events[events.length - 1];
+        const dates = new Set(events.map((event) => event.local_date));
+        const expiry = new Date(new Date(events[0].timestamp).getTime() + 21 * 24 * 60 * 60 * 1_000);
+        return `<li><strong>${this._escape(roomName(latest.room_id))}</strong><span>${this._escape(this._learningAdaptationLabel(latest))} · ${Math.min(dates.size, 3)} of 3 qualifying dates</span><small>Oldest evidence expires ${this._escape(expiry.toLocaleDateString())}</small></li>`;
+      }).join("")}</ul>` : `<p class="learning-progress-empty">No qualifying manual changes have been recorded yet.</p>`}
+    </section>`;
+  }
+
+  _learningAdaptationLabel(item) {
+    if (item.adaptation_type === "timing") {
+      return item.adaptation_direction === "earlier" ? "Earlier start" : "Later start";
+    }
+    return "Temperature change";
+  }
+
+  _learningStatusLabel(status) {
+    return ({
+      new: "Ready for review",
+      snoozed: "Snoozed",
+      accepted: "Accepted",
+      dismissed: "Dismissed",
+      conflicted: "Schedule changed — review manually",
+      reverted: "Reverted",
+    })[status] || String(status || "Unknown").replaceAll("_", " ");
   }
 
   _learningProposal(proposal, actionable) {
@@ -1763,13 +1808,16 @@ class ZealPanel extends HTMLElement {
     const evidence = (this._learning?.events || [])
       .filter((event) => evidenceIds.has(event.event_id))
       .sort((left, right) => String(left.timestamp).localeCompare(String(right.timestamp)));
-    const adaptation = proposal.adaptation_type === "timing"
-      ? `timing ${proposal.adaptation_direction || ""}`.trim()
-      : proposal.adaptation_type;
-    return `<article class="zone-card"><div class="zone-title"><div><h3>${this._escape(room?.name || proposal.room_id)}</h3><p>${this._escape(proposal.weekday)} · ${this._escape(adaptation)} adaptation</p></div><span class="pill">${this._escape(proposal.status)}</span></div>
+    const weekday = String(proposal.weekday || "");
+    const weekdayLabel = weekday ? `${weekday[0].toUpperCase()}${weekday.slice(1)}` : "Scheduled day";
+    const dateRange = evidence.length
+      ? `${new Date(evidence[0].timestamp).toLocaleDateString()} to ${new Date(evidence[evidence.length - 1].timestamp).toLocaleDateString()}`
+      : "the observation window";
+    return `<article class="zone-card"><div class="zone-title"><div><h3>${this._escape(room?.name || proposal.room_id)}</h3><p>${this._escape(weekdayLabel)} · ${this._escape(this._learningAdaptationLabel(proposal))}</p></div><span class="pill">${this._escape(this._learningStatusLabel(proposal.status))}</span></div>
       <dl class="zone-facts"><div><dt>Current</dt><dd>${this._escape(current)}</dd></div><div><dt>Proposed</dt><dd>${this._escape(proposed)}</dd></div><div><dt>Evidence</dt><dd>${Number(proposal.evidence_count || 0)} qualifying dates · ${this._escape(proposal.confidence || "")}</dd></div></dl>
+      <p class="learning-evidence-summary">${Number(proposal.evidence_count || 0)} qualifying changes from ${this._escape(dateRange)} support this suggestion.</p>
       ${evidence.length ? `<details><summary>View supporting changes</summary><ul>${evidence.map((event) => `<li>${this._escape(new Date(event.timestamp).toLocaleString())} · ${this._escape(String(event.source || "unknown").replaceAll("_", " "))} · ${this._formatScheduleTemperature(event.requested_temperature)}</li>`).join("")}</ul></details>` : ""}
-      ${actionable ? `<div class="download-actions"><button class="primary" data-learning-action="accept" data-proposal-id="${this._escape(proposal.proposal_id)}">Accept</button><button class="secondary" data-learning-action="edit" data-proposal-id="${this._escape(proposal.proposal_id)}">Edit and accept</button><button class="secondary" data-learning-action="snooze" data-proposal-id="${this._escape(proposal.proposal_id)}">Snooze 7 days</button><button class="text-button" data-learning-action="dismiss" data-proposal-id="${this._escape(proposal.proposal_id)}">Dismiss</button><button class="text-button" data-learning-action="schedule" data-proposal-id="${this._escape(proposal.proposal_id)}">Open Schedule</button></div>` : proposal.status === "accepted" ? `<div class="download-actions"><button class="secondary" data-learning-action="revert" data-proposal-id="${this._escape(proposal.proposal_id)}">Revert schedule change</button></div>` : ""}
+      ${actionable ? `<aside class="learning-day-scope"><strong>Apply this change to other days</strong><p>This suggestion changes only ${this._escape(weekdayLabel)}. To apply it to additional days, use the Schedule page.</p><button class="text-button" data-learning-action="schedule" data-proposal-id="${this._escape(proposal.proposal_id)}">Open Schedule</button></aside><div class="download-actions"><button class="primary" data-learning-action="accept" data-proposal-id="${this._escape(proposal.proposal_id)}">Accept</button><button class="secondary" data-learning-action="edit" data-proposal-id="${this._escape(proposal.proposal_id)}">Edit and accept</button><button class="secondary" data-learning-action="snooze" data-proposal-id="${this._escape(proposal.proposal_id)}">Snooze 7 days</button><button class="text-button" data-learning-action="dismiss" data-proposal-id="${this._escape(proposal.proposal_id)}">Dismiss</button></div>` : proposal.status === "accepted" ? `<div class="download-actions"><button class="secondary" data-learning-action="revert" data-proposal-id="${this._escape(proposal.proposal_id)}">Revert schedule change</button></div>` : ""}
     </article>`;
   }
 
@@ -2680,6 +2728,19 @@ class ZealPanel extends HTMLElement {
       .demand-empty { color:var(--secondary-text-color); font-size:12px; }
       .zone-facts { margin:16px 0; padding:12px 0; border-top:1px solid var(--divider-color); border-bottom:1px solid var(--divider-color); }
       .zone-facts div { display:grid; grid-template-columns:125px minmax(0,1fr); gap:10px; padding:4px 0; }
+      .learning-progress { margin-bottom:20px; padding:18px; border:1px solid var(--divider-color); border-left:4px solid var(--primary-color); border-radius:12px; background:var(--card-background-color); }
+      .learning-progress h3, .learning-section-heading h3 { margin:0 0 5px; }
+      .learning-progress p, .learning-section-heading p { margin:0; color:var(--secondary-text-color); }
+      .learning-progress ul { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; margin:14px 0 0; padding:0; list-style:none; }
+      .learning-progress li { padding:10px; border-radius:8px; background:var(--secondary-background-color); }
+      .learning-progress li strong, .learning-progress li span, .learning-progress li small { display:block; }
+      .learning-progress li span { margin:3px 0; }
+      .learning-progress li small, .learning-progress-empty { color:var(--secondary-text-color); }
+      .learning-section-heading { margin:0 0 12px; }
+      .learning-evidence-summary { color:var(--secondary-text-color); }
+      .learning-day-scope { margin:14px 0; padding:12px; border-radius:9px; border:1px solid var(--divider-color); background:var(--secondary-background-color); }
+      .learning-day-scope p { margin:5px 0; color:var(--secondary-text-color); }
+      .learning-day-scope button { min-height:32px; padding:0; }
       dt { color:var(--secondary-text-color); }
       dd { margin:0; overflow-wrap:anywhere; }
       .room-list { display:grid; gap:8px; }

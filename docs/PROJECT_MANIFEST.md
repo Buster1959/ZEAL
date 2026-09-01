@@ -9,7 +9,7 @@
 - Integration type: hub
 - Distribution target: HACS custom integration
 - Current release-candidate branch: `main`
-- Current manifest version: `0.14.6` (pre-V1)
+- Current manifest version: `0.14.7` (pre-V1)
 
 ## Independence boundary
 
