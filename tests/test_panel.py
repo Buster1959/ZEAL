@@ -318,7 +318,9 @@ def test_frontend_limits_setup_navigation_to_administrators():
     assert 'next === "setup" && !this._isAdmin()' in source
     assert "Setup is available only to Home Assistant administrators." in source
     assert "Ask a Home Assistant administrator to configure ZEAL." in source
-    assert "Allow standard users to use Schedule" in source
+    assert "Allow standard users to use Schedule and Learning" in source
+    assert "view its evidence and history" in source
+    assert "revert proposals" in source
     assert "Allow standard users to use Overrides" in source
     assert "this._configuration?.standard_user_schedule === true" in source
     assert "this._configuration?.standard_user_quick_change === true" in source

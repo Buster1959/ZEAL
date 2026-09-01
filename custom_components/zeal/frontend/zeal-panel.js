@@ -1721,7 +1721,7 @@ class ZealPanel extends HTMLElement {
       <p>Overview is visible to every signed-in Home Assistant user. Choose which heating controls standard users may also use.</p>
       <label class="active-toggle"><input type="checkbox" data-action="standard-user-schedule" ${
         this._standardUserSchedule ? "checked" : ""
-      } /><span><strong>Allow standard users to use Schedule</strong><small>They can view and save weekly room schedules.</small></span></label>
+      } /><span><strong>Allow standard users to use Schedule and Learning</strong><small>They can view and save weekly room schedules. When Learning is enabled, they can also view its evidence and history and accept, edit and accept, snooze, dismiss or revert proposals.</small></span></label>
       <label class="active-toggle"><input type="checkbox" data-action="standard-user-quick-change" ${
         this._standardUserQuickChange ? "checked" : ""
       } /><span><strong>Allow standard users to use Overrides</strong><small>They can use Quick Change to apply and clear temporary room temperature changes. Away Mode remains administrator-only.</small></span></label>
