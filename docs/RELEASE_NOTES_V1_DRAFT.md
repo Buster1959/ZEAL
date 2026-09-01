@@ -15,6 +15,10 @@ to `1.0.0`.
 - Calendar or exact-date Away mode with an immediate **End Away now** action.
 - Downloadable configuration and bounded persistent application audit trail.
 - Optional sidebar navigation and clear per-instance management/deletion.
+- Opt-in ZEAL Learning — Schedule Adaptation with bounded, source-aware manual
+  change evidence, reviewable suggestions and explicit Accept, Edit and accept,
+  Snooze, Dismiss and Revert decisions. ZEAL never applies a suggestion without
+  authorised confirmation.
 - HACS metadata, HACS/Hassfest workflows and setup-flow translations for ten
   European languages including English.
 
@@ -30,6 +34,9 @@ acceptance plan before unattended use.
 - Scheduler and ZEAL panel targets use Celsius in V1.
 - The ZEAL HTML panel is English even when the Home Assistant setup flow is
   translated.
+- Schedule Adaptation confidence currently reflects qualifying evidence count;
+  Learning can be enabled globally but not per room. Room Thermal Response is
+  planned for the next major version and is not part of V1.
 - The final `1.0.0` manifest and GitHub release follow Block 10 validation.
 - ZEAL remains under PolyForm Shield and is distributed through HACS as a
   custom repository. The licence is intentionally retained, so this release is

@@ -203,7 +203,7 @@ the complete guided tour.
 
 ![ZEAL Schedule page showing seven independent daily visual schedules for one room](docs/images/zeal-seven-day-schedule-desktop.png)
 
-### Overrides — Quick Change
+### Quick Change interface
 
 ![ZEAL Quick Change page showing Zone and Floor room selection and temporary target controls](docs/images/zeal-quick-change-desktop.png)
 
