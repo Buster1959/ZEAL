@@ -287,7 +287,6 @@ class ZealPanel extends HTMLElement {
                 ? this._renderLearning()
               : this._renderOverview()
         }
-        ${this._view === "setup" ? this._warning() : ""}
       </div>`;
   }
 
@@ -367,14 +366,21 @@ class ZealPanel extends HTMLElement {
   }
 
   _formatAwayDateTime(value) {
-    if (!value) return "Not set";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString([], {
-      timeZone: this._hass?.config?.time_zone,
+    return this._formatDateTime(value, "Not set", {
       dateStyle: "medium",
       timeStyle: "short",
     });
+  }
+
+  _formatDateTime(value, fallback, options = {}) {
+    if (!value) return fallback;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(this._hass?.locale?.language || undefined, {
+      timeZone: this._hass?.config?.time_zone,
+      hourCycle: "h23",
+      ...options,
+    }).format(date);
   }
 
   _awayStatusText(away = this._configuration?.away_mode || {}) {
@@ -656,9 +662,9 @@ class ZealPanel extends HTMLElement {
         this._areaName(room.room_id)
       )} · ${(room.trvs || []).length} TRV${(room.trvs || []).length === 1 ? "" : "s"} · ${
         (room.sensors || []).length
-      } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span><span>ZEAL target: ${this._escape(
-        zealThermostat ? this._entityLabel(zealThermostat) : "Not created"
-      )}</span><span>${this._escape(control.schedule)}</span><span class="control-source ${
+      } sensor${(room.sensors || []).length === 1 ? "" : "s"}</span><span title="${this._escape(
+        zealThermostat?.entity_id || ""
+      )}">ZEAL target: ${this._escape(zealThermostat?.name || "Not created")}</span><span>${this._escape(control.schedule)}</span><span class="control-source ${
         control.cssClass
       }">${this._escape(control.effective)}</span></div>
       <span class="state ${room.active === false ? "inactive" : ""}">${
@@ -787,10 +793,7 @@ class ZealPanel extends HTMLElement {
   }
 
   _formatLocalDateTime(value) {
-    if (!value) return "the scheduled change";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString([], {
+    return this._formatDateTime(value, "the scheduled change", {
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
@@ -798,11 +801,7 @@ class ZealPanel extends HTMLElement {
   }
 
   _formatChangeTime(value) {
-    if (!value) return "unknown";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleTimeString([], {
-      timeZone: this._hass?.config?.time_zone,
+    return this._formatDateTime(value, "unknown", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -1668,6 +1667,7 @@ class ZealPanel extends HTMLElement {
         <div><h2>Setup</h2><p>Build each heating zone from Home Assistant Areas and their equipment.</p></div>
         <button class="secondary" data-action="add-zone">+ Add zone</button>
       </section>
+      ${this._warning()}
       <section class="setup-help">
         <strong>Before you begin</strong>
         <p>Create and assign your Areas, physical climate entities, temperature sensors and actuator switches in Home Assistant first. An Area can belong to one ZEAL zone only.</p>
@@ -1772,10 +1772,10 @@ class ZealPanel extends HTMLElement {
     if (!Number.isInteger(threshold) || threshold < 1 || !Number.isInteger(observationDays) || observationDays < 1) {
       return `<section class="empty-card"><h3>Learning policy unavailable</h3><p>Reload ZEAL. The evidence threshold and observation window were not returned by the integration.</p></section>`;
     }
-    return `<section class="page-heading"><div><h2>Learning Notifications</h2><p>Review evidence-backed Schedule Adaptation suggestions. Nothing is committed without confirmation.</p></div></section>
+    return `<section class="page-heading"><div><h2>Learning</h2></div></section>
       ${this._learningEvidenceProgress()}
-      <section class="learning-section-heading"><h3>Schedule suggestions</h3><p>Review, adjust, postpone or dismiss each suggestion.</p></section>
-      ${actionable.length ? `<section class="zone-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after ${threshold} qualifying dates for the same room and comparable schedule period.</p></section>`}
+      <section class="learning-section-heading"><h3>Schedule suggestions</h3></section>
+      ${actionable.length ? `<section class="learning-action-grid">${actionable.map((proposal) => this._learningProposal(proposal, true)).join("")}</section>` : `<section class="empty-card"><h3>No new learning suggestions</h3><p>ZEAL will place a suggestion here after ${threshold} qualifying dates for the same room and comparable schedule period.</p></section>`}
       ${history.length ? `<section class="setup-help"><strong>Proposal history</strong><p>${history.length} accepted, dismissed or conflicted proposal${history.length === 1 ? "" : "s"}.</p></section><section class="zone-grid">${history.map((proposal) => this._learningProposal(proposal, false)).join("")}</section>` : ""}`;
   }
 
@@ -1803,7 +1803,7 @@ class ZealPanel extends HTMLElement {
         const latest = events[events.length - 1];
         const dates = new Set(events.map((event) => event.local_date));
         const expiry = new Date(new Date(events[0].timestamp).getTime() + observationDays * 24 * 60 * 60 * 1_000);
-        return `<li><strong>${this._escape(roomName(latest.room_id))}</strong><span>${this._escape(this._learningAdaptationLabel(latest))} · ${Math.min(dates.size, threshold)} of ${threshold} qualifying dates</span><small>Oldest evidence expires ${this._escape(expiry.toLocaleDateString())}</small></li>`;
+        return `<li><strong>${this._escape(roomName(latest.room_id))}</strong><span>${this._escape(latest.original_time)} period · ${this._formatScheduleTemperature(latest.original_temperature)} · ${this._escape(this._learningAdaptationLabel(latest))}</span><span>${Math.min(dates.size, threshold)} of ${threshold} qualifying dates</span><small>Oldest evidence expires ${this._escape(this._formatDateTime(expiry, "unknown", { dateStyle: "medium" }))}</small></li>`;
       }).join("")}</ul>` : `<p class="learning-progress-empty">No qualifying manual changes have been recorded yet.</p>`}
     </section>`;
   }
@@ -1826,6 +1826,10 @@ class ZealPanel extends HTMLElement {
     })[status] || String(status || "Unknown").replaceAll("_", " ");
   }
 
+  _learningConfidenceLabel(confidence) {
+    return confidence === "high" ? "High confidence" : confidence === "medium" ? "Medium confidence" : "Confidence unavailable";
+  }
+
   _learningProposal(proposal, actionable) {
     const room = (this._configuration.zones || []).flatMap((zone) => zone.rooms || []).find((item) => item.room_id === proposal.room_id);
     const current = `${proposal.original_time} · ${this._formatScheduleTemperature(proposal.original_temperature)}`;
@@ -1837,12 +1841,12 @@ class ZealPanel extends HTMLElement {
     const weekday = String(proposal.weekday || "");
     const weekdayLabel = weekday ? `${weekday[0].toUpperCase()}${weekday.slice(1)}` : "Scheduled day";
     const dateRange = evidence.length
-      ? `${new Date(evidence[0].timestamp).toLocaleDateString()} to ${new Date(evidence[evidence.length - 1].timestamp).toLocaleDateString()}`
-      : "the observation window";
+      ? `${this._formatDateTime(evidence[0].timestamp, "unknown", { dateStyle: "medium" })} to ${this._formatDateTime(evidence[evidence.length - 1].timestamp, "unknown", { dateStyle: "medium" })}`
+      : null;
     return `<article class="zone-card"><div class="zone-title"><div><h3>${this._escape(room?.name || proposal.room_id)}</h3><p>${this._escape(weekdayLabel)} · ${this._escape(this._learningAdaptationLabel(proposal))}</p></div><span class="pill">${this._escape(this._learningStatusLabel(proposal.status))}</span></div>
-      <dl class="zone-facts"><div><dt>Current</dt><dd>${this._escape(current)}</dd></div><div><dt>Proposed</dt><dd>${this._escape(proposed)}</dd></div><div><dt>Evidence</dt><dd>${Number(proposal.evidence_count || 0)} qualifying dates · ${this._escape(proposal.confidence || "")}</dd></div></dl>
-      <p class="learning-evidence-summary">${Number(proposal.evidence_count || 0)} qualifying changes from ${this._escape(dateRange)} support this suggestion.</p>
-      ${evidence.length ? `<details><summary>View supporting changes</summary><ul>${evidence.map((event) => `<li>${this._escape(new Date(event.timestamp).toLocaleString())} · ${this._escape(String(event.source || "unknown").replaceAll("_", " "))} · ${this._formatScheduleTemperature(event.requested_temperature)}</li>`).join("")}</ul></details>` : ""}
+      <dl class="zone-facts"><div><dt>Current</dt><dd>${this._escape(current)}</dd></div><div><dt>Proposed</dt><dd>${this._escape(proposed)}</dd></div><div><dt>Evidence</dt><dd>${Number(proposal.evidence_count || 0)} qualifying dates · ${this._escape(this._learningConfidenceLabel(proposal.confidence))}</dd></div></dl>
+      ${dateRange ? `<p class="learning-evidence-summary">${Number(proposal.evidence_count || 0)} qualifying dates from ${this._escape(dateRange)} support this suggestion.</p>` : ""}
+      ${evidence.length ? `<details><summary>View supporting changes</summary><ul>${evidence.map((event) => `<li>${this._escape(this._formatDateTime(event.timestamp, "unknown", { dateStyle: "medium", timeStyle: "short" }))} · ${this._escape(String(event.source || "unknown").replaceAll("_", " "))} · ${this._formatScheduleTemperature(event.requested_temperature)}</li>`).join("")}</ul></details>` : ""}
       ${actionable ? `<aside class="learning-day-scope"><strong>Apply this change to other days</strong><p>This suggestion changes only ${this._escape(weekdayLabel)}. To apply it to additional days, use the Schedule page.</p><button class="text-button" data-learning-action="schedule" data-proposal-id="${this._escape(proposal.proposal_id)}">Open Schedule</button></aside><div class="download-actions"><button class="primary" data-learning-action="accept" data-proposal-id="${this._escape(proposal.proposal_id)}">Accept</button><button class="secondary" data-learning-action="edit" data-proposal-id="${this._escape(proposal.proposal_id)}">Edit and accept</button><button class="secondary" data-learning-action="snooze" data-proposal-id="${this._escape(proposal.proposal_id)}">Snooze 7 days</button><button class="text-button" data-learning-action="dismiss" data-proposal-id="${this._escape(proposal.proposal_id)}">Dismiss</button></div>` : proposal.status === "accepted" ? `<div class="download-actions"><button class="secondary" data-learning-action="revert" data-proposal-id="${this._escape(proposal.proposal_id)}">Revert schedule change</button></div>` : ""}
     </article>`;
   }
@@ -2721,6 +2725,7 @@ class ZealPanel extends HTMLElement {
       .summary-card strong { display:block; font-size:26px; line-height:1; }
       .summary-card span { display:block; margin-top:5px; color:var(--secondary-text-color); }
       .zone-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+      .learning-action-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap:16px; }
       .zone-card { padding:18px; }
       .zone-title, .setup-zone-title, .room-editor-title, .rooms-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
       .zone-title h3, .setup-zone-title h3, .room-editor-title h4, .rooms-heading h4 { margin-bottom:4px; }
@@ -2843,7 +2848,7 @@ class ZealPanel extends HTMLElement {
       .quick-room > label small { margin-top:4px; }
       .quick-room-state { display:flex; justify-content:space-between; align-items:center; gap:8px; padding-left:29px; color:var(--secondary-text-color); font-size:12px; }
       .hold-pill { color:var(--primary-color); font-weight:700; }
-      .quick-controls { max-width:900px; margin-top:18px; }
+      .quick-controls { margin-top:18px; }
       .quick-controls h3 { margin-bottom:4px; }
       .quick-controls > div > p { color:var(--secondary-text-color); margin:0; }
       .quick-control-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.8fr); gap:18px; margin-top:16px; }
