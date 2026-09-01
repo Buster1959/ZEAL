@@ -53,8 +53,15 @@ def learning(store: LearningStore) -> ScheduleLearning:
     return ScheduleLearning(store, configuration, lambda: "revision-one")
 
 
+TEST_NOW = datetime.now(timezone.utc)
+TEST_MONDAY = (TEST_NOW - timedelta(days=TEST_NOW.weekday())).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
+
+
 def at(day: int, hour: int, minute: int = 0) -> datetime:
-    return datetime(2026, 8, day, hour, minute, tzinfo=timezone.utc)
+    """Return a current-week instant while preserving the original 3=Monday API."""
+    return TEST_MONDAY + timedelta(days=day - 3, hours=hour, minutes=minute)
 
 
 def test_change_before_next_period_target_is_timing_evidence():
