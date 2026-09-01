@@ -216,7 +216,7 @@ async def ws_decide_learning_proposal(hass, connection, msg) -> None:
                 hass,
                 msg["entry_id"],
                 configuration,
-                expected_revision=str(proposal["accepted_revision"]),
+                expected_revision=current_revision(hass, msg["entry_id"]),
             )
             await learning.async_set_status(
                 msg["proposal_id"],

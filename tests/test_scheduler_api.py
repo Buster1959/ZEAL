@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -498,13 +498,17 @@ async def test_admin_websocket_accepts_learning_proposal_with_revision_check(
         expected_revision=snapshot["revision"],
     )
     learning = hass.data[DOMAIN][entry.entry_id]["schedule_learning"]
+    now = datetime.now(timezone.utc)
+    monday = (now - timedelta(days=now.weekday())).replace(
+        hour=0, minute=10, second=0, microsecond=0
+    )
     proposal = None
-    for day in (3, 10, 17):
+    for offset in (0, 7, 14):
         proposal = await learning.async_record_change(
             room_id=area.id,
             requested_temperature=21.5,
             source="home_assistant",
-            when=datetime(2026, 8, day, 0, 10, tzinfo=timezone.utc),
+            when=monday - timedelta(days=14 - offset),
         )
     assert proposal is not None
 
@@ -529,6 +533,30 @@ async def test_admin_websocket_accepts_learning_proposal_with_revision_check(
     assert response["result"]["proposals"][0]["status"] == "accepted"
     saved = hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
     assert saved.rooms[area.id].days["monday"][0].temperature == 21.5
+
+    # An unrelated panel preference changes the global optimistic revision but
+    # must not prevent reverting the exact accepted schedule period.
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_SHOW_IN_SIDEBAR: not entry.options.get(CONF_SHOW_IN_SIDEBAR, True),
+        },
+    )
+    await hass.async_block_till_done()
+    await client.send_json_auto_id(
+        {
+            "type": "zeal/decide_learning_proposal",
+            "entry_id": entry.entry_id,
+            "proposal_id": proposal["proposal_id"],
+            "action": "revert",
+        }
+    )
+    response = await client.receive_json()
+    assert response["success"] is True
+    assert response["result"]["proposals"][0]["status"] == "reverted"
+    saved = hass.data[DOMAIN][entry.entry_id]["schedule_runtime"].configuration
+    assert saved.rooms[area.id].days["monday"][0].temperature == 20
 
 
 async def test_standard_user_gets_overview_and_only_enabled_controls(
