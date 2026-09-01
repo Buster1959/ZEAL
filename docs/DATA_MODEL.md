@@ -92,6 +92,13 @@ Room temperature, demand/actuator context, effective target and override expiry
 remain planned enrichments; the detector does not claim to use fields it has not
 captured.
 
+The Home Assistant Store envelope remains version 1, while the Learning payload
+schema is version 2. Version-1 payload evidence is deliberately discarded on
+load because it predates `room_schedule_revision` and cannot participate in a
+safe match. This prevents obsolete, permanently unmatchable events lingering
+through the 42-day retention window; pre-V1 Learning data has no compatibility
+guarantee.
+
 Repeated-change proposals are stored separately from raw events. A proposal
 records its evidence event IDs/count, pattern, immutable current period,
 proposed schedule edit and state (`new`, `accepted`, `dismissed`, `snoozed`,

@@ -18,6 +18,9 @@ AUDIT_STORAGE_VERSION = 1
 AUDIT_STORAGE_KEY_FMT = f"{DOMAIN}.audit.{{entry_id}}"
 AUDIT_MAX_ENTRIES = 500
 LEARNING_STORAGE_VERSION = 1
+# Payload schema is independent of Home Assistant's Store envelope. Version 2
+# invalidates pre-room-fingerprint evidence, which cannot be matched safely.
+LEARNING_DATA_VERSION = 2
 LEARNING_STORAGE_KEY_FMT = f"{DOMAIN}.learning.{{entry_id}}"
 LEARNING_MAX_EVENTS = 5000
 LEARNING_MAX_PROPOSALS = 500

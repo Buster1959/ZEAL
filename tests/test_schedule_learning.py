@@ -215,10 +215,25 @@ async def test_learning_store_round_trip():
         source="home_assistant",
         when=at(3, 7, 10),
     )
+    assert memory.data["version"] == 2
     restored = LearningStore(None, "entry", store=memory)
     await restored.async_load()
     assert len(restored.events) == 1
     assert restored.events[0]["period_id"] == "morning"
+
+
+async def test_learning_store_discards_unmatchable_version_one_evidence():
+    memory = MemoryStore(
+        {
+            "version": 1,
+            "events": [{"event_id": "legacy-without-room-revision"}],
+            "proposals": [],
+        }
+    )
+    store = LearningStore(None, "entry", store=memory)
+    await store.async_load()
+    assert store.events == []
+    assert store.proposals == []
 
 
 async def test_learning_store_prunes_events_outside_privacy_retention():

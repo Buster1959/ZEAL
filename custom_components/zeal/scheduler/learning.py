@@ -11,6 +11,7 @@ from typing import Any, Callable
 from uuid import uuid4
 
 from ..const import (
+    LEARNING_DATA_VERSION,
     LEARNING_EVIDENCE_THRESHOLD,
     LEARNING_MAX_EVENTS,
     LEARNING_MAX_PROPOSALS,
@@ -205,7 +206,7 @@ class LearningStore:
 
     async def async_load(self) -> None:
         data = await self._store.async_load()
-        if not isinstance(data, dict) or data.get("version") != LEARNING_STORAGE_VERSION:
+        if not isinstance(data, dict) or data.get("version") != LEARNING_DATA_VERSION:
             return
         events = data.get("events")
         proposals = data.get("proposals")
@@ -230,7 +231,7 @@ class LearningStore:
         self.proposals = self.proposals[-LEARNING_MAX_PROPOSALS:]
         await self._store.async_save(
             {
-                "version": LEARNING_STORAGE_VERSION,
+                "version": LEARNING_DATA_VERSION,
                 "events": self.events,
                 "proposals": self.proposals,
             }
@@ -392,7 +393,7 @@ class ScheduleLearning:
     def snapshot(self) -> dict[str, Any]:
         """Return detached learning state for API consumers."""
         return {
-            "version": LEARNING_STORAGE_VERSION,
+            "version": LEARNING_DATA_VERSION,
             "observation_days": LEARNING_OBSERVATION_DAYS,
             "evidence_threshold": LEARNING_EVIDENCE_THRESHOLD,
             "events": [dict(item) for item in self._store.events],
