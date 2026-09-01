@@ -34,8 +34,6 @@ class ZealConfigFlow(ConfigFlow, domain=DOMAIN):
         """Name the instance; all detailed setup happens in the panel."""
         if user_input is not None:
             name = user_input["name"].strip()
-            await self.async_set_unique_id(name.lower())
-            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=name,
                 data={},

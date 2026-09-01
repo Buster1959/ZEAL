@@ -44,9 +44,9 @@ async def test_initial_flow_only_names_an_empty_instance(hass):
     }
 
 
-async def test_flow_allows_separate_named_instances_and_rejects_duplicate_names(hass):
-    """A boiler and ASHP can have independent entries on one HA machine."""
-    for name in ("Boiler ZEAL", "ASHP ZEAL"):
+async def test_flow_allows_multiple_instances_even_when_names_match(hass):
+    """Home Assistant entry IDs, not display names, identify ZEAL instances."""
+    for name in ("ZEAL HVAC System", "ZEAL HVAC System"):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "user"}
         )
@@ -54,15 +54,6 @@ async def test_flow_allows_separate_named_instances_and_rejects_duplicate_names(
             result["flow_id"], {"name": name}
         )
         assert result["type"] is FlowResultType.CREATE_ENTRY
-
-    duplicate = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    duplicate = await hass.config_entries.flow.async_configure(
-        duplicate["flow_id"], {"name": "boiler zeal"}
-    )
-    assert duplicate["type"] is FlowResultType.ABORT
-    assert duplicate["reason"] == "already_configured"
 
 
 async def test_native_options_flow_can_restore_a_hidden_sidebar_link(hass):
