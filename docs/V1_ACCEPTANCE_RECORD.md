@@ -7,7 +7,7 @@ not substitute for live Home Assistant, thermostat and actuator checks.
 ## Candidate
 
 - Branch: `main`
-- Current implementation baseline: `a53aa6d`
+- Current implementation baseline: `ebb2129`
 - Exact candidate commit tested: _pending after review closure_
 - Manifest version to test: `0.14.7`
 - Home Assistant version: _pending_

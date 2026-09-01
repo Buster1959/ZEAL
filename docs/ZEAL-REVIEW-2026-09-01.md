@@ -11,20 +11,23 @@ Status has a strict meaning:
 - **False** — the claimed defect or collision is not present on the evidence
   available in this project.
 
-Summary: **33 Fixed · 10 Open · 1 False**. No finding is omitted.
+Summary after independent code/documentation cross-check: **33 Fixed · 11 Open
+· 0 False**. No finding is omitted. The cross-check initially found three
+incorrect or incomplete Fixed claims plus two smaller follow-ups; each is
+recorded below rather than overwriting the review history silently.
 
 ## Resolution ledger
 
 | ID | Status | Resolution and evidence |
 |---|---|---|
 | A1 | **Fixed** | Cross-weekday keys no longer contain per-day `period_id`; a regression test uses distinct weekday IDs. `6687152` |
-| A2 | **Fixed** | Evidence now uses a room-schedule fingerprint; unrelated panel/configuration changes do not reset it, while exact-period acceptance remains guarded. `6687152` |
-| A3 | **Fixed** | Away-period changes are retained as `excluded` with `away_mode_active` and cannot contribute to detection. `6687152` |
+| A2 | **Fixed** | Evidence uses a room-schedule fingerprint; unrelated panel/configuration changes do not reset it, and both Accept and Revert use the current global optimistic token while exact-period matching guards the write. The fingerprint deliberately covers the whole seven-day room schedule, so a real edit to that room invalidates its other in-flight patterns. `6687152`, `0a61cd5` |
+| A3 | **Fixed** | Away-period changes are retained as `excluded` with `away_mode_active`; detection now explicitly matches only `outcome=applied`. A mixed two-excluded/one-applied regression produces no proposal. `6687152`, correction `31c0a55` |
 | A4 | **Fixed** | The per-room meaning of zone/whole-house Quick Change batches is now an explicit product decision; proposals remain per-room writes. `6eb0e39` |
 | A5 | **Fixed** | Documentation now states the implemented count-based confidence and global control, and labels richer confidence/per-room controls as planned. `6eb0e39` |
 | A6 | **Fixed** | Decision 16 now says the thresholds are named constants pending validated advanced controls. `6eb0e39` |
 | A7 | **Fixed** | Proposal cards contain the agreed other-days banner and place **Open Schedule** inside it. `104a237` |
-| A8 | **Fixed** | Events are pruned by both a 42-day age limit and the 5,000-event bound. `6687152` |
+| A8 | **Fixed** | Events are pruned by both a 42-day age limit and the 5,000-event bound. Learning tests now use a clock-relative Monday, preventing the retention rule making CI fail as fixed 2026 fixtures age. `6687152`, correction `3d5e68e` |
 | A9 | **Fixed** | Persistent-notification timing uses Home Assistant's clock. `6687152` |
 | A10 | **Fixed** | The decision endpoint rejects proposal actions while Learning is disabled. `6687152` |
 | B1 | **Fixed** | User and acceptance documents consistently treat **Overrides** as the page and Quick Change/Away as its features. `6eb0e39` |
@@ -37,7 +40,7 @@ Summary: **33 Fixed · 10 Open · 1 False**. No finding is omitted.
 | B8 | **Fixed** | README now explains that translation equality is enforced by the automated suite. `6eb0e39` |
 | B9 | **Fixed** | The i18n roadmap lists all current pages and the historical V1 review is explicitly labelled as predating Overrides/Learning. `6eb0e39` |
 | B10 | **Open** | Learning now has a current-feature bullet and interface-tour section, but the required privacy-reviewed release screenshot has not yet been captured. `6eb0e39` |
-| B11 | **False** | The repository consistently defines ZEAL Flow as the mechanical retrofit project. The review's hypothetical private cooling-name collision has no supporting project evidence; that identity is now also protected in the parity workflow. `a53aa6d` |
+| B11 | **Open** | The repository names the public mechanical retrofit project ZEAL Flow, while the project plan communicated in conversation also names the planned private heating-and-cooling V2 ZEAL Flow. The manifest and parity skill now preserve this ambiguity; a distinct product name remains to be chosen. `ebb2129` |
 | C1 | **Fixed** | Overrides/Away behaviour is implemented directly in the panel; the string-replacing entry shim was deleted. `ec7e7c7` |
 | C2 | **Fixed** | The panel loads one directly versioned asset and tests derive its URL from `PANEL_ASSET_VERSION`. `ec7e7c7` |
 | C3 | **Fixed** | Only the readable Setup gate remains for the competing-scheduler warning. `ec7e7c7` |
@@ -56,16 +59,28 @@ Summary: **33 Fixed · 10 Open · 1 False**. No finding is omitted.
 | D1 | **Open** | Splitting Setup into Zones & rooms and Settings remains planned structural work before Thermal Response settings are added. |
 | D2 | **Open** | Learning now has an active-status header and explicit Schedule suggestions section, but the Thermal Response sub-view awaits that feature's data model. `104a237` |
 | D3 | **Open** | Weekdays, adaptations and statuses are now plain English and an evidence-range sentence is shown. A defensible estimated-effect calculation is not yet available and will not be invented. `104a237` |
-| D4 | **Fixed** | Learning shows active-pattern counts, progress out of three and oldest-evidence expiry, limited to the true 21-day window. `104a237`, `7ffcce0` |
+| D4 | **Fixed** | Learning shows active-pattern counts, threshold progress and oldest-evidence expiry, limited to the backend-provided observation window. Threshold/window values now come from Python policy rather than duplicated JavaScript literals. `104a237`, `7ffcce0`, `8d2c78b` |
 | D5 | **Open** | The Overview thermal-model slot depends on the Thermal Response model and remains a planned layout decision. |
 | D6 | **Open** | A ghosted current/proposed timeline remains a useful enhancement; the exact textual diff is retained meanwhile. |
 | E1 | **Open** | Cooling-direction and HVAC-mode seams are documented future ZEAL Flow/next-major work; V1 remains intentionally heating-only. |
-| E2 | **Fixed** | The sibling-parity skill now explicitly covers ZEAL Flow and other ZEAL-family projects while preserving separate authorization. `a53aa6d` |
+| E2 | **Fixed** | The sibling-parity skill covers ZEAL-family projects, preserves separate authorization and now requires disambiguating which ZEAL Flow repository is intended. `a53aa6d`, `ebb2129` |
+
+## Independent cross-check corrections
+
+| Cross-check outcome | Resolution |
+|---|---|
+| Mixed Away and normal evidence could create a proposal | Confirmed. Backend matching now requires `outcome=applied`; regression covers `excluded`, `excluded`, `applied`. `31c0a55` |
+| Fixed August 2026 evidence would age out and break tests | Confirmed. Learning fixtures are relative to the current Monday, preserving weekday intent indefinitely. `3d5e68e` |
+| Revert retained the original global-revision coupling | Confirmed. Revert uses the current token and still verifies the exact accepted period; a sidebar-change regression is included. `0a61cd5` |
+| JavaScript duplicated the 3-date/21-day policy | Confirmed. `get_learning` now supplies both values and the panel derives all progress calculations from them. `8d2c78b` |
+| Learning payload schema remained implicit at version 1 | Confirmed. Payload schema 2 is separate from the HA Store envelope; legacy unmatchable evidence is ignored on load. `5055b20` |
+| A2 room fingerprint covers all seven days | Confirmed and retained as a deliberate conservative boundary: a real edit anywhere in that room invalidates its other evidence. Period-level fingerprints may be considered later but are not represented as current behaviour. |
 
 ## Verification record
 
 - Targeted regression coverage was added for cross-weekday evidence, room-scoped
-  revisions, Away exclusion, age retention, disabled-Learning decisions,
+  revisions, mixed Away exclusion, clock-relative age retention, revert after
+  unrelated preference changes, disabled-Learning decisions,
   responsive navigation, period naming and timer lifecycle.
 - Python compilation and change-integrity checks were run for each local update.
 - The pinned CI workflow is the authoritative complete-suite result for every
@@ -75,8 +90,8 @@ Summary: **33 Fixed · 10 Open · 1 False**. No finding is omitted.
 
 ## Open-work boundary
 
-The ten Open items are not hidden V1 fixes. C6, D1, D2, D5 and E1 belong to the
+The eleven Open items are not hidden V1 fixes. C6, D1, D2, D5 and E1 belong to the
 Thermal Response/next-major architecture; C8, C13 and D6 require deliberate UI
 or migration work; D3 needs a real effect model; B10 needs a privacy-reviewed
-capture from Home Assistant. They should be closed by their own verified,
+capture from Home Assistant; B11 needs a product naming decision. They should be closed by their own verified,
 committed updates under the project workflow.
