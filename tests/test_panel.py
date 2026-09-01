@@ -326,6 +326,8 @@ def test_frontend_limits_setup_navigation_to_administrators():
 
 def test_frontend_contains_schedule_learning_workflow():
     source = PANEL_FILE.read_text()
+    assert "Zoned, Efficient, Adaptive, Learning" in source
+    assert "Zone Energy-Aware Logic" not in source
     assert "Enable Schedule Adaptation" in source
     assert "Home Assistant Persistent Notifications" in source
     assert 'type: "zeal/get_learning"' in source

@@ -309,7 +309,7 @@ class ZealPanel extends HTMLElement {
       <header>
         <div class="identity">
           <img src="/api/brands/integration/zeal/icon.png" alt="" />
-          <div><h1>ZEAL</h1><p>Zone Energy-Aware Logic</p></div>
+          <div><h1>ZEAL</h1><p>Zoned, Efficient, Adaptive, Learning</p></div>
         </div>
         ${entrySelector}
       </header>
