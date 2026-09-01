@@ -5,10 +5,12 @@ description: Check whether a fix found in ZEAL also applies to HA Visual Climate
 
 # ZEAL Sibling-Project Patch Parity
 
-ZEAL, HA Visual Climate Scheduler and ZEAL Flow are sibling projects. A fix in
-one can expose the same defect, safety issue, documentation gap or broken
-assumption in another. ZEAL Flow remains the mechanical retrofit project; this
-workflow does not redefine that product identity.
+ZEAL and HA Visual Climate Scheduler have sibling code and documentation. The
+name **ZEAL Flow** is currently ambiguous: it names the public mechanical
+retrofit repository and also the planned private heating-and-cooling V2
+repository. Do not use this skill to resolve or redefine that naming decision.
+When a task says ZEAL Flow and its target is not otherwise clear, establish
+which repository the user means before inspecting or proposing a sibling patch.
 
 When a discovered fix has a concrete connection to the sibling project:
 
