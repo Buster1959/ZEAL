@@ -332,9 +332,12 @@ required design gate tracked in [#6](https://github.com/Buster1959/ZEAL/issues/6
 The Learning page/module structure is separately gated by
 [#7](https://github.com/Buster1959/ZEAL/issues/7).
 
-- Add Settings selectors for a preferred local outdoor temperature sensor or a
-  compatible current-temperature weather entity, plus an optional hourly
-  forecast weather entity.
+- Add an administrator Thermal Response Yes/No option. On first enable, ask for
+  one EPC band estimate (including Not sure), a preferred local outdoor
+  temperature sensor, a fallback weather provider and included rooms. Explain
+  that an inaccurate EPC estimate only lengthens initial learning.
+- Use the preferred local sensor for observations and the compatible weather
+  entity for fallback current temperature and hourly forecast.
 - Integrate against Home Assistant's weather contract rather than provider
   names; validate with Met Office, Open-Meteo and Pirate Weather-shaped entities.
 - Store actual observations separately from forecasts and retain the provenance,
@@ -342,6 +345,9 @@ The Learning page/module structure is separately gated by
 - Fit a per-room first-order thermal response: heat-up rate, response delay,
   cooldown/heat-loss behaviour and confidence as functions of the indoor/outdoor
   temperature difference and available heat-input signals.
+- Refine included room models continuously without Accept/Edit/Dismiss proposals
+  and provide administrator response graphs; keep automatic optimum start as a
+  separate future opt-in.
 - Reject or down-weight stale sensors, open-window periods, interrupted runs,
   manual changes, unexplained heat sources and likely solar/occupancy gains.
 - Introduce advisory optimum start before any automatic behaviour. Show the

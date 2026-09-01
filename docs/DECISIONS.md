@@ -72,3 +72,9 @@ companion Wiki retains the longer chronological design history.
     target and measured room temperature is demand. The per-zone re-enable delay
     bounds actuator cycling; adding a second hysteresis mechanism would obscure
     that control and previously proved ineffective in the source controller.
+27. Thermal Response has an administrator Yes/No control in Setup. Enabling it
+    asks one simple EPC question, selects a preferred local outdoor-temperature
+    sensor and fallback weather provider, and confirms the participating rooms.
+    The EPC answer is only a starting estimate: continuous per-room observations
+    refine the model without proposal acceptance, while automatic optimum start
+    remains a separate future opt-in.

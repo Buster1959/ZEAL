@@ -344,16 +344,51 @@ respond to heating under different outdoor conditions. Its first user-facing
 application is **optimum start**: predicting when heating should begin so a room
 reaches its scheduled target at the scheduled time.
 
+### Setup and initial baseline
+
+Setup has an administrator **Enable Thermal Response: Yes/No** option. Selecting
+Yes opens a deliberately short initiation step:
+
+1. **Starting EPC estimate** — “If you know your current EPC, select it;
+   otherwise estimate where you believe your home sits on the EPC scale.” The
+   choices are A (92–100), B (81–91), C (69–80), D (55–68), E (39–54), F
+   (21–38), G (1–20), plus **Not sure**.
+2. **Outside temperature** — select a local outdoor-temperature sensor
+   (**Recommended**) and a fallback weather provider.
+3. **Learning scope** — include all eligible rooms by default and allow the
+   administrator to exclude individual rooms.
+
+The EPC selection seeds only the initial estimate; it is not treated as a
+measured room parameter or a permanent classification. The initiation step must
+say: “An inaccurate estimate will not prevent learning, but ZEAL may take
+longer to establish the true response of each room.” Choosing **Not sure** uses
+neutral starting values and does not block learning.
+
+The band ranges follow the domestic EPC scale. The headline SAP/EPC rating is a
+standardised whole-home energy-performance estimate, not a direct measurement
+of a room's thermal mass or heat-loss coefficient; ZEAL therefore treats it only
+as initial context. See the UK government's
+[Standard Assessment Procedure guidance](https://www.gov.uk/guidance/standard-assessment-procedure)
+and [technical explanation of EPC metrics](https://www.gov.uk/government/consultations/reforms-to-the-energy-performance-of-buildings-regime/technical-annex-for-chapter-2-what-epcs-measure).
+
+Once enabled, model refinement is a permanent, continuous process for every
+included room and does not create Accept/Edit/Dismiss proposals. Any later
+automatic optimum-start control is a distinct feature and remains separately
+permissioned. Administrators can inspect observed and predicted room response
+on a Thermal Response graph; detailed graph design remains part of the Learning
+module UI work.
+
 ### Weather and outdoor-temperature sources
 
 Setup should select entities through Home Assistant's common interfaces rather
 than hard-code provider names:
 
-1. **Observed outdoor temperature** — preferably a local outdoor temperature
-   sensor; otherwise the current temperature of a compatible `weather` entity.
-2. **Optional forecast weather entity** — a `weather` entity that supports
-   hourly forecasts through `weather.get_forecasts`.
+1. **Preferred observation** — the configured local outdoor-temperature sensor.
+2. **Fallback and forecast** — the configured compatible `weather` entity. Its
+   current temperature is used only when the preferred sensor is missing, stale
+   or unavailable; its hourly forecast supports future optimum-start prediction.
 
+The selected source and fallback reason are retained with each observation.
 Actual observed outdoor temperature trains the model. Forecast temperature is
 used only when predicting a future heating start. Forecast values must not be
 stored as if they were observations.
