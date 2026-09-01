@@ -370,9 +370,9 @@ each room.” Choosing **Not sure** uses neutral starting values and does not bl
 learning.
 
 The optional band guide follows the domestic EPC scale. The headline SAP/EPC
-rating is a standardised whole-home energy-performance estimate, not a direct measurement
-of a room's thermal mass or heat-loss coefficient; ZEAL therefore treats it only
-as initial context. See the UK government's
+rating is a standardised whole-home energy-performance estimate, not a direct
+measurement of a room's thermal mass or heat-loss coefficient; ZEAL therefore
+treats it only as initial context. See the UK government's
 [Standard Assessment Procedure guidance](https://www.gov.uk/guidance/standard-assessment-procedure)
 and [technical explanation of EPC metrics](https://www.gov.uk/government/consultations/reforms-to-the-energy-performance-of-buildings-regime/technical-annex-for-chapter-2-what-epcs-measure).
 
@@ -380,6 +380,50 @@ Once enabled, model refinement is a permanent, continuous process for every
 included room and does not create Accept/Edit/Dismiss proposals. Any later
 automatic optimum-start control is a distinct feature and remains separately
 permissioned.
+
+### Observation storage and retention
+
+Thermal Response uses bounded, versioned Home Assistant Store documents and no
+separate database. Configuration and the small current-model index belong to
+the config entry; detailed observations and completed episodes are partitioned
+by stable room ID so saving one room never rewrites the whole house.
+
+- Sample at five-minute intervals only while heating, warm-up, cooldown or a
+  data-quality hold is relevant; do not create an endless idle timeline.
+- Keep at most **2,000 detailed samples per room** and never longer than **30
+  days**.
+- Compact each completed interval into an episode summary and keep at most
+  **750 summaries per room** and never longer than **365 days**.
+- Keep the active episode in memory and checkpoint it at important state
+  transitions and no less safely than every 15 minutes while active.
+- Give samples and episodes stable IDs. Restart recovery deduplicates by ID and
+  timestamp; an unrecoverable gap closes the episode as interrupted rather than
+  joining unrelated evidence.
+- Store forecast provenance with the prediction/episode it informed, never as
+  an observed outdoor-temperature sample.
+- Apply both age and count limits on every load and save so upgrades and long
+  disabled periods cannot bypass retention.
+- Version every Store payload and migrate sequentially. Rebuild derived models
+  from compatible retained evidence after a model migration; never overwrite an
+  unknown newer schema.
+
+Removing a room from learning stops collection but does not silently erase its
+history. **Reset selected room** removes that room's observations, summaries and
+model. **Reset all Thermal Response learning** removes every thermal document
+for the entry. Both are confirmed, administrator-only and audited.
+
+Turning **Enable Thermal Response** off presents three choices: **Disable and
+keep data** (the default), **Disable and permanently delete data**, and
+**Cancel**. Keeping data stops sampling/prediction and permits a later restart
+from the retained model, subject to normal pruning. Permanent deletion removes
+all Thermal Response observations, episode summaries, models and active
+checkpoints for that entry, but never removes schedules, room configuration,
+Quick Changes, Away settings or the ordinary application audit.
+
+Ordinary diagnostics contain pseudonymised identifiers and summary counts. A
+deliberate readable export may include room names and evidence only after an
+occupancy-privacy warning. Removing the ZEAL config entry deletes all of its
+thermal documents.
 
 ### Administrator view, history, privacy and reset
 

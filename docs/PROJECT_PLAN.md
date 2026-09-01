@@ -261,6 +261,16 @@ separate SQLite database.
 Acceptance: the persistence and privacy contract is agreed before observation
 collection code is written.
 
+Agreed contract: five-minute relevant-period samples; per-room versioned Store
+documents; 30 days/2,000 detailed samples; 365 days/750 episode summaries;
+15-minute active checkpoints; stable-ID restart deduplication; and
+pseudonymised ordinary diagnostics. Disabling asks whether to keep data
+(default), delete it permanently, or cancel. Reset/deletion never changes
+configuration, schedules or overrides.
+
+Status: **complete**. The persistence contract is recorded in
+`docs/DATA_MODEL.md` and `docs/LEARNING_ROADMAP.md` before implementation.
+
 ### Completed baseline corrections
 
 Issues [#1](https://github.com/Buster1959/ZEAL/issues/1),
@@ -333,8 +343,8 @@ This work follows the source-aware audit and begins in observation-only mode.
 
 Thermal observations and derived room models will use bounded, versioned Home
 Assistant Store documents. ZEAL will not introduce MariaDB or a separate SQLite
-database for this feature. The volume, retention and compaction contract is a
-required design gate tracked in [#6](https://github.com/Buster1959/ZEAL/issues/6).
+database for this feature. The agreed volume, retention and compaction contract
+is recorded in closed [#6](https://github.com/Buster1959/ZEAL/issues/6).
 The agreed Learning page/module structure is recorded in closed
 [#7](https://github.com/Buster1959/ZEAL/issues/7).
 

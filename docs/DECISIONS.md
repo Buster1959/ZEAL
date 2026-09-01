@@ -94,3 +94,9 @@ companion Wiki retains the longer chronological design history.
     solves backwards from the next scheduled target. The administrator view
     discloses both sources, forecast range/provider, target, warm-up duration,
     recommended start and confidence; forecast fallback is always labelled.
+31. Thermal observations use versioned per-room Home Assistant Stores: relevant
+    five-minute samples are limited to 30 days/2,000 and compact episode
+    summaries to 365 days/750, with restart-safe checkpoints and deduplication.
+    Disabling Thermal Response asks the administrator to keep data (default),
+    permanently delete it, or cancel; no thermal deletion changes heating
+    configuration, schedules or overrides.

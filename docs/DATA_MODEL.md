@@ -120,17 +120,47 @@ contains no Home Assistant credentials.
 
 ### Planned room thermal-response documents
 
-Thermal learning should use a separate versioned observation store and derived
-per-room model store. Observations distinguish measured outdoor temperature from
-forecast temperature and retain source entity, timestamps, room temperatures,
-effective/scheduled target, heat-demand/actuator state, optional heat-input and
-disturbance signals, validity/exclusion reason and model version.
+Thermal learning uses no database. It will use a small versioned model index for
+the config entry plus one bounded Home Assistant Store document per stable room
+ID. Partitioning prevents a five-minute Lounge sample from rewriting every
+other room's history.
+
+Each room document contains an optional restart checkpoint, detailed samples and
+completed episode summaries. Samples are recorded every five minutes only while
+heating, warm-up, cooldown or an exclusion hold is relevant. They distinguish
+measured outdoor temperature from forecast provenance and retain source,
+timestamps, room temperature, effective/scheduled target, demand/actuator state,
+available heat-input signals, validity/exclusion reason and model version.
+
+A detailed sample is retained only while it satisfies both limits: no older
+than 30 days and within the newest 2,000 for that room. Completed intervals are
+compacted into at most 750 episode summaries and retained for no more than 365
+days. Age and count pruning runs on load and save. Stable sample/episode IDs and
+timestamps prevent restart duplication; an unsafe recovery gap closes the
+checkpoint as an interrupted episode.
+
+Every document declares its Store envelope and payload/model versions. Schema
+migrations are explicit and sequential. A changed derived-model version is
+rebuilt from compatible retained evidence; an unknown newer version stops
+Thermal learning with an administrator-visible error and is never overwritten.
 
 Each derived room model records its effective thermal mass/heat-loss parameters,
 response delay, training range, evidence count, last trained time, model version
 and confidence. Raw observations remain the reproducible evidence; derived
 parameters can be rebuilt after a model migration. A model never crosses room
 IDs, and missing/stale weather data does not modify the saved schedule.
+
+Disabling Thermal Response asks the administrator to keep or permanently delete
+the data. Keep is the default and stops collection while retention remains in
+force. Delete removes every thermal room document, model and checkpoint for the
+entry. Per-room/all-room resets and disable-time deletion never alter schedules,
+room configuration, Quick Changes, Away state or the ordinary application
+audit.
+
+Ordinary diagnostics expose pseudonymised room/zone/entity aliases, counts,
+model health and exclusion totals. A separately requested readable export may
+include names and evidence only after an occupancy-privacy warning. Removing the
+ZEAL config entry removes all of its Thermal Response Store documents.
 
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
