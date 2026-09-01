@@ -206,6 +206,12 @@ Priority: **1 — highest**. Decide how much detail belongs in README, the GitHu
 wiki and repository documentation. Preserve essential installation, safety and
 offline material while giving every subject one maintained source of truth.
 
+Status: **complete**. Wiki commit `deee6e2` establishes the ownership map and
+expands the maintained user guide/troubleshooting pages. Repository commit
+`8184962` makes README's active path concise, points current user guidance to
+the wiki and labels the full repository guide copies/README detail as archived
+cross-check snapshots. No text was deleted during the transition.
+
 Acceptance: an explicit document ownership map exists, duplicate material is
 removed or reduced to links, and no user guidance is lost during migration.
 
