@@ -150,6 +150,39 @@ async def test_away_change_is_audited_but_excluded_from_detection():
     assert store.proposals == []
 
 
+async def test_away_events_never_count_toward_a_later_normal_proposal():
+    store = LearningStore(None, "entry", store=MemoryStore())
+    away = {"active": True}
+    engine = ScheduleLearning(
+        store,
+        configuration,
+        lambda: "revision-one",
+        exclusion_provider=lambda _room_id: (
+            "away_mode_active" if away["active"] else None
+        ),
+    )
+    for day in (3, 4):
+        assert await engine.async_record_change(
+            room_id="lounge",
+            requested_temperature=19,
+            source="physical_trv",
+            when=at(day, 7, 35),
+        ) is None
+    away["active"] = False
+    assert await engine.async_record_change(
+        room_id="lounge",
+        requested_temperature=19,
+        source="physical_trv",
+        when=at(5, 7, 35),
+    ) is None
+    assert [event["outcome"] for event in store.events] == [
+        "excluded",
+        "excluded",
+        "applied",
+    ]
+    assert store.proposals == []
+
+
 async def test_repeated_changes_on_one_date_count_once():
     store = LearningStore(None, "entry", store=MemoryStore())
     engine = learning(store)

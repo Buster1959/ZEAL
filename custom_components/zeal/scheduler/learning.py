@@ -317,6 +317,7 @@ class ScheduleLearning:
             event
             for event in self._store.events
             if event.get("room_id") == latest["room_id"]
+            and event.get("outcome") == "applied"
             and event.get("pattern_key") == latest["pattern_key"]
             and event.get("room_schedule_revision")
             == latest["room_schedule_revision"]
