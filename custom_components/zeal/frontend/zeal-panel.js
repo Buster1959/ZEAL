@@ -1775,7 +1775,10 @@ class ZealPanel extends HTMLElement {
   }
 
   _learningEvidenceProgress() {
-    const qualifying = (this._learning?.events || []).filter((event) => event.outcome === "applied");
+    const cutoff = Date.now() - 21 * 24 * 60 * 60 * 1_000;
+    const qualifying = (this._learning?.events || []).filter((event) =>
+      event.outcome === "applied" && new Date(event.timestamp).getTime() >= cutoff
+    );
     const groups = new Map();
     for (const event of qualifying) {
       const key = `${event.room_id}|${event.pattern_key}|${event.room_schedule_revision}`;
@@ -1784,7 +1787,6 @@ class ZealPanel extends HTMLElement {
     }
     const active = [...groups.values()]
       .map((events) => events.sort((left, right) => String(left.timestamp).localeCompare(String(right.timestamp))))
-      .filter((events) => new Date(events[events.length - 1].timestamp).getTime() >= Date.now() - 21 * 24 * 60 * 60 * 1_000)
       .sort((left, right) => String(right[right.length - 1].timestamp).localeCompare(String(left[left.length - 1].timestamp)));
     const roomName = (roomId) => (this._configuration.zones || [])
       .flatMap((zone) => zone.rooms || [])

@@ -335,6 +335,7 @@ def test_frontend_contains_schedule_learning_workflow():
     assert "Learning is active" in source
     assert "of 3 qualifying dates" in source
     assert "Oldest evidence expires" in source
+    assert 'event.outcome === "applied" && new Date(event.timestamp).getTime() >= cutoff' in source
     assert "Apply this change to other days" in source
     assert "This suggestion changes only" in source
     assert "Schedule changed — review manually" in source
