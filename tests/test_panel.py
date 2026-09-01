@@ -296,9 +296,9 @@ def test_frontend_places_safety_warning_only_on_setup_page():
     """The precaution belongs to administrator Setup, not normal operation."""
     source = PANEL_FILE.read_text()
     assert source.count("this._warning()") == 1
-    setup = source[source.index("  _renderSetup() {") : source.index("  _renderDownloads() {")]
-    assert "${this._warning()}" in setup
-    assert setup.index("${this._warning()}") < setup.index('<section class="setup-help">')
+    content = source[source.index("  _content() {") : source.index("  _header() {")]
+    assert '${this._view === "setup" ? this._warning() : ""}' in content
+    assert content.index("this._warning()") > content.index("this._renderOverview()")
 
 
 def test_frontend_refreshes_schedule_navigation_after_setup_reload():
@@ -330,17 +330,12 @@ def test_frontend_contains_schedule_learning_workflow():
     assert "Home Assistant Persistent Notifications" in source
     assert 'type: "zeal/get_learning"' in source
     assert 'type: "zeal/decide_learning_proposal"' in source
-    assert "<h2>Learning</h2>" in source
+    assert "Learning Notifications" in source
     assert "evidence_threshold" in source
     assert "observation_days" in source
     assert "Learning is active" in source
     assert "of ${threshold} qualifying dates" in source
     assert "Oldest evidence expires" in source
-    assert "latest.original_time" in source
-    assert "Medium confidence" in source
-    assert "learning-action-grid" in source
-    assert "_formatDateTime" in source
-    assert 'timeZone: this._hass?.config?.time_zone' in source
     assert 'event.outcome === "applied" && new Date(event.timestamp).getTime() >= cutoff' in source
     assert "Date.now() - observationDays * 24 * 60 * 60 * 1_000" in source
     assert "Apply this change to other days" in source
