@@ -12,7 +12,10 @@ other.
 ## Runtime layers
 
 1. **Config entry and panel** — `__init__.py`, `config_flow.py`, `panel.py` and
-   `frontend/zeal-panel.js` register the integration and its admin-only panel.
+   `frontend/zeal-panel.js` register the integration and its authenticated-user
+   panel. Overview is available to every signed-in user; Setup and configuration
+   administration remain administrator-only. Schedule, Learning and Quick
+   Change can be granted to standard users through explicit Setup permissions.
 2. **Validated API** — `scheduler/websocket_api.py` and
    `scheduler/configuration.py` authorize, validate and conflict-protect every
    panel read or write.

@@ -80,9 +80,10 @@
 - Each zone gets a **Demand sensor** showing `Demand` / `No demand`, with which
   rooms are asking for heat as an attribute — a quick way to see what the
   Coordinator is doing without digging through logs.
-- The admin-only **Schedule** page provides seven independent daily timelines
-  per room, with draggable points, exact entry, source-day application and
-  room-to-room schedule copying.
+- The **Schedule** page provides seven independent daily timelines per room,
+  with draggable points, exact entry, source-day application and room-to-room
+  schedule copying. Administrators can grant standard users Schedule access
+  from Setup; Setup itself remains administrator-only.
 - **Overrides → Quick Change** applies a temporary adjustment or exact target to one room,
   a Zone/Floor selection, any group of rooms or the whole house for two hours,
   four hours or until the next scheduled change. Weekly schedules are not
@@ -219,9 +220,10 @@ All configuration is done via the UI — no YAML.
 1. **Settings → Devices & Services → Add Integration → ZEAL HVAC System.**
    Give the integration instance a name (e.g. "ZEAL HVAC System").
 2. Open **ZEAL** from the Home Assistant sidebar (or **Configure** on the
-   integration card). The admin-only **Overview** shows the current zones,
-   rooms, actuators, heat sources, equipment counts and each room's latest
-   successful ZEAL target change as local time and setpoint.
+   integration card). **Overview** is available to every signed-in user and
+   shows the current zones, rooms, actuators, heat sources, equipment counts
+   and each room's latest successful ZEAL target change as local time and
+   setpoint. **Setup** remains administrator-only.
 3. Select **Setup**, then:
    - add a zone and give it a descriptive name (e.g. "Ground Floor");
    - select its single heating actuator switch and heat source;
@@ -425,7 +427,8 @@ that instead.
 The learning layer uses a persistent, bounded audit of Quick Change, Home
 Assistant thermostat and physical-TRV setpoint changes. A candidate is created
 when a room receives three similar manual changes on any three distinct dates
-within 21 days for the same comparable schedule period and schedule revision.
+within 21 days for the same comparable schedule period while that room's
+schedule is unchanged.
 Temperature and timing adaptations remain separate; accepting changes only the
 weekday on which the proposal was raised.
 

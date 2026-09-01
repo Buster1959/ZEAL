@@ -18,9 +18,11 @@ Before enabling it:
 4. Confirm the physical heat source is intentionally disabled. ZEAL may still
    show demand and operate the configured dummy actuator switches during the
    five-minute test changes.
-5. Do not edit the tested schedule or ZEAL Setup during the six days. Either
-   action changes the configuration revision and deliberately separates the
-   evidence.
+5. Do not edit a tested room's schedule during the six days. A schedule change
+   to that room starts a new room-specific evidence generation. Unrelated Setup
+   changes no longer separate the tested room's Learning evidence.
+6. Keep Away mode inactive during each test change. An Away-period change is
+   audited as excluded evidence and must not count toward a proposal.
 
 The automation changes a physical TRV for five minutes and then restores the
 scheduled target through that same TRV. ZEAL should detect each external change,
