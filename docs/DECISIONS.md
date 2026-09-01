@@ -96,7 +96,11 @@ companion Wiki retains the longer chronological design history.
     recommended start and confidence; forecast fallback is always labelled.
 31. Thermal observations use versioned per-room Home Assistant Stores: relevant
     five-minute samples are limited to 30 days/2,000 and compact episode
-    summaries to 365 days/750, with restart-safe checkpoints and deduplication.
-    Disabling Thermal Response asks the administrator to keep data (default),
-    permanently delete it, or cancel; no thermal deletion changes heating
-    configuration, schedules or overrides.
+    summaries to 365 days/750. Active episodes use a separate small checkpoint
+    Store, saved at least every 15 minutes, at state transitions and through
+    Home Assistant's orderly-shutdown final write; checkpointing never rewrites
+    retained room history. Stable IDs provide restart deduplication. The
+    eight-room planning allowance is 20 MB per config entry. Disabling Thermal
+    Response asks the administrator to keep data (default), permanently delete
+    it, or cancel; no thermal deletion changes heating configuration, schedules
+    or overrides.

@@ -121,13 +121,20 @@ contains no Home Assistant credentials.
 ### Planned room thermal-response documents
 
 Thermal learning uses no database. It will use a small versioned model index for
-the config entry plus one bounded Home Assistant Store document per stable room
-ID. Partitioning prevents a five-minute Lounge sample from rewriting every
-other room's history.
+the config entry, one small versioned active-checkpoint Store for the config
+entry, and one bounded Home Assistant Store document per stable room ID.
+Partitioning prevents a five-minute Lounge sample from rewriting every other
+room's history, while separating the checkpoint prevents a safety save from
+rewriting even the Lounge's completed history.
 
-Each room document contains an optional restart checkpoint, detailed samples and
-completed episode summaries. Samples are recorded every five minutes only while
-heating, warm-up, cooldown or an exclusion hold is relevant. They distinguish
+Each room document contains detailed samples and completed episode summaries.
+The checkpoint Store contains only active episodes, keyed by stable room ID,
+with the minimum state required for restart recovery and deduplication. It is
+saved at important transitions, at least every 15 minutes while active, and by
+Home Assistant's final shutdown-write path. A completed episode is committed to
+its room history when it closes; routine checkpointing never rewrites retained
+room history. Samples are recorded every five minutes only while heating,
+warm-up, cooldown or an exclusion hold is relevant. They distinguish
 measured outdoor temperature from forecast provenance and retain source,
 timestamps, room temperature, effective/scheduled target, demand/actuator state,
 available heat-input signals, validity/exclusion reason and model version.
@@ -138,6 +145,16 @@ compacted into at most 750 episode summaries and retained for no more than 365
 days. Age and count pruning runs on load and save. Stable sample/episode IDs and
 timestamps prevent restart duplication; an unsafe recovery gap closes the
 checkpoint as an interrupted episode.
+
+For the eight-room planning home (four bedrooms, two bathrooms, kitchen and
+dining room), two two-hour episodes per room/day produce 11,520 detailed
+30-day samples and 5,840 annual summaries. The enforced caps are 16,000 samples
+and 6,000 summaries across those rooms. Using provisional serialized-record
+allowances, ZEAL expects about 7–12 MB, plans for a 9–14 MB capped payload and
+documents a conservative 20 MB allowance per config entry. Detailed history is
+loaded per selected room for the administrator graph; it is not all retained in
+memory or copied into Recorder entity attributes. Final schema benchmarks must
+confirm these estimates before release.
 
 Every document declares its Store envelope and payload/model versions. Schema
 migrations are explicit and sequential. A changed derived-model version is

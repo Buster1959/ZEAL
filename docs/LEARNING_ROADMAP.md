@@ -388,14 +388,25 @@ separate database. Configuration and the small current-model index belong to
 the config entry; detailed observations and completed episodes are partitioned
 by stable room ID so saving one room never rewrites the whole house.
 
+Active work is deliberately separated from retained history. One small,
+versioned checkpoint Store for the ZEAL config entry contains only episodes
+currently in progress. It is saved at important state transitions, at least
+every 15 minutes while an episode is active, and through Home Assistant's final
+shutdown-write path. Completed observations and summaries live in the bounded
+per-room history Stores and are written when an episode closes, retention is
+applied or an administrator resets data. A routine checkpoint must never
+rewrite a room's retained history.
+
 - Sample at five-minute intervals only while heating, warm-up, cooldown or a
   data-quality hold is relevant; do not create an endless idle timeline.
 - Keep at most **2,000 detailed samples per room** and never longer than **30
   days**.
 - Compact each completed interval into an episode summary and keep at most
   **750 summaries per room** and never longer than **365 days**.
-- Keep the active episode in memory and checkpoint it at important state
-  transitions and no less safely than every 15 minutes while active.
+- Keep the active episode in memory and copy it to the separate checkpoint
+  Store at important state transitions and no less safely than every 15 minutes
+  while active. Register a final write so an orderly Home Assistant shutdown
+  commits the newest in-memory checkpoint before exit.
 - Give samples and episodes stable IDs. Restart recovery deduplicates by ID and
   timestamp; an unrecoverable gap closes the episode as interrupted rather than
   joining unrelated evidence.
@@ -406,6 +417,47 @@ by stable room ID so saving one room never rewrites the whole house.
 - Version every Store payload and migrate sequentially. Rebuild derived models
   from compatible retained evidence after a model migration; never overwrite an
   unknown newer schema.
+
+#### Eight-room storage calculation
+
+The planning example is a four-bedroom home with two bathrooms, a kitchen and
+a dining room: **eight learned rooms**. For capacity planning, assume two
+two-hour relevant heating episodes per room per day. At five-minute cadence
+that is 24 samples per episode, 48 per room/day, 1,440 per room over 30 days and
+11,520 detailed samples across the home. Two daily episode summaries produce
+730 per room/year, or 5,840 across eight rooms, which is close to the 750-room
+cap.
+
+Allowing approximately 300–450 bytes per serialized detailed sample and
+450–750 bytes per episode summary gives the following engineering estimate.
+The ranges are planning allowances until the implemented schema is measured;
+they are not a promise that every JSON record has a fixed width.
+
+| Stored data | Typical eight-room case | Enforced maximum | Estimated serialized size |
+|---|---:|---:|---:|
+| Detailed samples | 11,520 | 16,000 | about 3.5–7.2 MB across the range/cap |
+| Episode summaries | 5,840 | 6,000 | about 2.6–4.5 MB across the range/cap |
+| Models, index and active checkpoints | small current state | bounded by rooms | less than about 1 MB |
+
+The expected total is approximately **7–12 MB**, with a conservative hard-cap
+planning estimate of **9–14 MB**. ZEAL therefore reserves a documented
+**20 MB planning allowance per config entry** for JSON envelopes, schema growth
+and temporary atomic replacement of the largest Store file. A ninth learned
+room adds approximately 12.5% to the eight-room record counts and remains
+inside that allowance.
+
+Only active episode buffers, current models and the small index should remain
+resident. Retained history is loaded per room when its administrator graph is
+opened, rather than loading the whole house. The working expectation is about
+1–5 MB steady additional memory, with a temporary per-room graph allowance of
+about 3–10 MB. These figures must be benchmarked against the final schema; no
+additional Home Assistant hardware requirement is introduced.
+
+HACS distributes the integration files and imposes no runtime Store quota.
+Thermal history is not Recorder data and must not be duplicated into frequently
+changing entity attributes. The principal resource risk is write amplification
+on flash storage, not capacity; separating the small checkpoint Store from
+per-room histories is the mitigation.
 
 Removing a room from learning stops collection but does not silently erase its
 history. **Reset selected room** removes that room's observations, summaries and

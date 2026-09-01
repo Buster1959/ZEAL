@@ -263,8 +263,11 @@ collection code is written.
 
 Agreed contract: five-minute relevant-period samples; per-room versioned Store
 documents; 30 days/2,000 detailed samples; 365 days/750 episode summaries;
-15-minute active checkpoints; stable-ID restart deduplication; and
-pseudonymised ordinary diagnostics. Disabling asks whether to keep data
+one separate small active-checkpoint Store saved at least every 15 minutes and
+on orderly Home Assistant shutdown; stable-ID restart deduplication; and
+pseudonymised ordinary diagnostics. The eight-room planning case is about
+7–12 MB expected, 9–14 MB at the bounded design allowance, with 20 MB reserved
+per config entry for overhead and growth. Disabling asks whether to keep data
 (default), delete it permanently, or cancel. Reset/deletion never changes
 configuration, schedules or overrides.
 
