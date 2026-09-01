@@ -193,6 +193,50 @@ checks will be repeated. Manifest `1.0.0`, tag and GitHub release remain gated
 on the pending live checks and mobile screenshots. The release will be
 distributed through the documented custom-HACS route.
 
+## Baseline close-down blocks before Room Thermal Response
+
+The post-review close-down work is tracked in GitHub so completed corrections
+and design decisions remain visible without mixing them into Thermal Response
+implementation. **Fixed** means committed, tested where applicable and closed;
+**Open** means discussion, evidence or implementation is still required.
+
+### Close-down A — accuracy, access and privacy (High)
+
+| Issue | Status | Evidence |
+|---|---|---|
+| [#1 Correct panel access and Learning revision documentation](https://github.com/Buster1959/ZEAL/issues/1) | **Fixed** | `1d8b590` |
+| [#2 Separate privacy-safe diagnostics from readable exports](https://github.com/Buster1959/ZEAL/issues/2) | **Fixed** | `0076597`; ordinary diagnostics are pseudonymised and summary-only |
+| [#3 Disclose that Schedule permission includes Learning access](https://github.com/Buster1959/ZEAL/issues/3) | **Fixed** | `8e9617b`, `3148e01` |
+| [#9 Complete Learning guide, troubleshooting and screenshots](https://github.com/Buster1959/ZEAL/issues/9) | **Open** | Guide and troubleshooting are complete in `8e9617b`; four privacy-reviewed screenshots remain |
+
+Acceptance: access descriptions match backend authorisation, routine support
+diagnostics do not expose readable household routines, and the Learning guide
+has complete privacy-reviewed visual evidence.
+
+### Close-down B — release presentation and identity (Medium)
+
+| Issue | Status | Evidence |
+|---|---|---|
+| [#4 Complete V1 Learning release notes and README anchors](https://github.com/Buster1959/ZEAL/issues/4) | **Fixed** | `8c0c478` |
+| [#10 Align the ZEAL acronym across README and panel](https://github.com/Buster1959/ZEAL/issues/10) | **Fixed** | `200a37f` |
+| [#5 Resolve the ZEAL Flow naming collision](https://github.com/Buster1959/ZEAL/issues/5) | **Open** | Ambiguity remains deliberately recorded in `PROJECT_MANIFEST.md` pending a naming decision |
+| [#8 Discuss README simplification and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8) | **Open** | Design discussion required before removing or relocating repository documentation |
+
+Acceptance: the public identity is consistent, current V1 behaviour is easy to
+find, and each subject has one declared source of truth without losing essential
+installation, safety or offline documentation.
+
+### Close-down C — Thermal Response design gates (High)
+
+| Issue | Status | Evidence |
+|---|---|---|
+| [#6 Define Home Assistant Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6) | **Open** | Design discussion; no MariaDB or separate SQLite database will be introduced |
+| [#7 Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7) | **Open** | UI/design discussion required before Thermal Response is added |
+
+Acceptance: observation cadence, episode boundaries, retention, compaction,
+migration, restart deduplication, reset/export privacy and module navigation are
+agreed before observation collection code is written.
+
 ## ZEAL Learning — Schedule Adaptation
 
 The first complete vertical pipeline is implemented behind an administrator
@@ -252,6 +296,13 @@ learning release is declared stable.
 ## ZEAL Learning — Room Thermal Response
 
 This work follows the source-aware audit and begins in observation-only mode.
+
+Thermal observations and derived room models will use bounded, versioned Home
+Assistant Store documents. ZEAL will not introduce MariaDB or a separate SQLite
+database for this feature. The volume, retention and compaction contract is a
+required design gate tracked in [#6](https://github.com/Buster1959/ZEAL/issues/6).
+The Learning page/module structure is separately gated by
+[#7](https://github.com/Buster1959/ZEAL/issues/7).
 
 - Add Settings selectors for a preferred local outdoor temperature sensor or a
   compatible current-temperature weather entity, plus an optional hourly
