@@ -60,5 +60,6 @@ def test_python_workflow_runs_pinned_suite_and_compilation() -> None:
     assert "pull_request:" in workflow
     assert "workflow_dispatch:" in workflow
     assert "python -m pytest tests/ -q" in workflow
+    assert "cache-dependency-path: requirements_test.txt" in workflow
     assert "python -m compileall -q custom_components tests" in workflow
     assert requirements.strip() == "pytest-homeassistant-custom-component==0.13.205"
