@@ -62,7 +62,13 @@ companion Wiki retains the longer chronological design history.
     household may generate too few natural changes for timely passive
     validation. Automatic detection may create advice, but only an explicit,
     authorised, revision-checked confirmation may change the saved schedule.
-25. Heating demand has no temperature deadband: any positive difference between
+25. Schedule Adaptation has an administrator Yes/No control in Setup. Setup is
+    the administrator's routine evidence-progress surface. **Schedule Updates**
+    appears to administrators and Schedule/Learning-authorised standard users
+    only when an actionable recommendation exists, and hides from standard
+    users after all recommendations are resolved. Diagnostics remain a
+    pseudonymised support mechanism, not the normal progress UI.
+26. Heating demand has no temperature deadband: any positive difference between
     target and measured room temperature is demand. The per-zone re-enable delay
     bounds actuator cycling; adding a second hysteresis mechanism would obscure
     that control and previously proved ineffective in the source controller.

@@ -216,8 +216,16 @@ flowchart TD
 
 ### Proposal experience
 
-The Learning view should behave as an advice inbox rather than silently changing
-control state. A proposal should read along these lines:
+Schedule Adaptation is controlled by an administrator **Enable Schedule
+Adaptation: Yes/No** option in Setup. While it is enabled but no proposal is
+actionable, standard users do not see an empty Learning page. Setup gives the
+administrator a compact evidence-progress summary; ordinary diagnostics remain
+pseudonymised support evidence rather than the routine progress interface.
+
+When a proposal becomes actionable, ZEAL reveals a **Schedule Updates** page to
+administrators and to standard users granted Schedule/Learning permission. The
+page may also be reached from the optional aggregated Home Assistant persistent
+notification. A proposal should read along these lines:
 
 ```text
 Lounge · Evening schedule suggestion
@@ -229,12 +237,18 @@ Estimated effect: +1°C during this schedule period
 Confidence: High
 ```
 
-The user can inspect the evidence events, accept the exact change, edit it before
-confirmation, dismiss it, or snooze it. Accepting creates a normal versioned
-schedule revision and an audit entry linking the proposal, evidence IDs, old
-value and new value. A one-action **Revert schedule change** remains available
-from proposal history while the affected period still matches the accepted
-revision; otherwise ZEAL shows the conflict and requires manual review.
+The authorised user can inspect the evidence events, accept the exact change,
+edit it before confirmation, dismiss it, or snooze it. Accepting creates a
+normal versioned schedule revision and an audit entry linking the proposal,
+evidence IDs, old value and new value. A one-action **Revert schedule change**
+remains available from proposal history while the affected period still matches
+the accepted revision; otherwise ZEAL shows the conflict and requires manual
+review.
+
+After every actionable proposal is resolved, Schedule Updates is hidden again
+from standard users. The final placement and filtering of administrator history
+will be decided with the multi-module Learning information architecture; the
+retained proposal history itself is not removed when the action page hides.
 
 ### Suppression, confidence and safety
 
@@ -280,6 +294,10 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 - No proposal is applied without an authenticated, authorised user confirmation.
 - Standard-user proposal visibility and approval are governed by the same
   administrator-controlled Schedule permission as ordinary schedule editing.
+- A standard user without an actionable proposal does not receive an empty
+  Learning/Schedule Updates page.
+- Setup exposes the administrator enable/disable control and compact evidence
+  progress without requiring a diagnostics download.
 
 ### Implementation and validation strategy
 
