@@ -99,6 +99,10 @@ require `visual_climate_scheduler` at runtime.
 
 ## V1 target architecture
 
+This historical target predates the later Overrides rename and opt-in Learning
+tab. The current panel pages are Overview, Schedule, Overrides, Learning and
+Setup; Downloads are a Setup section.
+
 ```text
 ZEAL config entry
   +-- ZEAL configuration (zones, rooms, devices, heat-source policy)

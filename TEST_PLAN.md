@@ -6,7 +6,7 @@ as-is by anyone testing this from a fresh HA install — every step names the
 exact screen, tab, and field.*
 
 > **Fastest option for verifying the Coordinator's own logic:**
-> `tests/` has an automated pytest suite (131 collected cases, runs in seconds)
+> `tests/` has an automated pytest suite that runs in seconds
 > covering the demand-calculation combination matrix directly —
 > see `tests/README.md`. This test plan is for everything that suite
 > *can't* cover: browser rendering and interactions, real (or dummy)
@@ -181,15 +181,15 @@ editing required anywhere in this section.
      on, even as you move `number.test_room_temp` up and down. Turn the
      override back off afterward and confirm normal control resumes.
 
-## 5. Check Schedule, Quick Change and Away mode
+## 5. Check Schedule, Overrides and Away mode
 
 1. Open **ZEAL → Schedule**, select the test room, add at least two changes a
    few minutes apart and save. Confirm the ZEAL room thermostat and dummy TRV
    receive each target at the displayed time.
-2. Open **Quick Change**, select the test room, apply an exact target for two
+2. Open **Overrides → Quick Change**, select the test room, apply an exact target for two
    hours, then cancel it. Confirm the room first uses the hold and then returns
    to its current scheduled target.
-3. In **Setup → Away mode**, choose **Start and end date/time** with a start a
+3. In **Overrides → Away mode**, choose **Start and end date/time** with a start a
    few minutes ahead, an end a few minutes after that and a distinctive safe
    target such as 12°C. Save. Confirm normal control continues before the start,
    the target changes at the start and normal control resumes at the end.

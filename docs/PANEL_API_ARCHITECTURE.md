@@ -46,7 +46,7 @@ arbitrary multi-room and whole-house selection. Its responses distinguish the
 saved scheduled target, effective target, expiry and active override. Holds are
 runtime-only and never share a write path with the schedule document.
 
-Setup's Away card selects one of Off, a registry-backed Home Assistant calendar
+Overrides' Away card selects one of Off, a registry-backed Home Assistant calendar
 or one start/end period and a 5–30°C global target. The backend validates the
 calendar owner/domain and disabled state, interprets offset-free browser values
 in Home Assistant's configured time zone, enforces five-minute manual intervals,
@@ -57,7 +57,7 @@ application while Away is active and displays the current authority globally.
 ## Security boundary
 
 Read-only panel bootstrap, configuration and zone-control commands accept an
-authenticated user. Schedule and Quick Change commands accept an administrator
+authenticated user. Schedule, Quick Change and Learning commands accept an administrator
 or a standard user explicitly granted that feature for the selected instance.
 Hierarchy, Away settings, downloads and audit commands retain Home Assistant's
 administrator requirement. Each command also requires an explicit loaded
@@ -76,8 +76,12 @@ The hierarchy writer treats browser data as untrusted. It validates:
 
 ## Conflict protection
 
-Read responses contain a deterministic `revision` derived from the saved
-hierarchy, schedule document and sidebar preference. Every hierarchy or schedule write must include
+Read responses contain a deterministic `revision` derived from the saved zone
+and room hierarchy, complete schedule/Away document, sidebar preference,
+standard-user Schedule and Quick Change grants, and Learning enable and
+persistent-notification preferences. It deliberately changes for every setting
+the panel can save, preventing a stale browser from writing over any newer panel
+change. Every hierarchy or schedule write must include
 the revision it was edited from. If either document changed in another browser
 tab or after a reload, the write fails with `conflict`; the newer data is never
 overwritten.
@@ -95,6 +99,11 @@ overwritten.
   periods to selected rooms.
 - `zeal/get_quick_change`, `zeal/set_temporary_override` and
   `zeal/clear_temporary_override`: transient targets that never edit schedules.
+- `zeal/get_zone_control`: live actuator, demand and re-enable-delay state for
+  the Overview zone pane.
+- `zeal/get_learning`: retained evidence and Schedule Adaptation proposals.
+- `zeal/decide_learning_proposal`: Schedule-authorised accept, edit-and-accept,
+  snooze, dismiss and revert decisions; disabled while Learning is off.
 - `zeal/save_away_mode`: revision-protected persisted activation source and
   global Away target.
 - `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.

@@ -83,12 +83,15 @@
 - The admin-only **Schedule** page provides seven independent daily timelines
   per room, with draggable points, exact entry, source-day application and
   room-to-room schedule copying.
-- **Quick Change** applies a temporary adjustment or exact target to one room,
+- **Overrides → Quick Change** applies a temporary adjustment or exact target to one room,
   a Zone/Floor selection, any group of rooms or the whole house for two hours,
   four hours or until the next scheduled change. Weekly schedules are not
   edited.
-- **Away mode** can follow a Home Assistant calendar or one exact start/end
+- **Overrides → Away mode** can follow a Home Assistant calendar or one exact start/end
   period and applies one safe global target to every active room.
+- Opt-in **Learning** records qualifying manual intent, shows progress toward
+  the three-date threshold and presents reviewable Schedule Adaptation
+  suggestions. ZEAL never changes the saved week without confirmation.
 - **Setup → Downloads** exports the saved configuration/schedules and the most
   recent 500 canonical thermostat application outcomes as readable JSON files.
 
@@ -127,11 +130,10 @@ want your system to work:
 
 - **Rooms with more than one TRV or sensor.** The original setup was always exactly
   one TRV and one sensor per room. The new schema allows several of each: room
-  temperature is the **average** of all its sensors, and room setpoint is the
-  **highest** setpoint among its TRVs (any one TRV wanting it warmer counts as
-  demand). This is confirmed as the intended behaviour, not a placeholder — see
-  `coordinator.py`'s `_room_setpoint`/`_room_temperature` methods if you want the
-  detail.
+  temperature is the **average** of all usable sensors, while demand normally
+  follows the room's canonical ZEAL thermostat target. The highest usable
+  physical-TRV target is only a startup fallback before the canonical entity is
+  available.
 - **Switch field changed 16 Aug 2026 (breaking).** From a list (`switches: [...]`,
   supporting multiple switches per zone) to a single value (`switch: <entity_id>`)
   once it was confirmed a zone only ever has one heating actuator switch in
@@ -187,8 +189,8 @@ If the button is unavailable, add the repository manually:
 
 ## Interface tour
 
-ZEAL uses one Home Assistant panel for Setup, Schedule, Quick Change and the
-system Overview. The screenshots below are from the generic V1 test
+ZEAL uses one Home Assistant panel for Overview, Schedule, Overrides, Learning
+and Setup. The screenshots below are from the generic V1 test
 installation; see the [Instructions for use](docs/INSTRUCTIONS_FOR_USE.md) for
 the complete guided tour.
 
@@ -200,9 +202,15 @@ the complete guided tour.
 
 ![ZEAL Schedule page showing seven independent daily visual schedules for one room](docs/images/zeal-seven-day-schedule-desktop.png)
 
-### Quick Change
+### Overrides — Quick Change
 
 ![ZEAL Quick Change page showing Zone and Floor room selection and temporary target controls](docs/images/zeal-quick-change-desktop.png)
+
+### Learning
+
+When an administrator enables Schedule Adaptation, **Learning** shows captured
+evidence, progress toward the three-date threshold, reviewable suggestions and
+proposal history. A dedicated release screenshot is still required before V1.
 
 ## Configuration
 
@@ -273,9 +281,9 @@ overwrite it. The saved schedule is immediately handed to the running scheduler.
 Entering Schedule refreshes the authoritative configuration so every saved
 Zone/Floor remains available after a slower integration reload.
 
-### Quick Change
+### Overrides — Quick Change
 
-Open **ZEAL → Quick Change** when you need a temporary target without changing
+Open **ZEAL → Overrides → Quick Change** when you need a temporary target without changing
 the saved week. Select individual rooms, a complete Zone/Floor, any mixture of
 rooms or **Select whole house**. Then choose −1°C, +1°C or enter an exact target
 from 5–30°C and choose **2 hours**, **4 hours** or **Until next scheduled
@@ -289,7 +297,7 @@ an exact target can also be used when no period is currently active.
 
 ### Away mode
 
-Open **ZEAL → Setup → Away mode** and choose exactly one activation method:
+Open **ZEAL → Overrides → Away mode** and choose exactly one activation method:
 
 - **Off** keeps the normal weekly schedule and Quick Change behaviour.
 - **Home Assistant Calendar** activates Away whenever the selected `calendar`
@@ -534,8 +542,10 @@ integration translations have two relevant caching details:
    `strings.json` — `strings.json` is just the editable source. If you edit
    `strings.json` and forget to copy the same change into
    `translations/en.json`, HA will show raw field/step keys because the file
-   it actually reads never changed. Both files need to stay in sync by hand;
-   there's no build step doing this automatically for a HACS-style integration.
+   it actually reads never changed. Both files need to stay in sync; there is no
+   build step doing this automatically for a HACS-style integration. The test
+   suite asserts that they are identical, so a missed copy fails automated
+   testing rather than reaching a user.
 2. Even with both files correctly in sync, Home Assistant caches a custom
    integration's translations — a config-entry *reload* alone won't pick up the
    change. Do a full HA Core **restart**, then a hard refresh of the browser tab

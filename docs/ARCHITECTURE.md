@@ -17,18 +17,20 @@ other.
    `scheduler/configuration.py` authorize, validate and conflict-protect every
    panel read or write.
 3. **Durable models** — zone/room configuration is held in config-entry
-   options; schedules, Away settings and audit entries use separate versioned
-Home Assistant stores.
+   options; coordinator safety state, schedules/Away settings, application audit
+   and Learning evidence use four separate versioned Home Assistant stores.
 4. **Scheduler runtime** — `scheduler/runtime.py` resolves Away, Quick Change,
    manual thermostat changes and weekly schedules, then writes only to the
    canonical ZEAL room thermostat.
-5. **Heating control** — `coordinator.py` propagates that room target to the
+5. **Learning** — `scheduler/learning.py` captures qualified intent above the
+   runtime boundary and creates reviewable proposals without writing schedules.
+6. **Heating control** — `coordinator.py` propagates that room target to the
    configured physical TRVs, evaluates room demand and safely controls the
    zone actuator.
 
-Each config entry owns independently keyed Coordinator, schedule and audit
+Each config entry owns independently keyed Coordinator, schedule, audit and Learning
 stores. Multiple entries can therefore run separate heating systems. Removing
-one entry deletes only those three stores; the panel remains registered while
+one entry deletes only those four stores; the panel remains registered while
 another ZEAL entry is loaded.
 
 ## Entity boundary

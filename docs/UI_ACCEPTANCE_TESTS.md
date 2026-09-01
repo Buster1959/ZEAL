@@ -21,10 +21,10 @@ version for each test.
   then confirm deletion and verify only the selected instance and its private
   setup/schedule/audit data are removed.
 - A standard user can open ZEAL and see Overview.
-- With both Standard-user access options off, Schedule and Quick Change are
+- With both Standard-user access options off, Schedule and Overrides are
   absent for a standard user. Enable each option in Setup and verify only the
   corresponding tab and operation become available.
-- For an administrator, Overview, Setup, Schedule and Quick Change navigation
+- For an administrator, Overview, Schedule, Overrides, Learning (when enabled) and Setup navigation
   stays visible and the active page is clear.
 - Setup and Modify setup are absent for a non-administrator, and a manually
   requested Setup view falls back to Overview.
@@ -47,7 +47,7 @@ version for each test.
 - Copy a complete week to selected rooms without changing their Areas or
   equipment.
 
-## Quick Change
+## Overrides — Quick Change
 
 - Apply relative and exact holds to a room, Zone/Floor, selection and whole
   house for each duration.

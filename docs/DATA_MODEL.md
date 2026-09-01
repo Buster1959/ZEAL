@@ -1,6 +1,6 @@
 # ZEAL V1 Data Model
 
-ZEAL persists three deliberately separate documents for each Home Assistant
+ZEAL persists four deliberately separate documents for each Home Assistant
 config entry. Separating them prevents runtime timing state, user configuration
 and schedule history from accidentally replacing one another.
 
@@ -99,7 +99,8 @@ proposed schedule edit and state (`new`, `accepted`, `dismissed`, `snoozed`,
 schedule revision and records the approving user and resulting revision; the
 learner never mutates the schedule document directly.
 
-The Store retains at most 5,000 raw events and 500 proposals. Learning data is
+The Store retains events for at most 42 days and also caps them at 5,000; it
+retains at most 500 proposals. Learning data is
 not included in the existing configuration/audit downloads. Any future Learning
 export must warn that this history may reveal occupancy routines even though it
 contains no Home Assistant credentials.

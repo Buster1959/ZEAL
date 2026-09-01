@@ -36,7 +36,8 @@ companion Wiki retains the longer chronological design history.
     evidence; it must not infer patterns solely from the current thermostat
     value.
 16. Repetition thresholds, comparable time windows and observation periods are
-    configurable rather than hidden constants.
+    named constants with one definition. Advanced settings may expose them only
+    after production evidence justifies safe tuning controls.
 17. A learned pattern creates a proposal, not a schedule mutation. The saved
     week changes only after explicit user acceptance or editing through the
     normal revision-checked schedule API.
@@ -61,3 +62,7 @@ companion Wiki retains the longer chronological design history.
     household may generate too few natural changes for timely passive
     validation. Automatic detection may create advice, but only an explicit,
     authorised, revision-checked confirmation may change the saved schedule.
+25. Heating demand has no temperature deadband: any positive difference between
+    target and measured room temperature is demand. The per-zone re-enable delay
+    bounds actuator cycling; adding a second hysteresis mechanism would obscure
+    that control and previously proved ineffective in the source controller.

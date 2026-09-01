@@ -123,12 +123,20 @@ request happened first, that event contributes to neither pattern.
 
 ### Evidence grouping and day scope
 
-Evidence is grouped by room, comparable original schedule period, schedule
+Evidence is grouped by room, comparable original schedule period, room-schedule
 revision, adaptation type and similar requested change. Any three distinct
 calendar dates within 21 days can satisfy the threshold. A period is comparable
-only when its stable period ID, original start time and original setpoint match;
-this prevents a 07:00 period being combined with an adjacent 08:00 period.
+when its original start time and original setpoint match; its per-day internal
+ID is deliberately not part of cross-weekday grouping. This prevents a 07:00
+period being combined with an adjacent 08:00 period while allowing independently
+created weekdays to contribute to the same pattern.
 Three adjustments during one calendar date count as one qualifying date.
+
+A zone or whole-house Quick Change is stored as one room-scoped evidence event
+for every affected room. That is intentional: repeating a request to warm the
+whole house can express genuine intent about every included room. Proposals
+remain separate per room and show their own evidence; a batch action never
+silently becomes one multi-room schedule write.
 
 Evidence may cross weekdays, but a proposal changes only the weekday and exact
 period on which that proposal is raised. It does not offer arbitrary additional
@@ -233,20 +241,21 @@ revision; otherwise ZEAL shows the conflict and requires manual review.
 - Default minimum evidence is three qualifying events across any three distinct
   calendar dates for the same comparable schedule period; repeated adjustments
   during one calendar date cannot create a proposal.
-- Confidence reflects evidence count, consistency of time/temperature change,
-  data quality and how recently the events occurred—not an unexplained AI score.
+- Confidence currently reflects evidence count: three or four distinct dates is
+  medium and five or more is high. Consistency, data quality and recency scoring
+  are planned refinements and are not claimed by the current interface.
 - Dismissed proposals remain suppressed until sufficient materially new evidence
   accumulates. Snoozed proposals reappear only after their chosen date.
 - Away periods, unavailable/stale temperatures, open-window events when known,
   competing scheduler activity and changes made during Setup/testing are excluded
   or clearly down-weighted.
-- A schedule revision invalidates older unmatched evidence so ZEAL does not
+- A schedule revision for the affected room invalidates older unmatched evidence so ZEAL does not
   recommend undoing a change the user has already made deliberately.
 - Suggestions never alter Zone Manual Override, safety holds, re-enable delays or
   the actuator-control precedence model.
-- Learning can be disabled per room and globally. Disabling proposal generation
-  does not silently delete the audit record; retention/deletion controls remain
-  explicit.
+- Learning can currently be disabled globally. Per-room controls are planned.
+  Disabling proposal generation does not silently delete the audit record;
+  retention/deletion controls remain explicit.
 
 ### Schedule Adaptation acceptance gates
 

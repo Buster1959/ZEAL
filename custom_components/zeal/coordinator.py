@@ -525,7 +525,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         return needs_heat, demand_lines
 
     def _room_setpoint(self, room: dict[str, Any]) -> float | None:
-        """Highest setpoint among the room's active TRVs, or None."""
+        """Return the highest usable physical-TRV target as a startup fallback."""
         values: list[float] = []
         for trv in room.get(ROOM_TRVS, []) or []:
             state = self._get_usable_state(trv)

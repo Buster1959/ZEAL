@@ -25,7 +25,7 @@ localisation block must extract those strings into per-language frontend
 dictionaries, select the Home Assistant user's locale with an English fallback,
 and use locale-aware date, time, number and temperature formatting. Until that
 work is complete, only the standard Home Assistant setup flow is translated;
-the Overview, Setup, Schedule and Quick Change pages remain English.
+the Overview, Schedule, Overrides, Learning and Setup pages remain English.
 
 Translations should be reviewed by native speakers before a release describes
 the entire ZEAL panel as translated.
