@@ -40,6 +40,40 @@ write storm.
 Quick Change is deliberately blocked while Away is active. End Away or wait for
 its calendar/date source to end.
 
+## Learning has not created a suggestion
+
+Confirm **Setup → ZEAL Learning → Enable Schedule Adaptation** is enabled. ZEAL
+needs comparable manual changes for the same room and exact schedule period on
+three distinct dates within 21 days. Repeated changes on one date count once.
+A ZEAL-generated write, a restoration to the scheduled target or a change made
+during Away does not qualify. Editing the tested room's schedule starts a new
+room-specific evidence generation; unrelated Setup changes do not.
+
+The Learning page shows active evidence progress and the oldest evidence expiry.
+If no pattern appears, confirm the change reached a configured physical TRV or
+canonical ZEAL thermostat and was not merely ZEAL acknowledging its own write.
+
+## Learning suggested the wrong period, time or temperature
+
+Do not accept it. Expand the supporting changes and compare their original
+period and requested target. Use **Dismiss** to reject the advice, **Snooze** to
+postpone it, or **Open Schedule** to make the intended change manually. Learning
+edits only the evidenced weekday and exact period; it never includes other days
+merely because their schedules look similar.
+
+If the same misclassification can be reproduced, retain the displayed evidence
+dates and attach ordinary Home Assistant diagnostics to the issue. Review every
+explicit export before sharing because readable Learning history can reveal
+household routines.
+
+## A Learning accept or revert reports a conflict
+
+ZEAL rechecks the affected room and schedule period immediately before writing.
+If that period changed after the proposal or acceptance, ZEAL stops instead of
+overwriting newer intent. Review the current Schedule and apply the desired
+change manually. An unrelated sidebar, access-permission or Setup preference
+change should not itself invalidate the room's proposal.
+
 ## Away did not follow a calendar
 
 Use a dedicated `calendar` entity and confirm its current Home Assistant state
@@ -60,9 +94,10 @@ is installed, then restart Home Assistant; refreshing the browser alone does not
 replace an already registered administrator-only panel. Sign out and back in as
 the standard user, or open `/zeal` directly once, to refresh Home Assistant's
 panel list. Also confirm **Setup → Home Assistant sidebar → Show ZEAL in the Home
-Assistant sidebar** is enabled. Setup remains administrator-only; Schedule and
-Quick Change appear for standard users only when their separate Setup options
-are enabled.
+Assistant sidebar** is enabled. Setup remains administrator-only. Schedule and
+Overrides appear for standard users only when their separate Setup permissions
+are enabled. When Learning is enabled, Schedule permission also includes
+viewing Learning evidence/history and deciding proposals.
 
 ## The actuator does not switch
 

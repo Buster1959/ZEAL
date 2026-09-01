@@ -55,6 +55,9 @@ administrators. Setup's **Standard-user access** card lets an administrator
 separately allow standard users to use Schedule and Overrides; both are off
 until deliberately enabled. Standard users who are allowed into Overrides can
 use Quick Change, while Away Mode configuration remains administrator-only.
+Schedule permission also includes full Learning access when Learning is
+enabled: the user can inspect Learning evidence and history and can accept,
+edit and accept, snooze, dismiss or revert Schedule Adaptation proposals.
 Overview remains available to every signed-in user. The Overview updates demand,
 actuator state and any active re-enable countdown automatically; it does not
 need a manual refresh control.
@@ -124,6 +127,61 @@ While Away is active, new Quick Changes are blocked. Existing holds pause and
 resume afterward only if they have not expired. The Away banner's **Away
 settings** button also opens Overrides rather than Setup.
 
+## Review Learning suggestions
+
+An administrator enables **ZEAL Learning — Schedule Adaptation** in Setup. The
+same card can enable or disable the aggregated Home Assistant persistent
+notification that points users to new advice. Learning is disabled by default
+and never changes a schedule automatically.
+
+<!-- SCREENSHOT NEEDED: docs/images/zeal-learning-setup-settings-desktop.png
+Capture Setup's complete ZEAL Learning card and enough surrounding context to
+show where it appears. Use a generic test installation with no personal room or
+entity names. -->
+
+Open **Learning** to review qualifying manual thermostat/TRV and Quick Change
+evidence. A suggestion requires comparable changes for the same room and exact
+schedule period on three distinct dates within the 21-day observation window.
+The dates do not have to share a weekday. Changes made during Away remain in
+the audit as excluded evidence and do not count.
+
+The evidence-progress section shows which rooms and patterns are accumulating
+qualifying dates, their current count and when the oldest evidence expires.
+This is progress information only; ZEAL does not apply an incomplete pattern.
+
+<!-- SCREENSHOT NEEDED: docs/images/zeal-learning-evidence-progress-desktop.png
+Capture at least one incomplete pattern with its room, adaptation type, count
+and expiry. Replace household-specific names with generic test names. -->
+
+When a suggestion is ready, inspect its room, weekday, original period,
+proposed time or temperature, confidence and supporting changes. Choose one of:
+
+- **Accept** — apply the exact proposed edit to the evidenced weekday/period;
+- **Edit and accept** — adjust the suggested time or temperature, confirm it,
+  then apply that exact edit;
+- **Snooze** — postpone the suggestion for seven days;
+- **Dismiss** — reject it until materially new evidence accumulates;
+- **Open Schedule** — leave the proposal unchanged and make a broader manual
+  schedule edit instead.
+
+Learning never offers matching weekdays automatically. To apply a similar
+change to other days, use Schedule. Accepted proposals appear in history and
+can be reverted while the affected period still matches the accepted value.
+
+<!-- SCREENSHOT NEEDED: docs/images/zeal-learning-suggestion-desktop.png
+Capture one actionable Schedule Adaptation proposal with supporting evidence
+expanded and all decision buttons visible. Use generic room names and dates. -->
+
+<!-- SCREENSHOT NEEDED: docs/images/zeal-learning-history-desktop.png
+Capture proposal history containing safe examples of an accepted, dismissed or
+snoozed outcome and the Revert action for an accepted proposal. -->
+
+Learning records can reveal household routines. Administrators should grant
+Schedule access only to users who may also view Learning history and make
+Learning decisions. Ordinary Home Assistant diagnostics should be suitable for
+support without exposing readable Learning evidence; use any future explicit
+Learning export only after reviewing its privacy warning and contents.
+
 ## Download configuration and audit trail
 
 Open **Setup → Downloads** and select **Download configuration** or **Download
@@ -163,5 +221,5 @@ editing:
 ## Troubleshooting
 
 See [Troubleshooting](TROUBLESHOOTING.md) for equipment discovery, cache,
-logging, scheduling and Away checks. For a full dummy-system walkthrough, use
+logging, scheduling, Learning and Away checks. For a full dummy-system walkthrough, use
 the repository [test plan](../TEST_PLAN.md).
