@@ -17,6 +17,8 @@ boundaries.
   controls
 - `zeal-quick-change-desktop.png` — room, Zone/Floor and whole-house temporary
   target selection
+- `zeal-away-date-range-desktop.png` — exact start/end Away configuration,
+  global target, control priority and save state
 
 The captures contain generic room names and entity IDs needed to explain the
 interface. They contain no person names, addresses, email addresses, IP

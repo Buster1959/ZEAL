@@ -127,6 +127,8 @@ While Away is active, new Quick Changes are blocked. Existing holds pause and
 resume afterward only if they have not expired. The Away banner's **Away
 settings** button also opens Overrides rather than Setup.
 
+![ZEAL Away mode configured with an exact start and end date/time and one global target](images/zeal-away-date-range-desktop.png)
+
 ## Review Learning suggestions
 
 An administrator enables **ZEAL Learning — Schedule Adaptation** in Setup. The
