@@ -351,6 +351,14 @@ is recorded in closed [#6](https://github.com/Buster1959/ZEAL/issues/6).
 The agreed Learning page/module structure is recorded in closed
 [#7](https://github.com/Buster1959/ZEAL/issues/7).
 
+Persistence foundation status: implemented before observation collection. It
+loads only the small model/checkpoint state at startup, lazily loads bounded
+room histories, coalesces active checkpoints for Home Assistant's final-write
+path, flushes them on config-entry unload, rejects unknown payload versions
+without overwriting them, and removes all known thermal Stores with the config
+entry. The implemented cap fixture measures 4.23 MB (4.22 MiB) for eight rooms;
+the documented 20 MB planning allowance remains unchanged.
+
 - Add an administrator Thermal Response Yes/No option. On first enable, ask one
   plain-language “How easily does your home stay warm?” question (five choices
   plus Not sure, with EPC bands only as an optional guide), a preferred local

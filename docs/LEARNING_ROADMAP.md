@@ -446,6 +446,12 @@ and temporary atomic replacement of the largest Store file. A ninth learned
 room adds approximately 12.5% to the eight-room record counts and remains
 inside that allowance.
 
+The persistence-foundation test serializes eight representative rooms at both
+record-count caps using the implemented compact schema. It measures about
+**4.23 MB (4.22 MiB)** before Home Assistant's Store envelopes and future model
+fields. This validates the 20 MB allowance while deliberately retaining the
+larger planning range for real observations and schema evolution.
+
 Only active episode buffers, current models and the small index should remain
 resident. Retained history is loaded per room when its administrator graph is
 opened, rather than loading the whole house. The working expectation is about

@@ -41,6 +41,7 @@ from .scheduler.rooms import reconcile_room_schedules
 from .scheduler.runtime import ScheduleRuntime
 from .scheduler.storage import ScheduleStorage
 from .scheduler.websocket_api import async_register_commands
+from .thermal_storage import ThermalStorage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -162,6 +163,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else None,
     )
     schedule_runtime.learning = schedule_learning
+    thermal_storage = ThermalStorage(hass, entry.entry_id)
+    await thermal_storage.async_load()
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -172,6 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "audit_log": audit_log,
         "learning_store": learning_store,
         "schedule_learning": schedule_learning,
+        "thermal_storage": thermal_storage,
     }
     async_register_commands(hass)
 
@@ -217,6 +221,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if data is not None:
+            await data["thermal_storage"].async_disable(delete_data=False)
             await data["schedule_runtime"].async_stop()
             data["coordinator"].async_teardown()
         if not hass.data[DOMAIN]:
@@ -228,6 +233,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Remove only this ZEAL instance's private persisted data."""
+    await ThermalStorage(hass, entry.entry_id).async_remove()
     for version, key_format in (
         (STORAGE_VERSION, STORAGE_KEY_FMT),
         (SCHEDULE_STORAGE_VERSION, SCHEDULE_STORAGE_KEY_FMT),

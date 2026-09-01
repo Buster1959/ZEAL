@@ -21,7 +21,10 @@ other.
    panel read or write.
 3. **Durable models** — zone/room configuration is held in config-entry
    options; coordinator safety state, schedules/Away settings, application audit
-   and Learning evidence use four separate versioned Home Assistant stores.
+   and Schedule Learning evidence use four separate versioned Home Assistant
+   Stores. The dormant Thermal Response foundation adds a small model index, a
+   separate active-checkpoint Store and lazy per-room history Stores; it does
+   not collect observations until that later module is explicitly enabled.
 4. **Scheduler runtime** — `scheduler/runtime.py` resolves Away, Quick Change,
    manual thermostat changes and weekly schedules, then writes only to the
    canonical ZEAL room thermostat.
@@ -32,10 +35,10 @@ other.
    window/door contact is open, evaluates remaining room demand and safely
    controls the zone actuator. Opening suppression never writes a setback.
 
-Each config entry owns independently keyed Coordinator, schedule, audit and Learning
-stores. Multiple entries can therefore run separate heating systems. Removing
-one entry deletes only those four stores; the panel remains registered while
-another ZEAL entry is loaded.
+Each config entry owns independently keyed Coordinator, schedule, audit,
+Schedule Learning and Thermal Response Stores. Multiple entries can therefore
+run separate heating systems. Removing one entry deletes only its own Stores;
+the panel remains registered while another ZEAL entry is loaded.
 
 ## Entity boundary
 
