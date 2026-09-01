@@ -1399,7 +1399,10 @@ class ZealPanel extends HTMLElement {
         }
       }
     }
-    const number = periods.length + 1;
+    const number = periods.reduce((highest, period) => {
+      const match = /^Period (\d+)$/.exec(period.name || "");
+      return Math.max(highest, match ? Number(match[1]) : 0);
+    }, 0) + 1;
     const name = `Period ${number}`;
     periods.push({
       id: `period-${Date.now()}-${number}`,
@@ -2841,7 +2844,7 @@ class ZealPanel extends HTMLElement {
         header, .page-heading { align-items:stretch; flex-direction:column; }
         .identity img { width:46px; height:46px; }
         .entry-picker { min-width:0; }
-        nav { display:grid; grid-template-columns:repeat(4, 1fr); }
+        nav { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); }
         .tab { padding:12px 8px; }
         .summary-grid, .zone-grid, .form-grid, .equipment-grid { grid-template-columns:1fr; }
         .schedule-navigation { min-width:0; }

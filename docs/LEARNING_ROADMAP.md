@@ -7,7 +7,7 @@ Neither workstream may silently alter the saved weekly schedule.
 
 ## 1. ZEAL Learning — Schedule Adaptation
 
-Implementation status (`0.14.5`): capture, deterministic classification,
+Implementation status (`0.14.6`): capture, deterministic classification,
 21-day/distinct-date pattern detection, persistent proposals, Learning
 Notifications, optional Home Assistant persistent notifications, authorised
 accept/edit/dismiss/snooze, revision-checked commit and guarded revert are

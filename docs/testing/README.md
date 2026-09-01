@@ -9,7 +9,7 @@ that export. Do not reuse it after changing those rooms, entity IDs or periods.
 
 Before enabling it:
 
-1. Update ZEAL to `0.14.5`, restart Home Assistant and hard-refresh the browser.
+1. Update ZEAL to `0.14.6`, restart Home Assistant and hard-refresh the browser.
 2. Enable **Setup → ZEAL Learning → Enable Schedule Adaptation**.
 3. Confirm Home Assistant's time zone is Europe/London and these physical
    entities exist and are available: `climate.bathroom_trv`,

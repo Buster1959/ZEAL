@@ -80,7 +80,7 @@ The configuration snapshot exposes the newest successful audit record for each
 room as `last_changes`; this is a derived Overview view, not a fourth persisted
 document.
 
-### Schedule Adaptation learning audit (`0.14.5`)
+### Schedule Adaptation learning audit (`0.14.6`)
 
 Learning uses a separate versioned Store rather than overloading the V1
 application audit. The initial event model records a stable event ID, room,

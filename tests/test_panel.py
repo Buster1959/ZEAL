@@ -346,3 +346,10 @@ def test_frontend_contains_schedule_learning_workflow():
     assert "Snooze 7 days" in source
     assert "Revert schedule change" in source
     assert "Open Schedule" in source
+
+
+def test_frontend_uses_responsive_tabs_and_non_repeating_period_names():
+    source = PANEL_FILE.read_text()
+    assert "repeat(auto-fit, minmax(110px, 1fr))" in source
+    assert '/^Period (\\d+)$/.exec(period.name || "")' in source
+    assert "periods.length + 1" not in source
