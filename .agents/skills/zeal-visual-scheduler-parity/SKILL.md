@@ -1,13 +1,14 @@
 ---
 name: zeal-visual-scheduler-parity
-description: Check whether a fix found in ZEAL or HA Visual Climate Scheduler also applies to the sibling project, and request approval before applying the related patch there. Use during debugging, implementation, or review in either project when the underlying behavior may be shared.
+description: Check whether a fix found in ZEAL also applies to HA Visual Climate Scheduler, ZEAL Flow, or another ZEAL-family sibling, and request approval before applying the related patch there. Use during debugging, implementation, or review when underlying behavior may be shared.
 ---
 
-# ZEAL–Visual Scheduler Patch Parity
+# ZEAL Sibling-Project Patch Parity
 
-ZEAL and HA Visual Climate Scheduler are sibling Home Assistant heating
-projects. A fix in one can expose the same defect, safety issue, or broken
-assumption in the other.
+ZEAL, HA Visual Climate Scheduler and ZEAL Flow are sibling projects. A fix in
+one can expose the same defect, safety issue, documentation gap or broken
+assumption in another. ZEAL Flow remains the mechanical retrofit project; this
+workflow does not redefine that product identity.
 
 When a discovered fix has a concrete connection to the sibling project:
 
