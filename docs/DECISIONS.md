@@ -76,18 +76,22 @@ companion Wiki retains the longer chronological design history.
     asks one plain-language home heat-retention question, selects a preferred
     local outdoor-temperature sensor and fallback weather provider, and confirms
     the participating rooms. EPC bands are only an optional guide; specialist
-    building data is never required. Continuous per-room observations refine the
-    starting estimate without proposal acceptance, while automatic optimum start
-    remains a separate future opt-in.
+    building data is never required. Users should consult their local or national
+    government's EPC-equivalent guidance where applicable; **Not sure** remains
+    available. Continuous per-room observations refine the starting estimate
+    without proposal acceptance, while automatic optimum start remains a
+    separate future opt-in.
 28. Thermal Response is entirely administrator-only. When enabled, Learning
     contains its persistent status and graph page; Setup contains its initiation,
     privacy and confirmed per-room/all-room reset controls. Real names are used
     in the administrator UI, while diagnostics remain pseudonymised.
 29. An abrupt per-room temperature rise inconsistent with ZEAL-observed heating
     creates a **suspected external heat** training hold. ZEAL excludes the
-    affected samples until that room returns to its expected response envelope;
-    it does not change demand, schedules or thermostat/TRV targets. No inventory
-    of log burners or other independent heat sources is required.
+    remainder of the current schedule period and clears the hold at the next
+    scheduled period start; continuing abnormal conditions may create a new
+    hold. This initial recovery rule must be revisited after testing. It does not
+    change demand, schedules or thermostat/TRV targets. No inventory of log
+    burners or other independent heat sources is required.
 30. Optimum-start prediction separates measured current outdoor temperature from
     forecast conditions. ZEAL interpolates the configured provider's standard
     Home Assistant hourly forecast across the candidate warm-up period and

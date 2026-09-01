@@ -372,7 +372,10 @@ learning.
 The optional band guide follows the domestic EPC scale. The headline SAP/EPC
 rating is a standardised whole-home energy-performance estimate, not a direct
 measurement of a room's thermal mass or heat-loss coefficient; ZEAL therefore
-treats it only as initial context. See the UK government's
+treats it only as initial context. Users outside the UK should consult their
+local or national government's EPC-equivalent home energy-performance guidance;
+the plain-language **Not sure** option remains valid where no equivalent rating
+is available. UK examples are the government's
 [Standard Assessment Procedure guidance](https://www.gov.uk/guidance/standard-assessment-procedure)
 and [technical explanation of EPC metrics](https://www.gov.uk/government/consultations/reforms-to-the-energy-performance-of-buildings-regime/technical-annex-for-chapter-2-what-epcs-measure).
 
@@ -632,15 +635,20 @@ open-window detection, but in the positive direction:
    that room for Thermal Response training.
 3. Keep schedules, room demand and thermostat/TRV targets unchanged. This is a
    learning-quality hold only.
-4. Resume training after the room's rate of change remains inside its normal
-   expected envelope for a defined recovery period. Preserve the excluded
-   episode and reason for the administrator graph/audit rather than deleting it.
+4. Exclude the remainder of the current schedule period and clear the hold at
+   the **next scheduled period start**. Preserve the excluded episode and reason
+   for the administrator graph/audit rather than deleting it. If the abnormal
+   rise is still present after that boundary, normal detection may create a new
+   hold for the new period.
 
 Detection and recovery thresholds are named, testable model constants and must
 account for model confidence. In early learning, when the expected envelope is
 not yet reliable, only strong evidence such as a rapid rise while zone heating
 is off should create this exclusion. Normal ASHP/radiator response must not be
-discarded merely for being faster than an immature estimate.
+discarded merely for being faster than an immature estimate. The next-period
+recovery boundary is the initial implementation decision and is explicitly
+marked for review after synthetic and live testing; testing may show that a
+shorter or evidence-based recovery rule is safe.
 
 ### User experience
 

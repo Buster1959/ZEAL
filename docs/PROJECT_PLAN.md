@@ -384,9 +384,11 @@ the documented 20 MB planning allowance remains unchanged.
 - Reject or down-weight stale sensors, open-window periods, interrupted runs,
   manual changes, unexplained heat sources and likely solar/occupancy gains.
 - Detect an abrupt unexplained per-room temperature rise, label it suspected
-  external heat, pause only that room's model training, and resume after a
-  defined period back inside its expected response envelope. Do not change
-  demand, schedules or thermostat/TRV targets.
+  external heat, pause only that room's model training for the remainder of the
+  current schedule period, and clear the hold at the next scheduled period
+  start. A continuing abnormal rise may create a new hold. Revisit this initial
+  recovery boundary after synthetic and live testing. Do not change demand,
+  schedules or thermostat/TRV targets.
 - Introduce advisory optimum start before any automatic behaviour. Show the
   current room/outside temperatures, next target/time, forecast range/provider,
   predicted warm-up and start, evidence and confidence.
