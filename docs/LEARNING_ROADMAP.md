@@ -568,6 +568,26 @@ warm-up duration, recommended start, forecast range/provider and confidence.
 The graph overlays the same forecast path and marks the recommended start, so an
 administrator can see why a warmer morning forecast shortened the ramp-up.
 
+### Sample administrator graphs
+
+These are illustrative design examples, not captured production data. The first
+separates the measured outside temperature from the changing hourly forecast
+used to calculate a 50-minute warm-up:
+
+![Forecast-aware Thermal Response optimum-start example](images/thermal-response-forecast-optimum-start.svg)
+
+The second retains and marks an unexplained temperature rise while only that
+room's model training is held. It does not claim fire detection or change
+heating control:
+
+![Thermal Response suspected external-heat training-hold example](images/thermal-response-external-heat-hold.svg)
+
+For reference only, the following mock-up shows how the agreed status fields and
+graph could sit together in the administrator-only Learning page. It is not an
+implemented interface or a pixel-accurate commitment:
+
+![Reference-only Thermal Response administrator page mock-up](images/thermal-response-admin-reference-mockup.svg)
+
 ZEAL should first offer an optimum-start recommendation for review. Enabling
 automatic optimum start must be a separate, explicit user choice after the room
 model reaches a defined confidence threshold. The original scheduled target

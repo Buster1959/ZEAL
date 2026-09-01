@@ -24,6 +24,15 @@ The captures contain generic room names and entity IDs needed to explain the
 interface. They contain no person names, addresses, email addresses, IP
 addresses, credentials, tokens or precise location information.
 
+## Thermal Response design examples
+
+- `thermal-response-forecast-optimum-start.svg` — separates current measured
+  outdoor temperature from the forecast used for a recommended start.
+- `thermal-response-external-heat-hold.svg` — shows a suspected external-heat
+  interval excluded from one room's training without changing heating control.
+- `thermal-response-admin-reference-mockup.svg` — reference-only composition of
+  the administrator status fields and forecast-aware graph; not implemented UI.
+
 ## Captures still needed
 
 - Desktop Overview
