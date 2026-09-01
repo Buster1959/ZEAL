@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 import math
 from typing import Any, Literal, Mapping
@@ -38,6 +38,8 @@ class AwayModeConfiguration:
     starts_at: str | None = None
     ends_at: str | None = None
     temperature: float = DEFAULT_AWAY_TEMPERATURE
+    _start_datetime: datetime | None = field(init=False, repr=False, compare=False)
+    _end_datetime: datetime | None = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if self.mode not in ("off", "calendar", "date_range"):
@@ -72,6 +74,8 @@ class AwayModeConfiguration:
                 f"{MIN_TARGET_TEMPERATURE} and {MAX_TARGET_TEMPERATURE}°C"
             )
         object.__setattr__(self, "temperature", temperature)
+        object.__setattr__(self, "_start_datetime", starts_at)
+        object.__setattr__(self, "_end_datetime", ends_at)
 
     @property
     def enabled(self) -> bool:
@@ -79,11 +83,11 @@ class AwayModeConfiguration:
 
     @property
     def start_datetime(self) -> datetime | None:
-        return _parse_timestamp(self.starts_at, "Away start")
+        return self._start_datetime
 
     @property
     def end_datetime(self) -> datetime | None:
-        return _parse_timestamp(self.ends_at, "Away end")
+        return self._end_datetime
 
     def active_at(self, now: datetime, *, calendar_is_on: bool = False) -> bool:
         if self.mode == "calendar":

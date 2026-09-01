@@ -67,6 +67,7 @@ from .const import (
     SETPOINT_ECHO_TIMEOUT_SECONDS,
     STALE_THRESHOLD_SECONDS,
     ZONE_ID,
+    ZONE_HEAT_SOURCE,
     ZONE_NAME,
     ZONE_REENABLE_DELAY,
     ZONE_ROOMS,
@@ -241,8 +242,8 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
                 continue
 
             total_actioned += 1
-            heat_source = zone.get("heat_source", "ashp")
-            delay = zone.get("reenable_delay", DEFAULT_REENABLE_DELAY)
+            heat_source = zone.get(ZONE_HEAT_SOURCE, "ashp")
+            delay = zone.get(ZONE_REENABLE_DELAY, DEFAULT_REENABLE_DELAY)
             active_rooms = [r for r in rooms if r.get(ROOM_ACTIVE, True)]
             inactive_rooms = [r for r in rooms if not r.get(ROOM_ACTIVE, True)]
             total_active_rooms += len(active_rooms)
@@ -450,7 +451,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         demand_lines: list[str] = []
 
         for room in zone.get(ZONE_ROOMS, []):
-            room_name = room.get("name", room.get("room_id", "unknown room"))
+            room_name = room.get(ROOM_NAME, room.get(ROOM_ID, "unknown room"))
 
             if not room.get(ROOM_ACTIVE, True):
                 _LOGGER.debug("  %s: inactive, skipping", room_name)
