@@ -12,7 +12,7 @@
 </p>
 
 > **ZEAL V1 release candidate — live regression testing is in progress.** The
-> current candidate is on `main` at manifest version `0.15.1`. It is feature
+> current candidate is on `main` at manifest version `0.15.2`. It is feature
 > complete for V1 but is not yet the production `1.0.0` release. Test with
 > dummy or spare equipment and complete the live acceptance record before
 > unattended use. The earlier rename is breaking for any old config entry:
@@ -25,7 +25,8 @@
 
 ZEAL provides zone/room equipment setup, canonical synchronized room
 thermostats, safe demand/actuator control, seven-day schedules, Quick Change,
-Away mode and opt-in Schedule Adaptation Learning. Overview is available to
+Away mode, native Home Assistant History shortcuts and opt-in Schedule
+Adaptation Learning. Overview is available to
 every signed-in user; Setup remains administrator-only. Administrators can grant
 standard users Schedule and Learning access and/or Quick Change access.
 

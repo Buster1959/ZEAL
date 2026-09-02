@@ -21,8 +21,8 @@
 
 > **Pre-V1 preview.** ZEAL is undergoing live testing and is not yet the
 > production `1.0.0` release. Its core heating controls and Schedule Adaptation
-> are implemented; Room Thermal Response and one-click History links remain in
-> development. Test releases with dummy or spare equipment before unattended use.
+> are implemented; Room Thermal Response remains in development. Test releases
+> with dummy or spare equipment before unattended use.
 
 ## Heating control without the patchwork
 

@@ -12,6 +12,9 @@ to `1.0.0`.
   notifications.
 - Optional per-room window/door contacts suppress that room's demand while open
   and appear distinctly on Overview without changing thermostat targets.
+- Native Home Assistant History shortcuts from Overview: each room opens its
+  ZEAL thermostat, effective demand, zone actuator, temperature sensors and
+  opening contacts; each zone opens its actuator with every room-demand entity.
 - Seven-day visual schedules with exact editing, day application and room copy.
 - Temporary Quick Change for rooms, zones, selections or the whole house.
 - Calendar or exact-date Away mode with an immediate **End Away now** action.

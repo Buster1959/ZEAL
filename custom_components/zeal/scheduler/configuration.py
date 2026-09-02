@@ -173,6 +173,7 @@ def configuration_catalog(
         "calendars": [],
         "switches": [],
         "zeal_room_thermostats": [],
+        "zeal_room_demands": [],
         "physical_room_thermostats": [],
         "temperature_sensors": [],
         "opening_sensors": [],
@@ -227,10 +228,33 @@ def configuration_catalog(
                     "zone_id": zone[ZONE_ID],
                 }
             )
+            demand_unique_id = f"{entry_id}_{room[ROOM_ID]}_heat_demand"
+            demand_entry = next(
+                (
+                    candidate
+                    for candidate in entity_registry.entities.values()
+                    if candidate.domain == "binary_sensor"
+                    and candidate.platform == DOMAIN
+                    and candidate.unique_id == demand_unique_id
+                ),
+                None,
+            )
+            if demand_entry is not None and demand_entry.disabled_by is None:
+                catalog["zeal_room_demands"].append(
+                    {
+                        "entity_id": demand_entry.entity_id,
+                        "name": demand_entry.name
+                        or demand_entry.original_name
+                        or demand_entry.entity_id,
+                        "room_id": room[ROOM_ID],
+                        "zone_id": zone[ZONE_ID],
+                    }
+                )
     for key in (
         "calendars",
         "switches",
         "zeal_room_thermostats",
+        "zeal_room_demands",
         "physical_room_thermostats",
         "temperature_sensors",
         "opening_sensors",

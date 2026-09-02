@@ -256,6 +256,30 @@ class ZealPanel extends HTMLElement {
     );
   }
 
+  _zealRoomDemand(roomId) {
+    return (this._configuration?.catalog?.zeal_room_demands || []).find(
+      (demand) => demand.room_id === roomId
+    );
+  }
+
+  _historyUrl(entityIds) {
+    const available = [...new Set((entityIds || []).filter(
+      (entityId) => entityId && this._hass?.states?.[entityId]
+    ))];
+    return available.length
+      ? `/history?entity_id=${encodeURIComponent(available.join(","))}`
+      : "";
+  }
+
+  _historyLink(entityIds, label) {
+    const url = this._historyUrl(entityIds);
+    return url
+      ? `<a class="history-link" href="${this._escape(url)}" title="${this._escape(
+          label
+        )}" aria-label="${this._escape(label)}"><ha-icon icon="mdi:chart-timeline-variant"></ha-icon></a>`
+      : "";
+  }
+
   _render() {
     if (!this.shadowRoot) return;
     this.shadowRoot.innerHTML = `${this._styles()}<main>${this._content()}</main>`;
@@ -495,16 +519,26 @@ class ZealPanel extends HTMLElement {
   }
 
   _overviewDemandBody(zone, switchEntity) {
-    const rooms = (zone.rooms || []).map((room) => this._roomDemandOverview(room));
+    const rooms = (zone.rooms || []).map((room) => this._roomDemandOverview(room, zone));
     const hasDemand = rooms.some((room) => room.cssClass === "demanding");
     const actuator = this._actuatorOverviewState(zone.switch);
     const control = this._configuration?.zone_control?.[zone.zone_id];
+    const zoneHistory = this._historyLink(
+      [
+        zone.switch,
+        ...(zone.rooms || []).map(
+          (room) => this._zealRoomDemand(room.room_id)?.entity_id
+        ),
+      ],
+      `Open ${zone.name} demand history`
+    );
     return `<div class="actuator-status ${actuator.cssClass}">
       <ha-icon icon="mdi:radiator"></ha-icon>
       <div><span>Heating actuator</span><strong>${this._escape(actuator.label)}</strong></div>
       <div class="zone-demand-state ${hasDemand ? "demanding" : "satisfied"}">
         <span>Heat demand</span><strong>${hasDemand ? "Present" : "None"}</strong>
       </div>
+      ${zoneHistory}
     </div>
     ${
       hasDemand && actuator.cssClass === "idle"
@@ -582,7 +616,7 @@ class ZealPanel extends HTMLElement {
     }
   }
 
-  _roomDemandOverview(room) {
+  _roomDemandOverview(room, zone) {
     const name = room.name || this._areaName(room.room_id);
     const sensorCount = (room.sensors || []).length;
     const openingContext = (room.opening_sensors || []).reduce(
@@ -604,6 +638,16 @@ class ZealPanel extends HTMLElement {
       sensorCount,
       openOpeningNames: openingContext.open,
       unavailableOpeningNames: openingContext.unavailable,
+      historyLink: this._historyLink(
+        [
+          this._zealThermostat(room.room_id)?.entity_id,
+          this._zealRoomDemand(room.room_id)?.entity_id,
+          zone?.switch,
+          ...(room.sensors || []),
+          ...(room.opening_sensors || []),
+        ],
+        `Open ${name} history`
+      ),
     };
     if (room.active === false) {
       return { name, label: "Inactive", cssClass: "inactive", setpoint: null, temperature: null, ...context };
@@ -670,6 +714,7 @@ class ZealPanel extends HTMLElement {
       : "";
     return `<div class="demand-chip ${room.cssClass}" role="listitem">
       <strong>${this._escape(room.name)}</strong>
+      ${room.historyLink || ""}
       ${readings}
       <span class="demand-context">${this._escape(sensorSummary)}</span>
       ${openingSummary}
@@ -2793,25 +2838,29 @@ class ZealPanel extends HTMLElement {
       .state.inactive { color:var(--secondary-text-color); }
       .zone-demand { margin:14px 0 0; padding:11px; border:1px solid var(--divider-color); border-radius:10px; background:var(--secondary-background-color); }
       .actuator-status { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
-      .actuator-status ha-icon { flex:none; --mdc-icon-size:27px; }
+      .actuator-status > ha-icon { flex:none; --mdc-icon-size:27px; }
       .actuator-status span, .actuator-status strong { display:block; }
       .actuator-status span { color:var(--secondary-text-color); font-size:11px; }
       .actuator-status strong { margin-top:1px; font-size:13px; }
       .zone-demand-state { margin-left:auto; text-align:right; }
       .zone-demand-state.demanding strong { color:var(--warning-color, #ef6c00); }
       .zone-demand-state.satisfied strong { color:var(--success-color, #2e7d32); }
-      .actuator-status.heating ha-icon, .actuator-status.heating strong { color:var(--warning-color, #ef6c00); }
-      .actuator-status.idle ha-icon { color:var(--secondary-text-color); }
-      .actuator-status.unknown ha-icon, .actuator-status.unknown strong { color:var(--error-color); }
+      .actuator-status.heating > ha-icon, .actuator-status.heating > div:first-of-type strong { color:var(--warning-color, #ef6c00); }
+      .actuator-status.idle > ha-icon { color:var(--secondary-text-color); }
+      .actuator-status.unknown > ha-icon, .actuator-status.unknown > div:first-of-type strong { color:var(--error-color); }
+      .history-link { display:inline-flex; align-items:center; justify-content:center; flex:none; width:34px; height:34px; border-radius:50%; color:var(--primary-color); text-decoration:none; }
+      .history-link:hover, .history-link:focus-visible { background:var(--card-background-color); outline:2px solid var(--primary-color); outline-offset:1px; }
+      .history-link ha-icon { --mdc-icon-size:22px; }
       .actuator-explanation { margin:-2px 0 9px; color:var(--secondary-text-color); font-size:11px; line-height:1.35; }
       .demand-strip { display:flex; gap:8px; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; padding:1px 0 5px; scroll-snap-type:x proximity; }
-      .demand-chip { flex:0 0 auto; min-width:205px; display:grid; grid-template-columns:1fr auto; gap:3px 12px; padding:8px 10px; border-left:4px solid var(--divider-color); border-radius:7px; background:var(--card-background-color); scroll-snap-align:start; }
+      .demand-chip { flex:0 0 auto; min-width:245px; display:grid; grid-template-columns:1fr auto auto; gap:3px 9px; padding:8px 10px; border-left:4px solid var(--divider-color); border-radius:7px; background:var(--card-background-color); scroll-snap-align:start; }
       .demand-chip strong { overflow:hidden; text-overflow:ellipsis; }
-      .demand-chip span { grid-column:1 / -1; color:var(--secondary-text-color); font-size:11px; }
+      .demand-chip span { grid-column:1 / 3; color:var(--secondary-text-color); font-size:11px; }
       .demand-chip .demand-context { font-size:10px; }
       .demand-chip .opening-open { color:var(--info-color, #039be5); }
       .demand-chip .opening-unavailable { color:var(--warning-color, #ef6c00); }
       .demand-chip em { grid-column:2; grid-row:1; align-self:center; font-size:11px; font-style:normal; font-weight:700; }
+      .demand-chip .history-link { grid-column:3; grid-row:1 / span 4; align-self:center; }
       .demand-chip.demanding { border-left-color:var(--warning-color, #ef6c00); }
       .demand-chip.demanding em { color:var(--warning-color, #ef6c00); }
       .demand-chip.satisfied { border-left-color:var(--success-color, #2e7d32); }

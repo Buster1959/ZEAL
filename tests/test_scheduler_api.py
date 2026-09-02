@@ -240,6 +240,7 @@ async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass)
         item["entity_id"] for item in catalog["physical_room_thermostats"]
     }
     zeal_targets = catalog["zeal_room_thermostats"]
+    zeal_demands = catalog["zeal_room_demands"]
     sensor_ids = {item["entity_id"] for item in catalog["temperature_sensors"]}
     calendar_ids = {item["entity_id"] for item in catalog["calendars"]}
     opening_ids = {item["entity_id"] for item in catalog["opening_sensors"]}
@@ -252,6 +253,19 @@ async def test_catalog_separates_zeal_targets_from_physical_room_equipment(hass)
         ROOM_OPENING_SENSORS
     ] == [opening.entity_id]
     assert len(zeal_targets) == 1
+    assert len(zeal_demands) == 1
+    assert zeal_demands[0]["room_id"] == area.id
+    assert zeal_demands[0]["zone_id"] == "ground_floor"
+    assert zeal_demands[0]["entity_id"].startswith("binary_sensor.")
+    entity_registry = er.async_get(hass)
+    entity_registry.async_update_entity(
+        zeal_demands[0]["entity_id"],
+        new_entity_id="binary_sensor.renamed_room_demand",
+    )
+    renamed_demands = configuration_snapshot(hass, entry.entry_id)["catalog"][
+        "zeal_room_demands"
+    ]
+    assert renamed_demands[0]["entity_id"] == "binary_sensor.renamed_room_demand"
     assert zeal_targets[0]["room_id"] == area.id
     assert zeal_targets[0]["zone_id"] == "ground_floor"
     assert zeal_targets[0]["entity_id"].startswith("climate.")

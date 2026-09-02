@@ -225,6 +225,12 @@ def test_frontend_contains_live_overview_demand_contracts():
     assert 'if (duration === "2h") return "2 hours"' in source
     assert 'if (duration === "4h") return "4 hours"' in source
     assert 'if (duration === "next_change") return "Until next scheduled change"' in source
+    assert "zeal_room_demands" in source
+    assert "_historyUrl(entityIds)" in source
+    assert 'available.join(",")' in source
+    assert 'icon="mdi:chart-timeline-variant"' in source
+    assert "Open ${zone.name} demand history" in source
+    assert "Open ${name} history" in source
 
 
 def test_frontend_contains_visual_scheduler_contracts():

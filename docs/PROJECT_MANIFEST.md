@@ -9,7 +9,7 @@
 - Integration type: hub
 - Distribution target: HACS custom integration
 - Current release-candidate branch: `main`
-- Current manifest version: `0.15.1` (pre-V1, with dormant Thermal Response
+- Current manifest version: `0.15.2` (pre-V1, with dormant Thermal Response
   persistence foundations)
 
 ## Independence boundary

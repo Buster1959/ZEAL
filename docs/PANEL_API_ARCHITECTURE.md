@@ -109,6 +109,13 @@ overwritten.
 - `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.
 - `zeal/get_audit_log`: JSON-ready bounded application history.
 
+Overview History icons do not add a ZEAL history API. The configuration catalog
+returns the registered entity IDs for canonical room thermostats and effective
+room-demand binary sensors, including user-renamed IDs. The panel builds a
+relative `/history?entity_id=...` link from those IDs plus the configured zone
+actuator, temperature sensors and opening contacts. Home Assistant owns the
+route, date controls, graph rendering and retention.
+
 The planned presentation boundary keeps the existing authorization model:
 Setup owns the administrator Schedule Adaptation Yes/No control and a compact
 progress summary. **Schedule Updates** is shown only while actionable proposals
