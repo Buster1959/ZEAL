@@ -272,6 +272,31 @@ async def test_opening_sensor_suppresses_only_its_room_demand(
     assert coordinator.room_thermostats[rooms[0][ROOM_ID]].target_temperature == 25.0
 
 
+async def test_room_demand_status_explains_demand_and_opening_suppression(
+    hass, coordinator, floor1_zone
+):
+    room = floor1_zone[ZONE_ROOMS][0]
+    room[ROOM_OPENING_SENSORS] = ["binary_sensor.rooma_window"]
+    coordinator.room_thermostats[room[ROOM_ID]] = FakeThermostat(21.0)
+    set_sensor(hass, room[ROOM_SENSORS][0], 18.0)
+
+    coordinator._evaluate_zone(floor1_zone)
+    status = coordinator.room_demand_status(room[ROOM_ID])
+    assert status is not None
+    assert status.needs_heat is True
+    assert status.reason == "demanding"
+    assert status.setpoint == 21.0
+    assert status.temperature == 18.0
+
+    hass.states.async_set("binary_sensor.rooma_window", "on")
+    coordinator._evaluate_zone(floor1_zone)
+    status = coordinator.room_demand_status(room[ROOM_ID])
+    assert status is not None
+    assert status.needs_heat is False
+    assert status.reason == "opening_open"
+    assert status.open_entities == ("binary_sensor.rooma_window",)
+
+
 @pytest.mark.parametrize("opening_state", ["off", "unknown", "unavailable"])
 async def test_opening_sensor_suppresses_only_when_exactly_on(
     hass, coordinator, floor1_zone, opening_state

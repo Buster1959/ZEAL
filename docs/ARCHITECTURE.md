@@ -34,6 +34,9 @@ other.
    configured physical TRVs, suppresses a room's demand while any configured
    window/door contact is open, evaluates remaining room demand and safely
    controls the zone actuator. Opening suppression never writes a setback.
+   `binary_sensor.py` publishes that resolved room contribution as a recorded
+   On/Off entity with its current reason, setpoint, temperature and open-contact
+   context; zone-level actuator holds remain separate.
 
 Each config entry owns independently keyed Coordinator, schedule, audit,
 Schedule Learning and Thermal Response Stores. Multiple entries can therefore

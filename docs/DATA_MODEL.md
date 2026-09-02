@@ -182,3 +182,14 @@ ZEAL config entry removes all of its Thermal Response Store documents.
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
 information.
+
+### Recorded room demand
+
+Each actionable room has one derived `binary_sensor` with a stable unique ID.
+Its state is On only when the room contributes to zone heat demand after
+room-level eligibility, thermostat, temperature-sensor and opening-suppression
+checks. Its attributes expose the current reason, setpoint, measured room
+temperature and any open configured contacts. Re-enable delay, Zone Manual
+Override and pump dead-head protection remain zone-level actuator decisions, so
+a room may correctly show demand while the actuator is held off. Home Assistant
+Recorder owns this entity's history; ZEAL creates no duplicate history Store.

@@ -92,6 +92,19 @@ class ZoneStatus:
 
 
 @dataclass(frozen=True)
+class RoomDemandStatus:
+    """One room's resolved contribution before zone-level actuator holds."""
+
+    room_id: str
+    room_name: str
+    needs_heat: bool
+    reason: str
+    setpoint: float | None = None
+    temperature: float | None = None
+    open_entities: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class PendingSetpointWrite:
     """One short-lived climate service-call echo that ZEAL expects to see."""
 
@@ -175,6 +188,11 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         # debounced so a brief radio dropout does not alarm the household.
         self._entity_unhealthy_since: dict[str, datetime] = {}
         self._entity_offline_notified: set[str] = set()
+
+        # Updated during every Coordinator evaluation. Binary sensor entities
+        # read this immutable snapshot rather than reconstructing historical
+        # demand from temperature and setpoint after the fact.
+        self._room_demand_statuses: dict[str, RoomDemandStatus] = {}
 
         self._unsub_state_listener: Callable[[], None] | None = None
 
@@ -391,6 +409,7 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         await self._async_retry_unconfirmed_setpoint_writes()
         await self._async_retry_unsynced_trvs()
         results: dict[str, ZoneStatus] = {}
+        self._room_demand_statuses = {}
         off_time_changed = False
         _LOGGER.debug("Evaluation cycle starting (%d zone(s) configured)", len(self.zones))
 
@@ -453,87 +472,118 @@ class ZealCoordinator(DataUpdateCoordinator[dict[str, ZoneStatus]]):
         demand_lines: list[str] = []
 
         for room in zone.get(ZONE_ROOMS, []):
-            room_name = room.get(ROOM_NAME, room.get(ROOM_ID, "unknown room"))
-
-            if not room.get(ROOM_ACTIVE, True):
-                _LOGGER.debug("  %s: inactive, skipping", room_name)
+            status = self._evaluate_room(zone, room)
+            self._room_demand_statuses[status.room_id] = status
+            if not status.needs_heat:
                 continue
-
-            open_entities = self._room_open_openings(room)
-            if open_entities:
-                _LOGGER.debug(
-                    "  %s: window/door open (%s), suppressing demand",
-                    room_name,
-                    ", ".join(open_entities),
-                )
-                continue
-
-            room_id = room.get(ROOM_ID)
-            thermostat = self.room_thermostats.get(room_id)
-
-            if thermostat is not None:
-                _LOGGER.debug(
-                    "  %s: reading thermostat %s", room_name, getattr(thermostat, "entity_id", "?")
-                )
-                if getattr(thermostat, "hvac_mode", None) == "off":
-                    _LOGGER.debug("  %s: thermostat is OFF, skipping", room_name)
-                    continue
-                set_temp = getattr(thermostat, "target_temperature", None)
-            else:
-                # Thermostat entity hasn't finished loading yet (e.g. right
-                # after a restart, before platforms finish setup) - fall
-                # back to the old highest-TRV-setpoint default rather than
-                # skip the room entirely.
-                set_temp = self._room_setpoint(room)
-                _LOGGER.debug(
-                    "  %s: thermostat not yet loaded, using fallback setpoint %s°C",
-                    room_name,
-                    set_temp,
-                )
-
-            _LOGGER.debug(
-                "  %s: reading %d sensor(s): %s",
-                room_name,
-                len(room.get(ROOM_SENSORS, []) or []),
-                room.get(ROOM_SENSORS, []) or "(none configured)",
+            needs_heat = True
+            diff = round(float(status.setpoint) - float(status.temperature), 2)
+            demand_lines.append(
+                f"{status.room_name}: Set {status.setpoint}°C, "
+                f"Room {status.temperature}°C (Δ {diff}°C)"
             )
-            room_temp = self._room_temperature(room)
-
-            if set_temp is None or room_temp is None:
-                _LOGGER.debug(
-                    "[%s] %s has no usable TRV/sensor reading, skipping",
-                    zone.get(ZONE_NAME),
-                    room_name,
-                )
-                continue
-
-            diff = round(set_temp - room_temp, 2)
-            _LOGGER.debug(
-                "  %s: Setpoint - Temperature = %s - %s = %s",
-                room_name,
-                set_temp,
-                room_temp,
-                diff,
-            )
-
-            if diff > 0:
-                needs_heat = True
-                demand_lines.append(
-                    f"{room_name}: Set {set_temp}°C, Room {room_temp}°C (Δ {diff}°C)"
-                )
-                _LOGGER.debug(
-                    "  %s: Δ %s°C > 0 -> DEMANDING",
-                    room_name,
-                    diff,
-                )
-            else:
-                _LOGGER.debug(
-                    "  %s: Δ %s°C <= 0 -> satisfied",
-                    room_name,
-                    diff,
-                )
 
         return needs_heat, demand_lines
+
+    def _evaluate_room(
+        self, zone: dict[str, Any], room: dict[str, Any]
+    ) -> RoomDemandStatus:
+        """Resolve one room's effective demand and an explainable reason."""
+        room_id = str(room.get(ROOM_ID, "unknown-room"))
+        room_name = str(room.get(ROOM_NAME, room_id))
+        if not room.get(ROOM_ACTIVE, True):
+            _LOGGER.debug("  %s: inactive, skipping", room_name)
+            return RoomDemandStatus(room_id, room_name, False, "inactive")
+
+        open_entities = tuple(self._room_open_openings(room))
+        if open_entities:
+            _LOGGER.debug(
+                "  %s: window/door open (%s), suppressing demand",
+                room_name,
+                ", ".join(open_entities),
+            )
+            return RoomDemandStatus(
+                room_id,
+                room_name,
+                False,
+                "opening_open",
+                open_entities=open_entities,
+            )
+
+        thermostat = self.room_thermostats.get(room_id)
+        if thermostat is not None:
+            _LOGGER.debug(
+                "  %s: reading thermostat %s",
+                room_name,
+                getattr(thermostat, "entity_id", "?"),
+            )
+            if getattr(thermostat, "hvac_mode", None) == "off":
+                _LOGGER.debug("  %s: thermostat is OFF, skipping", room_name)
+                return RoomDemandStatus(room_id, room_name, False, "thermostat_off")
+            set_temp = getattr(thermostat, "target_temperature", None)
+        else:
+            set_temp = self._room_setpoint(room)
+            _LOGGER.debug(
+                "  %s: thermostat not yet loaded, using fallback setpoint %s°C",
+                room_name,
+                set_temp,
+            )
+
+        _LOGGER.debug(
+            "  %s: reading %d sensor(s): %s",
+            room_name,
+            len(room.get(ROOM_SENSORS, []) or []),
+            room.get(ROOM_SENSORS, []) or "(none configured)",
+        )
+        room_temp = self._room_temperature(room)
+        if set_temp is None or room_temp is None:
+            _LOGGER.debug(
+                "[%s] %s has no usable TRV/sensor reading, skipping",
+                zone.get(ZONE_NAME),
+                room_name,
+            )
+            return RoomDemandStatus(
+                room_id,
+                room_name,
+                False,
+                "unavailable",
+                setpoint=set_temp,
+                temperature=room_temp,
+            )
+
+        set_temp = float(set_temp)
+        room_temp = float(room_temp)
+        diff = round(set_temp - room_temp, 2)
+        _LOGGER.debug(
+            "  %s: Setpoint - Temperature = %s - %s = %s",
+            room_name,
+            set_temp,
+            room_temp,
+            diff,
+        )
+        if diff > 0:
+            _LOGGER.debug("  %s: Δ %s°C > 0 -> DEMANDING", room_name, diff)
+            return RoomDemandStatus(
+                room_id,
+                room_name,
+                True,
+                "demanding",
+                setpoint=set_temp,
+                temperature=room_temp,
+            )
+        _LOGGER.debug("  %s: Δ %s°C <= 0 -> satisfied", room_name, diff)
+        return RoomDemandStatus(
+            room_id,
+            room_name,
+            False,
+            "satisfied",
+            setpoint=set_temp,
+            temperature=room_temp,
+        )
+
+    def room_demand_status(self, room_id: str) -> RoomDemandStatus | None:
+        """Return the latest immutable room-demand snapshot for entities."""
+        return self._room_demand_statuses.get(room_id)
 
     def _room_open_openings(self, room: dict[str, Any]) -> list[str]:
         """Return configured window/door sensors currently reporting open."""

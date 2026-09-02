@@ -45,7 +45,7 @@ from .thermal_storage import ThermalStorage
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[str] = ["switch", "sensor", "climate"]
+PLATFORMS: list[str] = ["switch", "sensor", "binary_sensor", "climate"]
 
 
 async def _async_cleanup_orphaned_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -92,16 +92,26 @@ async def _async_cleanup_orphaned_entities(hass: HomeAssistant, entry: ConfigEnt
                 )
                 device_registry.async_remove_device(device.id)
 
-    suffix = "_thermostat"
+    room_entity_suffixes = ("_thermostat", "_heat_demand")
     for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
-        if not entity.unique_id or not entity.unique_id.endswith(suffix):
+        if not entity.unique_id:
             continue
         if not entity.unique_id.startswith(prefix):
             continue
-        room_id = entity.unique_id[len(prefix):-len(suffix)]
+        suffix = next(
+            (
+                candidate
+                for candidate in room_entity_suffixes
+                if entity.unique_id.endswith(candidate)
+            ),
+            None,
+        )
+        if suffix is None:
+            continue
+        room_id = entity.unique_id[len(prefix) : -len(suffix)]
         if room_id not in valid_room_ids:
             _LOGGER.info(
-                "Removing orphaned thermostat entity for a room no longer in config: %s",
+                "Removing orphaned room entity for a room no longer in config: %s",
                 entity.entity_id,
             )
             entity_registry.async_remove(entity.entity_id)
