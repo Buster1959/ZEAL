@@ -55,6 +55,14 @@ The Overview separates two questions that are often confused:
 That makes the system useful at a glance and useful when something does not
 behave as expected.
 
+![Anonymised Home Assistant History view showing a ZEAL room's demand and actuator timeline with thermostat target and two temperature sensors](docs/images/zeal-history-room-anonymised.png)
+
+The zone view makes the trigger equally clear across the whole circuit: compare
+every room's effective demand with the real actuator and immediately see which
+room called for heat.
+
+![Anonymised Home Assistant History view showing one room demand switching on with its zone heating actuator](docs/images/zeal-history-zone-demand-anonymised.png)
+
 ## See ZEAL in action
 
 ### Set up the home you actually have

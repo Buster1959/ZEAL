@@ -231,6 +231,15 @@ the complete guided tour.
 
 ![ZEAL Quick Change page showing Zone and Floor room selection and temporary target controls](docs/images/zeal-quick-change-desktop.png)
 
+### Heating demand history
+
+Overview opens Home Assistant's native History with the useful targets already
+selected. The room view aligns effective heat demand and the real zone actuator
+with setpoint and every configured temperature sensor, making the cause and
+timing of a heat call visible without a separate graphing system.
+
+![Anonymised Home Assistant History view showing ZEAL room demand and zone actuator switching on together above thermostat target and temperature traces](docs/images/zeal-history-room-anonymised.png)
+
 ### Learning
 
 When an administrator enables Schedule Adaptation, **Learning** shows captured
