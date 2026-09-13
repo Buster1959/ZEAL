@@ -332,8 +332,8 @@ class ZealPanel extends HTMLElement {
     return `
       <header>
         <div class="identity">
-          <img src="/zeal_static/zeal-dry-logo.png?v=30" alt="ZEAL-Dry" />
-          <div><h1>ZEAL-Dry</h1><p>Zoned, Efficient, Adaptive, Learning</p></div>
+          <img src="/api/brands/integration/zeal/icon.png" alt="" />
+          <div><h1>ZEAL</h1><p>Zoned, Efficient, Adaptive, Learning</p></div>
         </div>
         ${entrySelector}
       </header>

@@ -1,38 +1,46 @@
-# ZEAL-Dry brand identity
+# ZEAL Brand Identity
 
-![Approved ZEAL-Dry logo](brand/ZEAL-Dry-logo-approved.png)
+ZEAL is the master brand. Individual technologies sit underneath it as named modules rather than separate unrelated brands.
 
-The approved master artwork is
-[`brand/ZEAL-Dry-logo-approved.png`](brand/ZEAL-Dry-logo-approved.png). It is
-the authoritative ZEAL-Dry identity and must be used without redrawing or
-simplifying it as SVG artwork.
+## Core presentation
 
-## Master artwork
+Primary visual style:
 
-The artwork includes the polished house outline and chimney, three glossy blue
-water droplets, flowing blue wave lines, the large ZEAL wordmark and the
-`— DRY —` treatment. Preserve its proportions, white background and blue
-colour treatment. Do not crop, stretch, recolour or substitute individual
-elements.
+- charcoal/black background
+- white ZEAL wordmark
+- lime-green accent: `#A6E22E`
+- clean geometric sans-serif typography; Montserrat is the current preferred family
+- restrained, technical presentation rather than generic corporate merchandise
 
-## Home Assistant integration assets
+Current brand line:
 
-The integration uses square renditions derived directly from the approved
-master artwork:
+**SMARTER HEATING. COOLER THINKING.**
 
-- `custom_components/zeal/brand/icon.png` — 256 × 256
-- `custom_components/zeal/brand/icon@2x.png` — 512 × 512
-- `custom_components/zeal/frontend/zeal-dry-logo.png` — the square panel
-  rendition served in the ZEAL-Dry header
+## Product family
 
-The panel deliberately serves its bundled logo instead of relying on
-`/api/brands/integration/zeal/icon.png`, so the approved artwork is available
-with every custom-integration installation. These renditions retain the logo
-itself and omit only the black export footer present in the supplied source
-file.
+Use ZEAL as the lead identity, with modules presented underneath as bullet points:
 
-## Superseded artwork
+- FLOW
+- CONTROL
+- SCHEDULER
 
-`assets/zeal-brand.svg` is retired. Its preserved copy in
-`docs/drawings/zeal/` is historical reference only and must not be used in new
-documentation or product surfaces.
+Additional modules can be added later without changing the master identity.
+
+The canonical repository SVG is [`../assets/zeal-brand.svg`](../assets/zeal-brand.svg).
+
+## Clothing concept
+
+Launch clothing should keep the front clean and use the product-family structure on the rear or sleeve.
+
+Suggested treatment:
+
+- polo / softshell front: small ZEAL wordmark on left chest
+- polo / softshell rear: ZEAL with bullet list of FLOW, CONTROL and SCHEDULER
+- cap front: ZEAL
+- cap rear, above adjustment strap: **MAKING RADIATORS BLOW**
+
+The cap phrase is deliberately informal launch-team humour and is not the corporate product tagline.
+
+## Usage principle
+
+ZEAL should always remain visually dominant. FLOW, CONTROL and SCHEDULER identify parts of the platform; they should not be presented as unrelated stand-alone brands.

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/brand/ZEAL-Dry-logo-approved.png" width="180" alt="ZEAL-Dry approved logo">
+  <img src="custom_components/zeal/brand/icon.png" width="96" height="96" alt="ZEAL icon">
 </p>
 
-<h1 align="center">ZEAL-Dry</h1>
+<h1 align="center">ZEAL</h1>
 <p align="center"><em>Zoned, Efficient, Adaptive, Learning — V1 release candidate</em></p>
 
 <p align="center">

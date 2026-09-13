@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">ZEAL brand</title>
+  <desc id="desc">ZEAL wordmark with Flow, Control and Scheduler product family</desc>
+  <rect width="1200" height="360" fill="#111111"/>
+  <text x="80" y="150" fill="#FFFFFF" font-family="Montserrat,Arial,sans-serif" font-size="118" font-weight="600" letter-spacing="18">ZEAL</text>
+  <rect x="203" y="163" width="48" height="10" rx="2" fill="#A6E22E"/>
+  <text x="84" y="215" fill="#FFFFFF" font-family="Montserrat,Arial,sans-serif" font-size="28" letter-spacing="3">SMARTER HEATING.</text>
+  <text x="405" y="215" fill="#A6E22E" font-family="Montserrat,Arial,sans-serif" font-size="28" letter-spacing="3">COOLER THINKING.</text>
+  <circle cx="830" cy="103" r="9" fill="#A6E22E"/>
+  <text x="860" y="113" fill="#FFFFFF" font-family="Montserrat,Arial,sans-serif" font-size="34" letter-spacing="2">FLOW</text>
+  <circle cx="830" cy="166" r="9" fill="#A6E22E"/>
+  <text x="860" y="176" fill="#FFFFFF" font-family="Montserrat,Arial,sans-serif" font-size="34" letter-spacing="2">CONTROL</text>
+  <circle cx="830" cy="229" r="9" fill="#A6E22E"/>
+  <text x="860" y="239" fill="#FFFFFF" font-family="Montserrat,Arial,sans-serif" font-size="34" letter-spacing="2">SCHEDULER</text>
+  <text x="84" y="315" fill="#9A9A9A" font-family="Montserrat,Arial,sans-serif" font-size="20" letter-spacing="2">CLEAN • TECHNICAL • PURPOSEFUL</text>
+</svg>
