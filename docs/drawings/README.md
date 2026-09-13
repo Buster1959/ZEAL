@@ -15,7 +15,8 @@ The [`zeal/`](zeal/) directory contains the available ZEAL brand and interface i
 | 2026-08-27 | [`2026-08-27-zeal-ui-03-quick-change.png`](zeal/2026-08-27-zeal-ui-03-quick-change.png) | Quick Change interaction design. | `docs/images/zeal-quick-change-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-04-copy-schedule-to-rooms.png`](zeal/2026-08-27-zeal-ui-04-copy-schedule-to-rooms.png) | Schedule-copying workflow across rooms. | `docs/images/zeal-copy-schedule-to-rooms-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-05-away-downloads-instance-controls.png`](zeal/2026-08-27-zeal-ui-05-away-downloads-instance-controls.png) | Away controls, downloads and multi-instance controls. | `docs/images/zeal-away-downloads-and-instance-controls-desktop.png` |
-| 2026-08-28 | [`2026-08-28-zeal-product-family-brand.svg`](zeal/2026-08-28-zeal-product-family-brand.svg) | Later ZEAL master-brand treatment introducing the FLOW, CONTROL and SCHEDULER product family and lime accent. | `assets/zeal-brand.svg` |
+| 2026-08-28 | [`2026-08-28-zeal-product-family-brand.svg`](zeal/2026-08-28-zeal-product-family-brand.svg) | Superseded ZEAL product-family treatment introducing the FLOW, CONTROL and SCHEDULER product family and lime accent. Preserved only as design history. | Retired active asset: `assets/zeal-brand.svg` |
+| 2026-09-13 | [`ZEAL-Dry-logo-approved.png`](../brand/ZEAL-Dry-logo-approved.png) | Approved ZEAL-Dry master artwork: house, chimney, three water droplets, water waves, ZEAL wordmark and DRY treatment. | `docs/brand/ZEAL-Dry-logo-approved.png` |
 
 The numbered UI filenames describe the product journey; all five screenshots were committed together, so their order is functional rather than a claim that they were created at different times.
 
