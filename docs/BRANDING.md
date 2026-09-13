@@ -6,15 +6,15 @@ ZEAL-Heat is the master brand. Individual technologies sit underneath it as name
 
 Primary visual style:
 
-- charcoal/black background
-- white ZEAL-Heat wordmark
-- lime-green accent: `#A6E22E`
-- clean geometric sans-serif typography; Montserrat is the current preferred family
-- restrained, technical presentation rather than generic corporate merchandise
+- white background
+- navy ZEAL wordmark with a warm orange HEAT line
+- navy house silhouette and cyan-blue outer ring
+- central orange flame, deliberately matched in visual weight to the main water droplet in the approved ZEAL-Dry mark
+- clean geometric sans-serif typography with a practical, home-comfort focus
 
 Current brand line:
 
-**SMARTER HEATING. COOLER THINKING.**
+**INTELLIGENT HEATING FOR THE SPACES YOU LIVE IN.**
 
 ## Product family
 
@@ -26,7 +26,9 @@ Use ZEAL-Heat as the lead identity, with modules presented underneath as bullet 
 
 Additional modules can be added later without changing the master identity.
 
-The canonical repository SVG is [`../assets/zeal-brand.svg`](../assets/zeal-brand.svg).
+The canonical repository artwork is [`../assets/zeal-heat-logo-approved.png`](../assets/zeal-heat-logo-approved.png).
+The Home Assistant integration uses matching 256 px and 512 px derivatives in
+`custom_components/zeal/brand/`.
 
 ## Clothing concept
 

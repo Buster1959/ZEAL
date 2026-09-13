@@ -8,14 +8,14 @@ The [`zeal/`](zeal/) directory contains the available ZEAL-Heat brand and interf
 
 | Date | Preserved file | What it records | Original / provenance |
 | --- | --- | --- | --- |
-| 2026-08-17 | [`2026-08-17-zeal-integration-icon-1x.png`](zeal/2026-08-17-zeal-integration-icon-1x.png) | Original square ZEAL-Heat integration icon at standard resolution. | First committed at `custom_components/zeal/icon.png` in `a8f479a`; the identical image remains at `custom_components/zeal/brand/icon.png`. |
-| 2026-08-17 | [`2026-08-17-zeal-integration-icon-2x.png`](zeal/2026-08-17-zeal-integration-icon-2x.png) | High-resolution version of the original integration icon. | First committed at `custom_components/zeal/icon@2x.png` in `a8f479a`; the identical image remains at `custom_components/zeal/brand/icon@2x.png`. |
+| 2026-09-13 | [`2026-08-17-zeal-integration-icon-1x.png`](zeal/2026-08-17-zeal-integration-icon-1x.png) | Approved square ZEAL-Heat integration icon at standard resolution. | Matches `custom_components/zeal/brand/icon.png`. |
+| 2026-09-13 | [`2026-08-17-zeal-integration-icon-2x.png`](zeal/2026-08-17-zeal-integration-icon-2x.png) | Approved high-resolution ZEAL-Heat integration icon. | Matches `custom_components/zeal/brand/icon@2x.png`. |
 | 2026-08-27 | [`2026-08-27-zeal-ui-01-zone-and-room-setup.png`](zeal/2026-08-27-zeal-ui-01-zone-and-room-setup.png) | Initial desktop setup view for zones and rooms. | `docs/images/zeal-zone-and-room-setup-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-02-seven-day-schedule.png`](zeal/2026-08-27-zeal-ui-02-seven-day-schedule.png) | Seven-day schedule design. | `docs/images/zeal-seven-day-schedule-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-03-quick-change.png`](zeal/2026-08-27-zeal-ui-03-quick-change.png) | Quick Change interaction design. | `docs/images/zeal-quick-change-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-04-copy-schedule-to-rooms.png`](zeal/2026-08-27-zeal-ui-04-copy-schedule-to-rooms.png) | Schedule-copying workflow across rooms. | `docs/images/zeal-copy-schedule-to-rooms-desktop.png` |
 | 2026-08-27 | [`2026-08-27-zeal-ui-05-away-downloads-instance-controls.png`](zeal/2026-08-27-zeal-ui-05-away-downloads-instance-controls.png) | Away controls, downloads and multi-instance controls. | `docs/images/zeal-away-downloads-and-instance-controls-desktop.png` |
-| 2026-08-28 | [`2026-08-28-zeal-product-family-brand.svg`](zeal/2026-08-28-zeal-product-family-brand.svg) | Later ZEAL-Heat master-brand treatment introducing the FLOW, CONTROL and SCHEDULER product family and lime accent. | `assets/zeal-brand.svg` |
+| 2026-09-13 | [`zeal-heat-logo-approved.png`](../../assets/zeal-heat-logo-approved.png) | Approved ZEAL-Heat master-brand artwork: house, central flame and orange heat waves. | `assets/zeal-heat-logo-approved.png` |
 
 The numbered UI filenames describe the product journey; all five screenshots were committed together, so their order is functional rather than a claim that they were created at different times.
 

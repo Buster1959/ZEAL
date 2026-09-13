@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">ZEAL-Heat</h1>
-<p align="center"><strong>SMARTER HEATING. COOLER THINKING.</strong></p>
+<p align="center"><strong>INTELLIGENT HEATING FOR THE SPACES YOU LIVE IN.</strong></p>
 
 <h2 align="center">One intelligent place for the heating in your whole home</h2>
 
