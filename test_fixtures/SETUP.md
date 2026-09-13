@@ -1,6 +1,6 @@
-# ZEAL dev/test fixture — setup guide
+# ZEAL-Heat dev/test fixture — setup guide
 
-Companion to `dev_environment.yaml`. This gives anyone testing ZEAL —
+Companion to `dev_environment.yaml`. This gives anyone testing ZEAL-Heat —
 including a future session, or another contributor — an identical,
 guaranteed-consistent dummy rig, rather than hand-building one and risking
 the kind of silent naming mismatch that cost a full debugging session on
@@ -29,7 +29,7 @@ Restart Home Assistant Core (not just a reload) to apply it.
 
 ## 2. Create the Areas (cannot be done via YAML)
 
-ZEAL's Options Flow discovers TRVs/sensors **by HA Area**, and Areas
+ZEAL-Heat's Options Flow discovers TRVs/sensors **by HA Area**, and Areas
 aren't YAML-configurable — this step has to happen once, by hand, in the
 UI, regardless of how carefully the entity YAML itself is written.
 
@@ -61,12 +61,12 @@ click the entity, the cog icon, set Area:
 | Floor2 RoomC | `sensor.floor2_roomc_temperature` | `climate.floor2_roomc_thermostat` |
 
 Do **not** assign the `_heater` `input_boolean`s to any Area — they're
-internal plumbing for `generic_thermostat`, not something ZEAL should ever
+internal plumbing for `generic_thermostat`, not something ZEAL-Heat should ever
 see or offer as a pick.
 
-## 4. Configure ZEAL
+## 4. Configure ZEAL-Heat
 
-`Settings → Devices & Services → ZEAL HVAC System → Configure`:
+`Settings → Devices & Services → ZEAL-Heat HVAC System → Configure`:
 
 - **Zone "Floor1"** → switch `switch.floor1_pump` ("Pump Floor 1") → rooms:
   Floor1 RoomA, Floor1 RoomB, Floor1 RoomC.
@@ -76,7 +76,7 @@ see or offer as a pick.
 Each room's TRV and sensor should auto-discover and pre-tick correctly at
 this point, since they're already assigned to the matching Area.
 
-**Name the ZEAL zones exactly "Floor1"/"Floor2"** (matching the switch's
+**Name the ZEAL-Heat zones exactly "Floor1"/"Floor2"** (matching the switch's
 own naming), not something else like "Zone 1" — confirmed from a real
 deployment that a `ZealRoomThermostat`'s auto-generated `entity_id`
 combines **both** the zone name and the room name (e.g. zone "Zone 1" +
@@ -93,10 +93,10 @@ Exactly **one** entity controls each room's simulated temperature — its
 
 - `input_number.floor1_rooma_temp` (and so on for the other 5 rooms)
 
-Set it below the room's ZEAL Thermostat target → that zone's pump should
+Set it below the room's ZEAL-Heat Thermostat target → that zone's pump should
 turn on. Set it above → pump should turn off (subject to the zone's
 re-enable delay). `test_fixtures/dashboard.yaml` has a ready-made
-dashboard with both the dummy TRVs and ZEAL's own thermostats side by
+dashboard with both the dummy TRVs and ZEAL-Heat's own thermostats side by
 side for exactly this — import it via a new Dashboard's "Edit in YAML"
 mode. **Double-check every entity_id if you copy/adapt it rather than use
 it as-is**: an earlier draft had one Floor2 tile silently pointing at a

@@ -1,6 +1,6 @@
-# ZEAL automated tests
+# ZEAL-Heat automated tests
 
-Automated tests for the Coordinator's demand/safety logic and the pure ZEAL
+Automated tests for the Coordinator's demand/safety logic and the pure ZEAL-Heat
 scheduler domain. The suite covers combinations that would take substantial
 time to click through by hand in a live development environment and runs in
 well under a second.
@@ -44,18 +44,18 @@ framework Home Assistant Core itself uses to test its own integrations.
   room-coverage messages.
 - Zigbee-style stale readings, including exclusion from temperature averaging
   and conservative all-TRVs-off pump protection.
-- Versioned ZEAL schedule serialization and migration, exact time validation,
+- Versioned ZEAL-Heat schedule serialization and migration, exact time validation,
   stable room-ID reconciliation and a separate Store boundary.
 - Active/next-period calculation across midnight and empty days, schedule copy
   isolation, and temporary override targets/expiry without editing schedules.
 - Startup reconciliation, nearest-transition timing, unavailable-room retry,
-  unload cleanup and exclusive use of ZEAL's clamped canonical room boundary.
+  unload cleanup and exclusive use of ZEAL-Heat's clamped canonical room boundary.
 - Admin-only WebSocket authorization, registry-backed hierarchy validation,
   optimistic revision conflicts, reload persistence, Quick Change, bounded
   audit retention and JSON-safe configuration/audit downloads.
-- Separate entity catalogs prove ZEAL-owned canonical scheduling thermostats
+- Separate entity catalogs prove ZEAL-Heat-owned canonical scheduling thermostats
   cannot appear in the physical room thermostat or temperature-sensor pickers.
-- Admin-only ZEAL panel registration, integration configuration routing, static
+- Admin-only ZEAL-Heat panel registration, integration configuration routing, static
   asset registration, safe-save API use, responsive breakpoints and the
   competing-scheduler warning contract.
 - Seven-day visual editor contracts for exact entry, drag controls,

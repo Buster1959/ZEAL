@@ -1,6 +1,6 @@
-# ZEAL V1 Acceptance Record
+# ZEAL-Heat V1 Acceptance Record
 
-This is the release gate for ZEAL V1. A check is marked **Pass** only when it
+This is the release gate for ZEAL-Heat V1. A check is marked **Pass** only when it
 has been observed against the release candidate named below. Automated tests do
 not substitute for live Home Assistant, thermostat and actuator checks.
 
@@ -35,10 +35,10 @@ the checks affected by that change.
 
 | Area | Required observation | Status |
 |---|---|---|
-| Clean installation | Install the candidate on a clean test system, restart and add ZEAL | Pending |
+| Clean installation | Install the candidate on a clean test system, restart and add ZEAL-Heat | Pending |
 | Existing configuration | Load/modify a pre-panel configuration without losing assignments | Pending |
 | Overview and Setup | Add/edit/remove zones and rooms; Area-scoped equipment is correct | Pending |
-| Entity separation | ZEAL thermostats never appear as physical TRV/sensor choices | Pending |
+| Entity separation | ZEAL-Heat thermostats never appear as physical TRV/sensor choices | Pending |
 | Multiple equipment | At least one room with multiple TRVs and multiple sensors behaves correctly | Pending |
 | Multiple zones | Independent zones drive only their own actuator and rooms | Pending |
 | Demand safety | Demand, all-valves-closed protection, re-enable delay and Manual override work | Pending |

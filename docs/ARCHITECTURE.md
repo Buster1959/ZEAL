@@ -1,6 +1,6 @@
-# ZEAL Architecture
+# ZEAL-Heat Architecture
 
-ZEAL is one self-contained Home Assistant custom integration. It owns its
+ZEAL-Heat is one self-contained Home Assistant custom integration. It owns its
 configuration UI, room thermostat entities, heating-demand coordinator,
 scheduler, temporary holds, Away mode, persistence and audit trail.
 
@@ -27,7 +27,7 @@ other.
    not collect observations until that later module is explicitly enabled.
 4. **Scheduler runtime** — `scheduler/runtime.py` resolves Away, Quick Change,
    manual thermostat changes and weekly schedules, then writes only to the
-   canonical ZEAL room thermostat.
+   canonical ZEAL-Heat room thermostat.
 5. **Learning** — `scheduler/learning.py` captures qualified intent above the
    runtime boundary and creates reviewable proposals without writing schedules.
 6. **Heating control** — `coordinator.py` propagates that room target to the
@@ -41,22 +41,22 @@ other.
 Each config entry owns independently keyed Coordinator, schedule, audit,
 Schedule Learning and Thermal Response Stores. Multiple entries can therefore
 run separate heating systems. Removing one entry deletes only its own Stores;
-the panel remains registered while another ZEAL entry is loaded.
+the panel remains registered while another ZEAL-Heat entry is loaded.
 
 ## Entity boundary
 
-Each configured room has one stable room ID and one ZEAL-owned climate entity.
+Each configured room has one stable room ID and one ZEAL-Heat-owned climate entity.
 Schedules target that canonical room thermostat, never an individual physical
 TRV. Setup keeps two separate catalogs:
 
-- ZEAL room thermostats are shown as scheduling targets.
-- Non-ZEAL climate entities in the room's Home Assistant Area are shown as
+- ZEAL-Heat room thermostats are shown as scheduling targets.
+- Non-ZEAL-Heat climate entities in the room's Home Assistant Area are shown as
   physical thermostat/TRV choices.
 - Window, door and opening-class binary sensors in that Area are offered as
   optional demand-suppression contacts.
 
 The separation uses Home Assistant entity-registry ownership, so renaming an
-entity cannot make a ZEAL thermostat selectable as its own physical TRV.
+entity cannot make a ZEAL-Heat thermostat selectable as its own physical TRV.
 
 ## Safety and precedence
 
@@ -64,17 +64,17 @@ Room target precedence is:
 
 1. active Away mode;
 2. active Quick Change hold;
-3. a manual ZEAL room-thermostat change until the next transition;
+3. a manual ZEAL-Heat room-thermostat change until the next transition;
 4. the weekly schedule.
 
 The per-zone Manual override is separate and remains the highest authority over
-the physical actuator. Every target passes through ZEAL's 5–30°C clamp before
+the physical actuator. Every target passes through ZEAL-Heat's 5–30°C clamp before
 it can reach a physical thermostat. Unavailable or stale readings are excluded
 from decisions, and an all-valves-closed result forces the zone actuator off.
 
 ## Further technical detail
 
-- [ZEAL Learning roadmap](LEARNING_ROADMAP.md)
+- [ZEAL-Heat Learning roadmap](LEARNING_ROADMAP.md)
 - [Panel API architecture](PANEL_API_ARCHITECTURE.md)
 - [Scheduler architecture](SCHEDULER_ARCHITECTURE.md)
 - [Data model](DATA_MODEL.md)

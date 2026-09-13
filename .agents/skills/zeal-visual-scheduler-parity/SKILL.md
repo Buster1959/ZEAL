@@ -1,13 +1,13 @@
 ---
 name: zeal-visual-scheduler-parity
-description: Check whether a fix found in ZEAL also applies to HA Visual Climate Scheduler, ZEAL Flow, or another ZEAL-family sibling, and request approval before applying the related patch there. Use during debugging, implementation, or review when underlying behavior may be shared.
+description: Check whether a fix found in ZEAL-Heat also applies to HA Visual Climate Scheduler, ZEAL-Heat Flow, or another ZEAL-Heat-family sibling, and request approval before applying the related patch there. Use during debugging, implementation, or review when underlying behavior may be shared.
 ---
 
-# ZEAL Sibling-Project Patch Parity
+# ZEAL-Heat Sibling-Project Patch Parity
 
-ZEAL and HA Visual Climate Scheduler have sibling code and documentation. ZEAL
+ZEAL-Heat and HA Visual Climate Scheduler have sibling code and documentation. ZEAL-Heat
 Flow is an independent GitHub repository/project; do not track its product or
-design work in the ZEAL repository. A task targeting ZEAL Flow requires its own
+design work in the ZEAL-Heat repository. A task targeting ZEAL-Heat Flow requires its own
 explicit authorization and must be handled in that project.
 
 When a discovered fix has a concrete connection to the sibling project:

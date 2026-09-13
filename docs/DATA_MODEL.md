@@ -1,6 +1,6 @@
-# ZEAL V1 Data Model
+# ZEAL-Heat V1 Data Model
 
-ZEAL persists four deliberately separate documents for each Home Assistant
+ZEAL-Heat persists four deliberately separate documents for each Home Assistant
 config entry. Separating them prevents runtime timing state, user configuration
 and schedule history from accidentally replacing one another.
 
@@ -37,12 +37,12 @@ config-entry options.
 ```
 
 `show_in_sidebar` defaults to `true` for entries created before the preference
-was introduced. It controls only whether the shared ZEAL link appears in Home
+was introduced. It controls only whether the shared ZEAL-Heat link appears in Home
 Assistant navigation; it does not enable or disable the integration. With
 multiple loaded instances, the link is visible if any instance requests it.
 
 `room_id` is the stable Home Assistant Area ID. One Area can belong to only one
-ZEAL zone. `ashp_capability` and `cooling_capable` are reserved safe-default V2
+ZEAL-Heat zone. `ashp_capability` and `cooling_capable` are reserved safe-default V2
 fields; no V1 cooling behavior uses them.
 
 `opening_sensors` contains optional window/door `binary_sensor` entities in the
@@ -56,7 +56,7 @@ The version-1 scheduler store contains:
 
 - `version` — schema version, currently `1`;
 - `temperature_unit` — `°C`, `°F` or `null` until established;
-- `rooms` — a map keyed by stable ZEAL room ID;
+- `rooms` — a map keyed by stable ZEAL-Heat room ID;
 - `settings` — integration-wide scheduler settings, including Away mode.
 
 Every room contains exactly Monday through Sunday. Each day is an ordered list
@@ -93,7 +93,7 @@ application audit. The initial event model records a stable event ID, room,
 timestamp/local date, source (Home Assistant/canonical thermostat, physical TRV
 or Quick Change), requested target, immutable schedule-period baseline and
 revision, adaptation type, pattern key and outcome. Source attribution is based
-on ZEAL's control boundary and write-echo guards, not inferred from display text.
+on ZEAL-Heat's control boundary and write-echo guards, not inferred from display text.
 Room temperature, demand/actuator context, effective target and override expiry
 remain planned enrichments; the detector does not claim to use fields it has not
 captured.
@@ -150,7 +150,7 @@ For the eight-room planning home (four bedrooms, two bathrooms, kitchen and
 dining room), two two-hour episodes per room/day produce 11,520 detailed
 30-day samples and 5,840 annual summaries. The enforced caps are 16,000 samples
 and 6,000 summaries across those rooms. Using provisional serialized-record
-allowances, ZEAL expects about 7–12 MB, plans for a 9–14 MB capped payload and
+allowances, ZEAL-Heat expects about 7–12 MB, plans for a 9–14 MB capped payload and
 documents a conservative 20 MB allowance per config entry. Detailed history is
 loaded per selected room for the administrator graph; it is not all retained in
 memory or copied into Recorder entity attributes. Final schema benchmarks must
@@ -177,7 +177,7 @@ audit.
 Ordinary diagnostics expose pseudonymised room/zone/entity aliases, counts,
 model health and exclusion totals. A separately requested readable export may
 include names and evidence only after an occupancy-privacy warning. Removing the
-ZEAL config entry removes all of its Thermal Response Store documents.
+ZEAL-Heat config entry removes all of its Thermal Response Store documents.
 
 Configuration and audit downloads necessarily include room/zone names and
 entity IDs. Review exports before sharing if those names reveal personal
@@ -192,4 +192,4 @@ checks. Its attributes expose the current reason, setpoint, measured room
 temperature and any open configured contacts. Re-enable delay, Zone Manual
 Override and pump dead-head protection remain zone-level actuator decisions, so
 a room may correctly show demand while the actuator is held off. Home Assistant
-Recorder owns this entity's history; ZEAL creates no duplicate history Store.
+Recorder owns this entity's history; ZEAL-Heat creates no duplicate history Store.

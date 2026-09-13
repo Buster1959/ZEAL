@@ -1,59 +1,59 @@
-# ZEAL Instructions for Use — V1 Draft
+# ZEAL-Heat Instructions for Use — V1 Draft
 
 > **Archived repository snapshot.** The maintained source of truth is now the
-> [ZEAL wiki Instructions for Use](https://github.com/Buster1959/ZEAL/wiki/Instructions-for-Use).
+> [ZEAL-Heat wiki Instructions for Use](https://github.com/Buster1959/ZEAL-Heat/wiki/Instructions-for-Use).
 > This snapshot is retained during the documentation transition so information
 > remains available offline and can be cross-checked. Do not update it as a
 > second manual; update the wiki owner page instead.
 
-ZEAL combines room thermostats, heating-demand control and a weekly visual
+ZEAL-Heat combines room thermostats, heating-demand control and a weekly visual
 scheduler in one Home Assistant integration. V1 is still being prepared; use
 dummy or spare equipment first and complete the live test plan before relying
 on it for unattended heating.
 
 ## Before installing
 
-- Create a Home Assistant Area for every room you want ZEAL to control.
+- Create a Home Assistant Area for every room you want ZEAL-Heat to control.
 - Assign each physical climate thermostat/TRV and temperature sensor to its
   room Area.
 - Have one Home Assistant `switch` entity for each zone's pump, relay or other
   heating actuator.
-- ZEAL V1's scheduler and setup panel use Celsius targets.
+- ZEAL-Heat V1's scheduler and setup panel use Celsius targets.
 - Disable any other scheduler, automation or blueprint that changes the same
   thermostat setpoints. Competing writers can overwrite each other.
 
 ## Install
 
-ZEAL is distributed through HACS as a custom repository. Use the one-click
+ZEAL-Heat is distributed through HACS as a custom repository. Use the one-click
 button or follow the manual steps below:
 
-[![Open ZEAL in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Buster1959&repository=ZEAL&category=integration)
+[![Open ZEAL-Heat in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Buster1959&repository=ZEAL-Heat&category=integration)
 
 1. Install HACS if it is not already installed, then open HACS.
 2. Select ⋮ (top right) → **Custom repositories**.
-3. Enter `https://github.com/Buster1959/ZEAL`.
+3. Enter `https://github.com/Buster1959/ZEAL-Heat`.
 4. Select **Integration**, then select **Add**.
-5. Open **ZEAL HVAC System** in HACS and select **Download**.
+5. Open **ZEAL-Heat HVAC System** in HACS and select **Download**.
 6. Restart Home Assistant.
 7. Open **Settings → Devices & Services → Add Integration**, search for
-   **ZEAL HVAC System**, and complete setup.
+   **ZEAL-Heat HVAC System**, and complete setup.
 
-ZEAL does not appear in the default HACS search results. Once its custom
+ZEAL-Heat does not appear in the default HACS search results. Once its custom
 repository has been added, HACS installs and updates it normally.
 
 For a manual installation, copy `custom_components/zeal` into
 `config/custom_components/zeal` and restart Home Assistant.
 
-Give the integration instance a name and finish. ZEAL appears in the sidebar
+Give the integration instance a name and finish. ZEAL-Heat appears in the sidebar
 for Home Assistant administrators and on **Devices & Services → Integrations**.
 It is a hub integration because one entry coordinates multiple zone devices,
 room thermostats, sensors and actuators; it is not listed under Helpers.
 
 ## Set up zones and rooms
 
-Open **ZEAL → Setup**. Add a Zone/Floor, select its single heating actuator and
+Open **ZEAL-Heat → Setup**. Add a Zone/Floor, select its single heating actuator and
 heat source, then review the suggested re-enable delay. Add one or more Home
-Assistant Areas as rooms and choose the non-ZEAL physical thermostats/TRVs and
+Assistant Areas as rooms and choose the non-ZEAL-Heat physical thermostats/TRVs and
 temperature sensors in each Area. Optionally attach one or more window/door
 contact sensors. Mark unused rooms inactive and save.
 
@@ -69,9 +69,9 @@ Overview remains available to every signed-in user. The Overview updates demand,
 actuator state and any active re-enable countdown automatically; it does not
 need a manual refresh control.
 
-![ZEAL Setup page showing a Zone or Floor, its heating actuator, canonical ZEAL scheduling targets and physical room equipment](images/zeal-zone-and-room-setup-desktop.png)
+![ZEAL-Heat Setup page showing a Zone or Floor, its heating actuator, canonical ZEAL-Heat scheduling targets and physical room equipment](images/zeal-zone-and-room-setup-desktop.png)
 
-The physical equipment picker intentionally excludes ZEAL's own room
+The physical equipment picker intentionally excludes ZEAL-Heat's own room
 thermostats. After saving, use **Overview** to confirm the hierarchy, actuator,
 heat source, delay and equipment counts. Each Zone/Floor card also shows the live
 heating-actuator state and a horizontally scrollable room-demand strip. Every
@@ -94,9 +94,9 @@ Assistant/TRV adjustments are shown as lasting until the next scheduled change;
 Quick Change shows its target and selected two-hour, four-hour or next-schedule
 duration.
 
-Setup also contains **Show ZEAL in the Home Assistant sidebar**. Clear it and
-select **Save setup** if you do not want a permanent sidebar link. ZEAL keeps
-running. To restore the link, open **Settings → Devices & Services → ZEAL HVAC
+Setup also contains **Show ZEAL-Heat in the Home Assistant sidebar**. Clear it and
+select **Save setup** if you do not want a permanent sidebar link. ZEAL-Heat keeps
+running. To restore the link, open **Settings → Devices & Services → ZEAL-Heat HVAC
 System → Configure**, enable the recovery checkbox and submit. The full panel
 also remains available directly at `/zeal`.
 
@@ -112,12 +112,12 @@ The last target carries across midnight and empty days. To reuse a full week,
 expand the room-copy section and select destination rooms. Their names, Areas,
 equipment and canonical thermostats do not change.
 
-![ZEAL seven-day visual Schedule page for a selected Zone or Floor and room](images/zeal-seven-day-schedule-desktop.png)
+![ZEAL-Heat seven-day visual Schedule page for a selected Zone or Floor and room](images/zeal-seven-day-schedule-desktop.png)
 
 Expand **Copy this seven-day schedule to other rooms** to choose destination
 rooms without changing their equipment or identity:
 
-![ZEAL expanded room-copy controls grouped by Zone or Floor](images/zeal-copy-schedule-to-rooms-desktop.png)
+![ZEAL-Heat expanded room-copy controls grouped by Zone or Floor](images/zeal-copy-schedule-to-rooms-desktop.png)
 
 ## Make a temporary Quick Change
 
@@ -126,7 +126,7 @@ or the whole house, then choose −1°C, +1°C or an exact target. Select two ho
 four hours or until the next schedule transition. Cancel a room's hold to return
 it to the current weekly target. The saved schedule is never edited.
 
-![ZEAL Quick Change controls with room, Zone or Floor and whole-house selection](images/zeal-quick-change-desktop.png)
+![ZEAL-Heat Quick Change controls with room, Zone or Floor and whole-house selection](images/zeal-quick-change-desktop.png)
 
 ## Use Away mode
 
@@ -140,17 +140,17 @@ While Away is active, new Quick Changes are blocked. Existing holds pause and
 resume afterward only if they have not expired. The Away banner's **Away
 settings** button also opens Overrides rather than Setup.
 
-![ZEAL Away mode configured with an exact start and end date/time and one global target](images/zeal-away-date-range-desktop.png)
+![ZEAL-Heat Away mode configured with an exact start and end date/time and one global target](images/zeal-away-date-range-desktop.png)
 
 ## Review Learning suggestions
 
-An administrator enables **ZEAL Learning — Schedule Adaptation** in Setup. The
+An administrator enables **ZEAL-Heat Learning — Schedule Adaptation** in Setup. The
 same card can enable or disable the aggregated Home Assistant persistent
 notification that points users to new advice. Learning is disabled by default
 and never changes a schedule automatically.
 
 <!-- SCREENSHOT NEEDED: docs/images/zeal-learning-setup-settings-desktop.png
-Capture Setup's complete ZEAL Learning card and enough surrounding context to
+Capture Setup's complete ZEAL-Heat Learning card and enough surrounding context to
 show where it appears. Use a generic test installation with no personal room or
 entity names. -->
 
@@ -162,7 +162,7 @@ the audit as excluded evidence and do not count.
 
 The evidence-progress section shows which rooms and patterns are accumulating
 qualifying dates, their current count and when the oldest evidence expires.
-This is progress information only; ZEAL does not apply an incomplete pattern.
+This is progress information only; ZEAL-Heat does not apply an incomplete pattern.
 
 <!-- SCREENSHOT NEEDED: docs/images/zeal-learning-evidence-progress-desktop.png
 Capture at least one incomplete pattern with its room, adaptation type, count
@@ -207,23 +207,23 @@ recent target attempts and outcomes.
 Exports contain room/zone names and entity IDs, but no credentials or tokens.
 Review them before sharing if your naming reveals personal information.
 
-## Multiple ZEAL instances
+## Multiple ZEAL-Heat instances
 
-Separate named ZEAL instances can control separate heating systems on one Home
+Separate named ZEAL-Heat instances can control separate heating systems on one Home
 Assistant machine. Their thermostats, sensors and actuators must not overlap.
-Use the instance selector in the ZEAL header to change which one you are
-viewing. To delete only the selected one, open **Setup → ZEAL instance
-management**, select **Delete this ZEAL instance** and confirm the permanent
+Use the instance selector in the ZEAL-Heat header to change which one you are
+viewing. To delete only the selected one, open **Setup → ZEAL-Heat instance
+management**, select **Delete this ZEAL-Heat instance** and confirm the permanent
 removal. Its setup, schedules and audit trail are deleted; other instances are
 not changed. Select **Open integration settings** to use Home Assistant's native
 page when you want to disable an individual instance instead.
-The shared sidebar link remains visible while any loaded ZEAL instance has its
+The shared sidebar link remains visible while any loaded ZEAL-Heat instance has its
 sidebar option enabled; it is hidden only when every loaded instance disables
 the option.
 
 ## Mobile use
 
-Use the Home Assistant Companion app or a mobile browser and open ZEAL from the
+Use the Home Assistant Companion app or a mobile browser and open ZEAL-Heat from the
 sidebar. The pages use a single-column layout on narrow screens. For accurate
 editing:
 

@@ -1,4 +1,4 @@
-# ZEAL V1 Block Plan
+# ZEAL-Heat V1 Block Plan
 
 Each block is completed, tested, documented and committed before work begins on
 the next block. The completed V1 candidate was fast-forwarded to `main`; live
@@ -19,36 +19,36 @@ Status: complete (`docs/ZEAL_V1_REVIEW.md`).
 - Remove test modules from production integration code.
 - Establish repeatable local test and compile commands.
 
-Acceptance: one discoverable baseline suite covers all current ZEAL control and
+Acceptance: one discoverable baseline suite covers all current ZEAL-Heat control and
 safety behaviour; version statements agree.
 
 Status: complete. The consolidated suite passes 38/38 cases, including
 setpoint clamping, stale-reading rejection and debounced offline/recovery
 notifications.
 
-## Block 2 — ZEAL-owned scheduler model
+## Block 2 — ZEAL-Heat-owned scheduler model
 
 - Transplant and namespace the VCS schedule model, validation, migration,
   deterministic engine, copy semantics and override calculations.
-- Bind schedule records to stable ZEAL room IDs, not physical TRV entity IDs.
+- Bind schedule records to stable ZEAL-Heat room IDs, not physical TRV entity IDs.
 - Add versioned schedule storage independent of Coordinator runtime state.
 
 Acceptance: pure scheduler tests pass without Home Assistant runtime objects.
 
-Status: complete. ZEAL now owns its scheduler model, migration, engine, editor
+Status: complete. ZEAL-Heat now owns its scheduler model, migration, engine, editor
 copy semantics, room reconciliation, temporary-override calculations and a
 separate versioned Store adapter. The 25 scheduler cases pass; the complete
 suite passes 63/63.
 
-## Block 3 — ZEAL scheduler adapter and runtime
+## Block 3 — ZEAL-Heat scheduler adapter and runtime
 
-- Map zones/rooms to canonical ZEAL room thermostats.
-- Apply schedule targets through the existing ZEAL room setpoint path.
+- Map zones/rooms to canonical ZEAL-Heat room thermostats.
+- Apply schedule targets through the existing ZEAL-Heat room setpoint path.
 - Add startup reconciliation, nearest-transition timing and unavailable-room
   handling.
 - Ensure physical TRVs are never independently scheduled.
 
-Acceptance: service/runtime tests prove only canonical ZEAL room targets are
+Acceptance: service/runtime tests prove only canonical ZEAL-Heat room targets are
 changed and existing Coordinator safety behaviour remains unchanged.
 
 Status: complete. Startup loads and reconciles the separate schedule document,
@@ -58,7 +58,7 @@ the nearest transition is timed. The complete suite passes 73/73.
 
 ## Block 4 — Configuration and WebSocket boundary
 
-- Add validated admin-only read/write APIs for ZEAL configuration, schedules,
+- Add validated admin-only read/write APIs for ZEAL-Heat configuration, schedules,
   hierarchy, Quick Change, downloads and audit.
 - Preserve versioned persistence and reload safety.
 
@@ -73,9 +73,9 @@ The complete suite passes 94/94.
 
 ## Block 5 — HTML Overview and Setup
 
-- Add a versioned admin-only ZEAL panel using the established VCS visual system.
+- Add a versioned admin-only ZEAL-Heat panel using the established VCS visual system.
 - Keep the initial Config Flow minimal and replace the existing multi-page
-  Configure experience with the ZEAL panel once that route exists.
+  Configure experience with the ZEAL-Heat panel once that route exists.
 - Build Overview and Setup views for zones, Areas, rooms, switches, heat source,
   re-enable delay, TRVs, sensors and active state.
 - Include the competing-setpoint-scheduler safety warning.
@@ -83,21 +83,21 @@ The complete suite passes 94/94.
 Acceptance: a fresh installation can be fully configured without the existing
 multi-page Options Flow and existing configuration can be modified safely.
 
-Status: complete. ZEAL now registers a versioned admin-only Home Assistant panel
+Status: complete. ZEAL-Heat now registers a versioned admin-only Home Assistant panel
 as both a sidebar and integration configuration route. Overview summarizes the
 configured heating system; Setup edits the complete zone/Area/room hierarchy,
 Area-scoped physical TRVs and sensors, active state, heat source, actuator and
 re-enable delay through the Block 4 validated API. Optimistic concurrency,
 reload recovery, responsive layouts and the competing-scheduler warning are
 included. The former multi-page Options Flow has been retired without changing
-stored configuration. Canonical ZEAL scheduling thermostats and physical room
-equipment use separate registry-owner-filtered catalogs, preventing a ZEAL
+stored configuration. Canonical ZEAL-Heat scheduling thermostats and physical room
+equipment use separate registry-owner-filtered catalogs, preventing a ZEAL-Heat
 thermostat from being selected as its own physical TRV. The complete suite
 passes 98/98.
 
 ## Block 6 — Visual scheduling
 
-- Adapt the seven-day timeline editor to ZEAL rooms and zone navigation.
+- Adapt the seven-day timeline editor to ZEAL-Heat rooms and zone navigation.
 - Preserve exact time/setpoint entry, day application, cross-midnight carry and
   one-time room schedule copying.
 - Provide responsive desktop/tablet/mobile layouts.
@@ -109,7 +109,7 @@ Status: complete. The admin-only Schedule page navigates the existing
 Zone/Floor and room hierarchy, edits all seven days with draggable points or
 exact fields, displays cross-midnight carry, applies one source day locally,
 and saves or copies through conflict-protected APIs. Schedules target canonical
-ZEAL room thermostats only; copying preserves every destination's identity and
+ZEAL-Heat room thermostats only; copying preserves every destination's identity and
 physical equipment. Desktop, tablet and mobile layouts are included. The
 complete suite passes 100/100.
 
@@ -139,7 +139,7 @@ survive a new runtime instance, contain no secrets and retain only the newest
 - Reconcile correctly when modes begin, end or Home Assistant restarts.
 
 Acceptance: every precedence transition has automated coverage and no unsafe
-setpoint can bypass ZEAL's clamp.
+setpoint can bypass ZEAL-Heat's clamp.
 
 Status: complete. Setup provides Off, Home Assistant Calendar and one exact
 start/end period as mutually exclusive activation sources, with a global 12°C
@@ -167,12 +167,12 @@ personal installation details.
 Status: in progress. HACS metadata, HACS/Hassfest workflows, ten setup-flow
 language files, repository/Wiki user and technical guides, release draft,
 privacy rules and UI acceptance tests are implemented. The complete automated
-suite passes and Hassfest passes. Privacy-reviewed ZEAL desktop
+suite passes and Hassfest passes. Privacy-reviewed ZEAL-Heat desktop
 screenshots from the generic test installation are now documented; the mobile
 captures remain a Block 9 gate.
 HACS currently rejects the existing PolyForm Shield licence because it cannot
 identify it as an OSI-approved licence. The project owner has chosen to keep
-PolyForm Shield and distribute ZEAL through HACS as a custom repository. The
+PolyForm Shield and distribute ZEAL-Heat through HACS as a custom repository. The
 licence result is therefore expected and is not an application-code or V1
 release failure.
 
@@ -200,7 +200,7 @@ these blocks in sequence unless a release-critical defect interrupts them.
 
 ### Close-down Block 1 — documentation source of truth
 
-Issue: [#8 Block 1: Discuss README and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL/issues/8)
+Issue: [#8 Block 1: Discuss README and wiki source-of-truth boundary](https://github.com/Buster1959/ZEAL-Heat/issues/8)
 
 Priority: **1 — highest**. Decide how much detail belongs in README, the GitHub
 wiki and repository documentation. Preserve essential installation, safety and
@@ -217,7 +217,7 @@ removed or reduced to links, and no user guidance is lost during migration.
 
 ### Close-down Block 2 — multi-module Learning interface
 
-Issue: [#7 Block 2: Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL/issues/7)
+Issue: [#7 Block 2: Structure Learning as multiple modules](https://github.com/Buster1959/ZEAL-Heat/issues/7)
 
 Priority: **2**. Agree the navigation and information architecture for Schedule
 Adaptation and Room Thermal Response before adding the second Learning module.
@@ -240,7 +240,7 @@ Status: **complete**. Design decisions are recorded in
 
 ### Close-down Block 3 — Learning documentation evidence
 
-Issue: [#9 Block 3: Complete Learning guide screenshots](https://github.com/Buster1959/ZEAL/issues/9)
+Issue: [#9 Block 3: Complete Learning guide screenshots](https://github.com/Buster1959/ZEAL-Heat/issues/9)
 
 Priority: **3**. The guide and troubleshooting are complete in `8e9617b`.
 Allow the holiday automation to create genuine Learning evidence, then capture
@@ -251,7 +251,7 @@ history/Revert are illustrated using privacy-reviewed captures.
 
 ### Close-down Block 4 — Thermal Store volume and retention
 
-Issue: [#6 Block 4: Define Thermal Store volume and retention](https://github.com/Buster1959/ZEAL/issues/6)
+Issue: [#6 Block 4: Define Thermal Store volume and retention](https://github.com/Buster1959/ZEAL-Heat/issues/6)
 
 Priority: **4**. Define observation cadence, episode boundaries, retention,
 compaction, migration, restart deduplication, reset/deletion and export privacy.
@@ -276,22 +276,22 @@ Status: **complete**. The persistence contract is recorded in
 
 ### Completed baseline corrections
 
-Issues [#1](https://github.com/Buster1959/ZEAL/issues/1),
-[#2](https://github.com/Buster1959/ZEAL/issues/2),
-[#3](https://github.com/Buster1959/ZEAL/issues/3),
-[#4](https://github.com/Buster1959/ZEAL/issues/4) and
-[#10](https://github.com/Buster1959/ZEAL/issues/10) are fixed and closed. Their
-commit evidence remains on each issue. ZEAL Flow work belongs to its independent
+Issues [#1](https://github.com/Buster1959/ZEAL-Heat/issues/1),
+[#2](https://github.com/Buster1959/ZEAL-Heat/issues/2),
+[#3](https://github.com/Buster1959/ZEAL-Heat/issues/3),
+[#4](https://github.com/Buster1959/ZEAL-Heat/issues/4) and
+[#10](https://github.com/Buster1959/ZEAL-Heat/issues/10) are fixed and closed. Their
+commit evidence remains on each issue. ZEAL-Heat Flow work belongs to its independent
 repository/project and is not part of this close-down plan.
 
-## ZEAL Learning — Schedule Adaptation
+## ZEAL-Heat Learning — Schedule Adaptation
 
 The first complete vertical pipeline is implemented behind an administrator
 opt-in while V1 live regression work continues. It uses a separate versioned
 store, so it does not change the established scheduler audit schema.
 
 The user experience analyses habits, proposes an optimisation and applies it
-only after acceptance. ZEAL includes an inspectable evidence trail, exact
+only after acceptance. ZEAL-Heat includes an inspectable evidence trail, exact
 schedule diff, optimistic revision check and auditable revert. The detailed
 specification is in `docs/LEARNING_ROADMAP.md`.
 
@@ -306,7 +306,7 @@ user confirmation can mutate a schedule.
 
 - Extend the audit from canonical application outcomes to source-aware user
   intent: weekly schedule, Home Assistant/canonical thermostat, physical TRV,
-  Quick Change, Away and later ZEAL suggestions.
+  Quick Change, Away and later ZEAL-Heat suggestions.
 - Retain the scheduled baseline, requested/effective target, timestamp, room,
   source, temporary duration/expiry and outcome needed to explain each event.
 - Detect repeated manual changes in comparable time windows. Threshold count,
@@ -340,16 +340,16 @@ is disabled by default. The remaining gates are full automated regression,
 Home Assistant user testing and live evidence/notification review before a
 learning release is declared stable.
 
-## ZEAL Learning — Room Thermal Response
+## ZEAL-Heat Learning — Room Thermal Response
 
 This work follows the source-aware audit and begins in observation-only mode.
 
 Thermal observations and derived room models will use bounded, versioned Home
-Assistant Store documents. ZEAL will not introduce MariaDB or a separate SQLite
+Assistant Store documents. ZEAL-Heat will not introduce MariaDB or a separate SQLite
 database for this feature. The agreed volume, retention and compaction contract
-is recorded in closed [#6](https://github.com/Buster1959/ZEAL/issues/6).
+is recorded in closed [#6](https://github.com/Buster1959/ZEAL-Heat/issues/6).
 The agreed Learning page/module structure is recorded in closed
-[#7](https://github.com/Buster1959/ZEAL/issues/7).
+[#7](https://github.com/Buster1959/ZEAL-Heat/issues/7).
 
 Persistence foundation status: implemented before observation collection. It
 loads only the small model/checkpoint state at startup, lazily loads bounded

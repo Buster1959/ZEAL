@@ -1,11 +1,11 @@
-# ZEAL Learning Roadmap
+# ZEAL-Heat Learning Roadmap
 
-ZEAL Learning is divided into two explainable, independently testable
+ZEAL-Heat Learning is divided into two explainable, independently testable
 workstreams. Schedule Adaptation has an initial complete implementation behind
 an administrator-controlled opt-in; Room Thermal Response remains planned.
 Neither workstream may silently alter the saved weekly schedule.
 
-## 1. ZEAL Learning — Schedule Adaptation
+## 1. ZEAL-Heat Learning — Schedule Adaptation
 
 Implementation status (`0.14.7`): capture, deterministic classification,
 21-day/distinct-date pattern detection, persistent proposals, Learning
@@ -25,7 +25,7 @@ Schedule Adaptation analyses heating habits, thermostat/TRV use and available
 context, presents a personalised timing or temperature suggestion, requires the
 user to accept it, and retains history so the result can be reviewed or
 reverted. Every suggestion must show its supporting evidence and the exact
-schedule diff before approval. ZEAL never changes a weekly schedule merely
+schedule diff before approval. ZEAL-Heat never changes a weekly schedule merely
 because it detected a pattern, and learning must continue to work locally when
 an external service is unavailable.
 
@@ -36,14 +36,14 @@ Each manual intent event should record:
 - room, timestamp and Home Assistant time zone;
 - scheduled setpoint and schedule period active at that moment;
 - requested setpoint and the effective setpoint actually applied;
-- source: canonical ZEAL thermostat, physical TRV, Home Assistant service/UI,
+- source: canonical ZEAL-Heat thermostat, physical TRV, Home Assistant service/UI,
   Quick Change or another identifiable integration/automation;
 - temporary-change duration or expiry, where applicable;
 - room temperature, demand state, zone actuator state and Away state;
 - observed outdoor temperature when a valid configured source is available;
 - outcome, including applied, superseded, rejected, unavailable or reverted.
 
-Events caused by ZEAL's own scheduled transition, setpoint echo or propagation
+Events caused by ZEAL-Heat's own scheduled transition, setpoint echo or propagation
 to physical TRVs are not user intent and must never count as supporting manual
 evidence.
 
@@ -57,15 +57,15 @@ The first implementation should detect two explainable proposal types:
    scheduled transition, suggesting that its start time is consistently wrong.
 
 For example, if Lounge is scheduled for 20°C at 18:00 but is manually changed
-to 21°C between 18:00 and 18:20 on three comparable days, ZEAL may propose
+to 21°C between 18:00 and 18:20 on three comparable days, ZEAL-Heat may propose
 changing that period to 21°C. If the same change repeatedly occurs around
-17:30, ZEAL may instead propose moving the 18:00 period earlier. ZEAL should not
+17:30, ZEAL-Heat may instead propose moving the 18:00 period earlier. ZEAL-Heat should not
 combine different rooms, unrelated schedule periods, opposing adjustments or
 events separated by a material schedule edit.
 
 A candidate pattern is a configurable number of similar manual changes—for
 example, three changes—within a comparable time window across a configurable
-number of days. Once the evidence threshold is met, ZEAL creates a proposal
+number of days. Once the evidence threshold is met, ZEAL-Heat creates a proposal
 showing:
 
 - the room and supporting audit events;
@@ -76,7 +76,7 @@ showing:
 
 Only Accept or Edit followed by confirmation writes a new schedule revision
 through the existing validated API. Proposal creation and disposition are
-audited, allowing ZEAL to suppress a dismissed pattern until materially new
+audited, allowing ZEAL-Heat to suppress a dismissed pattern until materially new
 evidence exists.
 
 ### Deterministic period-assignment algorithm
@@ -88,9 +88,9 @@ weekday and schedule revision. An evidence event retains that ID plus an
 immutable snapshot of the period start, next transition, scheduled setpoint and
 revision; it is not reassigned later merely because the schedule changes.
 
-For every external setpoint event, ZEAL applies these steps in order:
+For every external setpoint event, ZEAL-Heat applies these steps in order:
 
-1. Reject ZEAL's own scheduled write, physical-TRV propagation and confirmed
+1. Reject ZEAL-Heat's own scheduled write, physical-TRV propagation and confirmed
    device echo.
 2. Resolve the room, local weekday, event timestamp and schedule revision that
    were effective when the event occurred.
@@ -118,7 +118,7 @@ period. A change at 08:20 back to approximately 18°C may support moving the
 08:00 transition later to 08:20; another target after 08:00 is temperature
 evidence for the 08:00 period. Repeated adjustments in both intervals form
 independent evidence patterns. If an event occurs on
-the boundary and ZEAL cannot prove whether the scheduled transition or manual
+the boundary and ZEAL-Heat cannot prove whether the scheduled transition or manual
 request happened first, that event contributes to neither pattern.
 
 ### Evidence grouping and day scope
@@ -171,7 +171,7 @@ flowchart TD
     A --> B[Record event: time, weekday, requested and scheduled setpoints,<br/>initiator such as TRV, Home Assistant or Quick Change]
     B --> C{Genuine user intent?}
 
-    C -- No: ZEAL write, echo<br/>or rejected change --> X1[Exclude from Learning<br/>Record reason]
+    C -- No: ZEAL-Heat write, echo<br/>or rejected change --> X1[Exclude from Learning<br/>Record reason]
     C -- Yes --> D[Resolve room, schedule revision<br/>and exact active period]
     D --> E{Period identified<br/>unambiguously?}
 
@@ -191,7 +191,7 @@ flowchart TD
     J -- No --> K[Store evidence<br/>Wait for another occurrence]
     J -- Yes: current event is third date --> L[Create Schedule Adaptation proposal]
     L --> M[Show evidence, current schedule,<br/>proposed schedule and confidence]
-    M --> N[Add to ZEAL Learning Notifications]
+    M --> N[Add to ZEAL-Heat Learning Notifications]
     N --> O[Optionally update one aggregated<br/>Home Assistant Persistent Notification]
     O --> P{Authorised user decision}
 
@@ -222,7 +222,7 @@ actionable, standard users do not see an empty Learning page. Setup gives the
 administrator a compact evidence-progress summary; ordinary diagnostics remain
 pseudonymised support evidence rather than the routine progress interface.
 
-When a proposal becomes actionable, ZEAL reveals a **Schedule Updates** page to
+When a proposal becomes actionable, ZEAL-Heat reveals a **Schedule Updates** page to
 administrators and to standard users granted Schedule/Learning permission. The
 page may also be reached from the optional aggregated Home Assistant persistent
 notification. A proposal should read along these lines:
@@ -242,7 +242,7 @@ edit it before confirmation, dismiss it, or snooze it. Accepting creates a
 normal versioned schedule revision and an audit entry linking the proposal,
 evidence IDs, old value and new value. A one-action **Revert schedule change**
 remains available from proposal history while the affected period still matches
-the accepted revision; otherwise ZEAL shows the conflict and requires manual
+the accepted revision; otherwise ZEAL-Heat shows the conflict and requires manual
 review.
 
 After every actionable proposal is resolved, Schedule Updates is hidden again
@@ -263,7 +263,7 @@ retained proposal history itself is not removed when the action page hides.
 - Away periods, unavailable/stale temperatures, open-window events when known,
   competing scheduler activity and changes made during Setup/testing are excluded
   or clearly down-weighted.
-- A schedule revision for the affected room invalidates older unmatched evidence so ZEAL does not
+- A schedule revision for the affected room invalidates older unmatched evidence so ZEAL-Heat does not
   recommend undoing a change the user has already made deliberately.
 - Suggestions never alter Zone Manual Override, safety holds, re-enable delays or
   the actuator-control precedence model.
@@ -279,7 +279,7 @@ retained proposal history itself is not removed when the action page hides.
   receive manual changes within the same morning.
 - Unresolvable transition-boundary events are excluded rather than assigned to
   a convenient period.
-- ZEAL-originated schedule writes and physical-TRV echoes never become evidence.
+- ZEAL-Heat-originated schedule writes and physical-TRV echoes never become evidence.
 - Fewer than the configured number of distinct qualifying days produces no
   proposal.
 - The proposal displays the exact current/proposed schedule diff and links every
@@ -326,7 +326,7 @@ forging learning evidence. Required programmatic scenarios include:
 - repeated adjustments during one occurrence count only once;
 - adjacent/non-comparable periods and schedule revisions never share evidence;
 - timing and temperature interpretations remain distinct;
-- ambiguous boundaries, ZEAL writes and device echoes are excluded;
+- ambiguous boundaries, ZEAL-Heat writes and device echoes are excluded;
 - opposing or insufficient evidence creates no actionable proposal;
 - accept, edited accept, dismiss, snooze, conflict and revert survive restart;
 - an accepted proposal changes only its evidenced weekday and exact period;
@@ -337,7 +337,7 @@ experience. A mistaken recommendation can be inspected and dismissed without
 changing heating. No deliberate schedule disturbance or months-long passive
 observation is a prerequisite for completing the implementation.
 
-## 2. ZEAL Learning — Room Thermal Response
+## 2. ZEAL-Heat Learning — Room Thermal Response
 
 Room Thermal Response learns how each room and its surrounding building fabric
 respond to heating under different outdoor conditions. Its first user-facing
@@ -364,14 +364,14 @@ Yes opens a deliberately short initiation step:
 
 The selection seeds only the initial estimate; it is not treated as a measured
 room parameter or a permanent classification. The initiation step must say:
-“This only gives ZEAL a starting estimate. An inaccurate selection will not
-prevent learning, but ZEAL may take longer to establish the true response of
+“This only gives ZEAL-Heat a starting estimate. An inaccurate selection will not
+prevent learning, but ZEAL-Heat may take longer to establish the true response of
 each room.” Choosing **Not sure** uses neutral starting values and does not block
 learning.
 
 The optional band guide follows the domestic EPC scale. The headline SAP/EPC
 rating is a standardised whole-home energy-performance estimate, not a direct
-measurement of a room's thermal mass or heat-loss coefficient; ZEAL therefore
+measurement of a room's thermal mass or heat-loss coefficient; ZEAL-Heat therefore
 treats it only as initial context. Users outside the UK should consult their
 local or national government's EPC-equivalent home energy-performance guidance;
 the plain-language **Not sure** option remains valid where no equivalent rating
@@ -392,7 +392,7 @@ the config entry; detailed observations and completed episodes are partitioned
 by stable room ID so saving one room never rewrites the whole house.
 
 Active work is deliberately separated from retained history. One small,
-versioned checkpoint Store for the ZEAL config entry contains only episodes
+versioned checkpoint Store for the ZEAL-Heat config entry contains only episodes
 currently in progress. It is saved at important state transitions, at least
 every 15 minutes while an episode is active, and through Home Assistant's final
 shutdown-write path. Completed observations and summaries live in the bounded
@@ -443,7 +443,7 @@ they are not a promise that every JSON record has a fixed width.
 | Models, index and active checkpoints | small current state | bounded by rooms | less than about 1 MB |
 
 The expected total is approximately **7–12 MB**, with a conservative hard-cap
-planning estimate of **9–14 MB**. ZEAL therefore reserves a documented
+planning estimate of **9–14 MB**. ZEAL-Heat therefore reserves a documented
 **20 MB planning allowance per config entry** for JSON envelopes, schema growth
 and temporary atomic replacement of the largest Store file. A ninth learned
 room adds approximately 12.5% to the eight-room record counts and remains
@@ -483,7 +483,7 @@ Quick Changes, Away settings or the ordinary application audit.
 
 Ordinary diagnostics contain pseudonymised identifiers and summary counts. A
 deliberate readable export may include room names and evidence only after an
-occupancy-privacy warning. Removing the ZEAL config entry deletes all of its
+occupancy-privacy warning. Removing the ZEAL-Heat config entry deletes all of its
 thermal documents.
 
 ### Administrator view, history, privacy and reset
@@ -523,7 +523,7 @@ Actual observed outdoor temperature trains the model. Forecast temperature is
 used only when predicting a future heating start. Forecast values must not be
 stored as if they were observations.
 
-For a future target, ZEAL retrieves `type: hourly` through Home Assistant's
+For a future target, ZEAL-Heat retrieves `type: hourly` through Home Assistant's
 `weather.get_forecasts` action and uses each entry's timestamped `temperature`.
 It interpolates those hourly values across the candidate warm-up interval and
 solves backwards for the start time at which the room model reaches the target.
@@ -555,8 +555,8 @@ Initial compatibility testing should cover:
   model.
 
 These are a compatibility test matrix, not a permanent allow-list. A later
-provider should work without ZEAL-specific code when it exposes the required
-standard entity attributes and hourly forecast capability. ZEAL should validate
+provider should work without ZEAL-Heat-specific code when it exposes the required
+standard entity attributes and hourly forecast capability. ZEAL-Heat should validate
 capabilities when the entity is selected and clearly report missing or stale
 data.
 
@@ -583,7 +583,7 @@ Where:
 - `C/H` is the thermal time constant;
 - disturbances include solar gain, occupants, appliances and open windows.
 
-For recorded samples, ZEAL can fit the discrete relationship:
+For recorded samples, ZEAL-Heat can fit the discrete relationship:
 
 ```text
 ΔTi / Δt = a × Qheat − b × (Ti − To) + error
@@ -617,20 +617,20 @@ result:
 
 ### Data-quality exclusions
 
-ZEAL should reject or down-weight episodes affected by unavailable/stale
+ZEAL-Heat should reject or down-weight episodes affected by unavailable/stale
 sensors, an open window, an interrupted heating run, manual changes during the
 episode, an unobserved secondary heat source or implausible temperature jumps.
 Solar gain and occupancy should initially reduce confidence unless corresponding
 data is available; they must not be mislabelled as radiator performance.
 
 An administrator is not required to inventory log burners, unused underfloor
-heating or other independent heat sources. Instead, ZEAL applies a per-room
+heating or other independent heat sources. Instead, ZEAL-Heat applies a per-room
 **unexpected temperature-rise hold** analogous to a thermostat's sudden-change
 open-window detection, but in the positive direction:
 
 1. Compare the observed rise with the room's expected response, zone heating
    activity and outdoor conditions.
-2. If the temperature rises abruptly without enough ZEAL-observed heat input,
+2. If the temperature rises abruptly without enough ZEAL-Heat-observed heat input,
    mark the episode **suspected external heat** and stop using new samples from
    that room for Thermal Response training.
 3. Keep schedules, room demand and thermostat/TRV targets unchanged. This is a
@@ -698,7 +698,7 @@ implemented interface or a pixel-accurate commitment:
 
 ![Reference-only Thermal Response administrator page mock-up](images/thermal-response-admin-reference-mockup.svg)
 
-ZEAL should first offer an optimum-start recommendation for review. Enabling
+ZEAL-Heat should first offer an optimum-start recommendation for review. Enabling
 automatic optimum start must be a separate, explicit user choice after the room
 model reaches a defined confidence threshold. The original scheduled target
 time and temperature remain unchanged; optimum start changes only when heating
@@ -712,7 +712,7 @@ begins in preparation for that target.
   weather entities without provider-specific control paths.
 - Forecast values and actual observations remain distinguishable in storage.
 - A multi-hour changing forecast is interpolated across the candidate warm-up
-  interval; prediction tests prove ZEAL does not substitute either the current
+  interval; prediction tests prove ZEAL-Heat does not substitute either the current
   value or target-hour value for the whole interval.
 - The administrator status identifies the measured current source, forecast
   provider/range, next target, warm-up duration and recommended start.

@@ -1,15 +1,15 @@
-# ZEAL V1 Decision Summary
+# ZEAL-Heat V1 Decision Summary
 
 This page records the decisions that define the current V1 implementation. The
 companion Wiki retains the longer chronological design history.
 
-1. ZEAL and Visual Climate Scheduler are independent integrations with no
+1. ZEAL-Heat and Visual Climate Scheduler are independent integrations with no
    runtime dependency in either direction.
-2. Do not let ZEAL and another thermostat setpoint scheduler control the same
+2. Do not let ZEAL-Heat and another thermostat setpoint scheduler control the same
    thermostat entities.
-3. A ZEAL zone owns exactly one heating actuator and may contain several Home
+3. A ZEAL-Heat zone owns exactly one heating actuator and may contain several Home
    Assistant Areas as rooms.
-4. Every room schedule targets one ZEAL-owned canonical thermostat; physical
+4. Every room schedule targets one ZEAL-Heat-owned canonical thermostat; physical
    room TRVs are downstream equipment, never independent schedule targets.
 5. A room uses the average of its usable temperature sensors and the highest
    usable physical-TRV target when the canonical target is unavailable.
@@ -43,15 +43,15 @@ companion Wiki retains the longer chronological design history.
     normal revision-checked schedule API.
 18. Accepted, edited, dismissed and snoozed proposals are audited. Retention is
     bounded and treated as occupancy-sensitive data.
-19. The two named learning workstreams are **ZEAL Learning — Schedule
-    Adaptation** and **ZEAL Learning — Room Thermal Response**.
+19. The two named learning workstreams are **ZEAL-Heat Learning — Schedule
+    Adaptation** and **ZEAL-Heat Learning — Room Thermal Response**.
 20. Thermal Response selects standard Home Assistant outdoor-temperature and
     weather entities by capability; Met Office, Open-Meteo and Pirate Weather
     form the initial compatibility matrix, not an allow-list.
 21. Actual outdoor observations train the room model; forecasts are used only
     for future optimum-start prediction and remain distinguishable in storage.
 22. Thermal models are per room and begin with an explainable first-order model.
-    PID is deferred unless ZEAL later controls a suitable proportional output.
+    PID is deferred unless ZEAL-Heat later controls a suitable proportional output.
 23. Optimum start begins as a recommendation. Any automatic start adjustment
     requires explicit opt-in, sufficient confidence and safe fallback to the
     unchanged weekly schedule.
@@ -85,15 +85,15 @@ companion Wiki retains the longer chronological design history.
     contains its persistent status and graph page; Setup contains its initiation,
     privacy and confirmed per-room/all-room reset controls. Real names are used
     in the administrator UI, while diagnostics remain pseudonymised.
-29. An abrupt per-room temperature rise inconsistent with ZEAL-observed heating
-    creates a **suspected external heat** training hold. ZEAL excludes the
+29. An abrupt per-room temperature rise inconsistent with ZEAL-Heat-observed heating
+    creates a **suspected external heat** training hold. ZEAL-Heat excludes the
     remainder of the current schedule period and clears the hold at the next
     scheduled period start; continuing abnormal conditions may create a new
     hold. This initial recovery rule must be revisited after testing. It does not
     change demand, schedules or thermostat/TRV targets. No inventory of log
     burners or other independent heat sources is required.
 30. Optimum-start prediction separates measured current outdoor temperature from
-    forecast conditions. ZEAL interpolates the configured provider's standard
+    forecast conditions. ZEAL-Heat interpolates the configured provider's standard
     Home Assistant hourly forecast across the candidate warm-up period and
     solves backwards from the next scheduled target. The administrator view
     discloses both sources, forecast range/provider, target, warm-up duration,

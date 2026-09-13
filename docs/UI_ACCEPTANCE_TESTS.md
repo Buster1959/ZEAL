@@ -1,4 +1,4 @@
-# ZEAL UI Acceptance Tests
+# ZEAL-Heat UI Acceptance Tests
 
 Run these checks on desktop and in the Home Assistant Companion app. Use generic
 dummy entities first. Record pass/fail, browser/app version and Home Assistant
@@ -6,21 +6,21 @@ version for each test.
 
 ## Navigation and access
 
-- ZEAL appears under **Settings → Devices & Services → Integrations**, not
+- ZEAL-Heat appears under **Settings → Devices & Services → Integrations**, not
   Helpers, and each named config entry is visible there.
-- An administrator can open ZEAL from the sidebar and the integration's
+- An administrator can open ZEAL-Heat from the sidebar and the integration's
   Configure action.
-- Clear **Show ZEAL in the Home Assistant sidebar**, save, and confirm the link
-  is hidden while ZEAL heating control remains active.
+- Clear **Show ZEAL-Heat in the Home Assistant sidebar**, save, and confirm the link
+  is hidden while ZEAL-Heat heating control remains active.
 - When the link is hidden, confirm **Configure** opens the native recovery form;
-  enable the link, submit and verify ZEAL returns to the sidebar. Confirm `/zeal`
+  enable the link, submit and verify ZEAL-Heat returns to the sidebar. Confirm `/zeal`
   also opens the full panel directly while hidden.
 - With two loaded instances, confirm the shared link remains visible if either
   instance has its sidebar option enabled.
-- Select one of two instances, use **Delete this ZEAL instance**, cancel once,
+- Select one of two instances, use **Delete this ZEAL-Heat instance**, cancel once,
   then confirm deletion and verify only the selected instance and its private
   setup/schedule/audit data are removed.
-- A standard user can open ZEAL and see Overview.
+- A standard user can open ZEAL-Heat and see Overview.
 - With both Standard-user access options off, Schedule and Overrides are
   absent for a standard user. Enable each option in Setup and verify only the
   corresponding tab and operation become available.
@@ -34,7 +34,7 @@ version for each test.
 - Add, edit and remove a zone; select one actuator and heat source.
 - Add Areas as rooms; verify an Area cannot be assigned twice.
 - Physical thermostat and sensor choices are Area-scoped and contain no
-  ZEAL-owned entities.
+  ZEAL-Heat-owned entities.
 - Save, reload the page and confirm the hierarchy is unchanged.
 - Open two pages, save one, and confirm the stale second page is rejected.
 

@@ -1,13 +1,13 @@
-# ZEAL Documentation Screenshots
+# ZEAL-Heat Documentation Screenshots
 
 This directory contains privacy-reviewed screenshots captured from a generic
-ZEAL V1 test installation. Do not reuse Visual Climate Scheduler screenshots:
+ZEAL-Heat V1 test installation. Do not reuse Visual Climate Scheduler screenshots:
 the integrations are independent and their screens describe different control
 boundaries.
 
 ## Current desktop captures
 
-- `zeal-zone-and-room-setup-desktop.png` — Zone/Floor, actuator, canonical ZEAL
+- `zeal-zone-and-room-setup-desktop.png` — Zone/Floor, actuator, canonical ZEAL-Heat
   target and physical room-equipment setup
 - `zeal-away-downloads-and-instance-controls-desktop.png` — Away mode,
   configuration/audit downloads, sidebar preference and selected-instance

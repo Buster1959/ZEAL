@@ -1,4 +1,4 @@
-# ZEAL V1 Repository Review
+# ZEAL-Heat V1 Repository Review
 
 > Historical Block 0 baseline. Later blocks have resolved several gaps recorded
 > here; use [PROJECT_PLAN.md](PROJECT_PLAN.md) and
@@ -12,14 +12,14 @@ fast-forwarded to `main`; see `PROJECT_MANIFEST.md` for current status)
 
 ## Executive finding
 
-ZEAL has a substantial pre-V1 heating-control backend, but it is not yet a
+ZEAL-Heat has a substantial pre-V1 heating-control backend, but it is not yet a
 coherent V1 product. The Coordinator, room thermostat, zone override, demand
 sensor, device-health handling and native configuration flow exist. The
 scheduler, professional HTML configuration panel, HACS packaging, consistent
 versioning, consolidated tests and release-grade user documentation do not.
 
-Visual Climate Scheduler and ZEAL will remain separate integrations. ZEAL will
-contain an adapted, ZEAL-owned scheduler implementation; it will not import or
+Visual Climate Scheduler and ZEAL-Heat will remain separate integrations. ZEAL-Heat will
+contain an adapted, ZEAL-Heat-owned scheduler implementation; it will not import or
 require `visual_climate_scheduler` at runtime.
 
 ## Current implementation
@@ -27,7 +27,7 @@ require `visual_climate_scheduler` at runtime.
 - Domain and package: `zeal` / `custom_components/zeal`
 - Config-entry and Options Flow for zones, Areas, switches, heat source,
   re-enable delay, TRVs, sensors and room activation
-- One ZEAL room thermostat climate entity per configured room
+- One ZEAL-Heat room thermostat climate entity per configured room
 - Coordinator demand calculation and zone-switch control
 - Per-zone manual override switch and demand sensor
 - Multi-TRV propagation, multi-sensor averaging and setpoint safety bounds
@@ -41,7 +41,7 @@ require `visual_climate_scheduler` at runtime.
 ### Product functionality
 
 - At review, no time-based scheduler was implemented. Block 2 has since added
-  the ZEAL-owned pure schedule model, engine and storage boundary. Block 3 has
+  the ZEAL-Heat-owned pure schedule model, engine and storage boundary. Block 3 has
   since added canonical-room execution, and Block 6 has added the seven-day
   visual editor.
 - Block 8 has since added persisted calendar-driven or exact-date-range Away
@@ -104,13 +104,13 @@ tab. The current panel pages are Overview, Schedule, Overrides, Learning and
 Setup; Downloads are a Setup section.
 
 ```text
-ZEAL config entry
-  +-- ZEAL configuration (zones, rooms, devices, heat-source policy)
-  +-- ZEAL Coordinator (demand, safety, pumps/relays, health)
-  +-- ZEAL room thermostat entities (canonical setpoint boundary)
-  +-- ZEAL-owned schedule model and Store
-  +-- ZEAL schedule runtime and application audit
-  +-- Admin-only ZEAL HTML panel and WebSocket API
+ZEAL-Heat config entry
+  +-- ZEAL-Heat configuration (zones, rooms, devices, heat-source policy)
+  +-- ZEAL-Heat Coordinator (demand, safety, pumps/relays, health)
+  +-- ZEAL-Heat room thermostat entities (canonical setpoint boundary)
+  +-- ZEAL-Heat-owned schedule model and Store
+  +-- ZEAL-Heat schedule runtime and application audit
+  +-- Admin-only ZEAL-Heat HTML panel and WebSocket API
         +-- Overview
         +-- Setup
         +-- Schedule
@@ -118,22 +118,22 @@ ZEAL config entry
         +-- Downloads
 ```
 
-The scheduler will identify rooms by ZEAL's stable room IDs and apply targets
-only through the canonical ZEAL room thermostat boundary. It will never treat
+The scheduler will identify rooms by ZEAL-Heat's stable room IDs and apply targets
+only through the canonical ZEAL-Heat room thermostat boundary. It will never treat
 the underlying physical TRVs as independent schedule targets.
 
 ## Independence and competing-scheduler rule
 
-ZEAL and Visual Climate Scheduler remain independently installable, versioned
+ZEAL-Heat and Visual Climate Scheduler remain independently installable, versioned
 and released. They will not import, configure, detect, disable or require one
 another.
 
 The user-facing safety rule is generic:
 
 > Do not assign a thermostat to more than one thermostat setpoint scheduler.
-> If ZEAL and another integration, automation, blueprint or schedule both
+> If ZEAL-Heat and another integration, automation, blueprint or schedule both
 > change the same thermostat's target temperature, they may repeatedly
-> overwrite each other. Before enabling ZEAL scheduling, disable any other
+> overwrite each other. Before enabling ZEAL-Heat scheduling, disable any other
 > setpoint scheduler controlling those thermostat entities.
 
 ## Transplant boundary
@@ -157,12 +157,12 @@ Do not transplant unchanged:
 
 ## V1 completion sequence
 
-1. Consolidate and run the existing ZEAL tests; establish truthful versioning.
-2. Add a ZEAL-owned schedule model and transplant pure scheduler tests.
-3. Add a typed adapter between ZEAL rooms and their canonical room thermostats.
+1. Consolidate and run the existing ZEAL-Heat tests; establish truthful versioning.
+2. Add a ZEAL-Heat-owned schedule model and transplant pure scheduler tests.
+3. Add a typed adapter between ZEAL-Heat rooms and their canonical room thermostats.
 4. Add schedule runtime, restart reconciliation, timers, temporary holds and
    audit storage.
-5. Add a single admin-only ZEAL panel for overview, setup, scheduling, Quick
+5. Add a single admin-only ZEAL-Heat panel for overview, setup, scheduling, Quick
    Change and downloads; retain only the minimal initial Config Flow.
 6. ~~Add calendar/date-range Away mode and its safety/precedence tests.~~ Done
    in Block 8.

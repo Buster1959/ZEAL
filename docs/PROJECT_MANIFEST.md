@@ -1,11 +1,11 @@
-# ZEAL Project Manifest
+# ZEAL-Heat Project Manifest
 
 ## Identity
 
-- Repository: `Buster1959/ZEAL`
+- Repository: `Buster1959/ZEAL-Heat`
 - Home Assistant domain: `zeal`
 - Integration folder: `custom_components/zeal`
-- Integration name: ZEAL HVAC System
+- Integration name: ZEAL-Heat HVAC System
 - Integration type: hub
 - Distribution target: HACS custom integration
 - Current release-candidate branch: `main`
@@ -14,8 +14,8 @@
 
 ## Independence boundary
 
-ZEAL includes its own scheduler and works without Visual Climate Scheduler.
-Visual Climate Scheduler works without ZEAL. Users should not let ZEAL or any
+ZEAL-Heat includes its own scheduler and works without Visual Climate Scheduler.
+Visual Climate Scheduler works without ZEAL-Heat. Users should not let ZEAL-Heat or any
 other thermostat setpoint scheduler control the same thermostat entities.
 
 ## V1 status
@@ -25,7 +25,7 @@ Blocks 0–9 are implemented and the V1 candidate has been fast-forwarded to
 retested before version finalisation, tagging and release. Privacy-reviewed
 desktop screenshots from the generic test installation are now documented;
 the mobile captures remain a release gate. PolyForm Shield remains the
-project licence for V1. ZEAL is therefore distributed through HACS as a custom
+project licence for V1. ZEAL-Heat is therefore distributed through HACS as a custom
 repository rather than submitted to the default HACS store.
 The automated and live gates are tracked in `docs/V1_ACCEPTANCE_RECORD.md`.
 

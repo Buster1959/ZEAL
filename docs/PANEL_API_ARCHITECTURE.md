@@ -1,4 +1,4 @@
-# ZEAL Panel API Architecture
+# ZEAL-Heat Panel API Architecture
 
 Status: Block 4 backend, Block 5 Overview/Setup, Block 6 Schedule, Block 7
 Quick Change/download and Block 8 Away consumers complete.
@@ -27,17 +27,17 @@ result only when the returned revision matches.
 
 The catalog has two non-overlapping thermostat collections:
 
-- `zeal_room_thermostats` contains only live ZEAL-owned canonical room targets,
+- `zeal_room_thermostats` contains only live ZEAL-Heat-owned canonical room targets,
   identified by registry ownership and mapped to stable room/zone IDs;
-- `physical_room_thermostats` contains only non-ZEAL climate entities available
+- `physical_room_thermostats` contains only non-ZEAL-Heat climate entities available
   to the Area-scoped equipment picker.
 
-Temperature sensors and actuator switches also exclude ZEAL-owned entities. The
+Temperature sensors and actuator switches also exclude ZEAL-Heat-owned entities. The
 frontend never derives ownership from a display name, and the hierarchy writer
-independently rejects a ZEAL-owned entity submitted as physical equipment.
+independently rejects a ZEAL-Heat-owned entity submitted as physical equipment.
 
-The Schedule consumer navigates the hierarchy but sends only a stable ZEAL
-room ID and validated daily lists. It names and displays the canonical ZEAL room
+The Schedule consumer navigates the hierarchy but sends only a stable ZEAL-Heat
+room ID and validated daily lists. It names and displays the canonical ZEAL-Heat room
 thermostat for clarity; physical thermostat entity IDs never enter a schedule
 write or copy request.
 
@@ -61,7 +61,7 @@ authenticated user. Schedule, Quick Change and Learning commands accept an admin
 or a standard user explicitly granted that feature for the selected instance.
 Hierarchy, Away settings, downloads and audit commands retain Home Assistant's
 administrator requirement. Each command also requires an explicit loaded
-config-entry ID; no command silently selects the first ZEAL instance.
+config-entry ID; no command silently selects the first ZEAL-Heat instance.
 
 The hierarchy writer treats browser data as untrusted. It validates:
 
@@ -69,10 +69,10 @@ The hierarchy writer treats browser data as untrusted. It validates:
 - Areas and entities against Home Assistant's current registries;
 - correct `switch`, `climate` and temperature-`sensor` domains/classes;
 - that selected room equipment belongs to the selected Area;
-- that disabled or ZEAL-owned entities cannot be selected as physical devices;
+- that disabled or ZEAL-Heat-owned entities cannot be selected as physical devices;
 - heat-source values, boolean room state and the 0–3600 second re-enable range;
 - schedules, times and temperatures through the versioned model, including the
-  5–30°C ZEAL safety range.
+  5–30°C ZEAL-Heat safety range.
 
 ## Conflict protection
 
@@ -88,7 +88,7 @@ overwritten.
 
 ## Commands
 
-- `zeal/list_entries`: loaded ZEAL instances.
+- `zeal/list_entries`: loaded ZEAL-Heat instances.
 - `zeal/get_configuration`: hierarchy, schedule, Quick Change state, latest
   successful room-target applications, revision and eligible Area/entity
   catalog.
@@ -109,7 +109,7 @@ overwritten.
 - `zeal/export_configuration`: JSON-ready hierarchy/schedule download document.
 - `zeal/get_audit_log`: JSON-ready bounded application history.
 
-Overview History icons do not add a ZEAL history API. The configuration catalog
+Overview History icons do not add a ZEAL-Heat history API. The configuration catalog
 returns the registered entity IDs for canonical room thermostats and effective
 room-demand binary sensors, including user-renamed IDs. The panel builds a
 relative `/history?entity_id=...` link from those IDs plus the configured zone
@@ -134,14 +134,14 @@ configuration, schedules or overrides.
 Schedule writes are validated, persisted, then applied to the running scheduler.
 Hierarchy writes are validated, reconcile schedule records to the new stable
 room IDs, persist the reconciled schedule, update config-entry options and let
-the standard ZEAL update listener reload the integration. Automated coverage
+the standard ZEAL-Heat update listener reload the integration. Automated coverage
 proves the hierarchy and reconciled schedule survive this reload.
 
 ## Audit privacy and retention
 
 The audit Store is separate from configuration and Coordinator state. It keeps
 the newest 500 canonical room-target outcomes. Records contain timestamp, stable
-room ID/name, canonical ZEAL thermostat ID, previous/requested temperature,
+room ID/name, canonical ZEAL-Heat thermostat ID, previous/requested temperature,
 cause and outcome. They do not contain credentials, tokens, location coordinates
 or physical-TRV service payloads.
 
@@ -155,7 +155,7 @@ revision, current runtime view and eligible entity catalog. Audit downloads
 contain the bounded persisted outcome history.
 
 Instance removal deliberately uses Home Assistant's administrator-only config
-entry deletion endpoint after an explicit browser confirmation. ZEAL's standard
+entry deletion endpoint after an explicit browser confirmation. ZEAL-Heat's standard
 `async_remove_entry` hook then removes only the selected entry's hierarchy,
 schedule and audit Stores. The panel also links to Home Assistant's native
 integration page for per-instance disable controls.

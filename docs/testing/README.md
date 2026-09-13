@@ -1,21 +1,21 @@
-# ZEAL live test automations
+# ZEAL-Heat live test automations
 
 ## Schedule Adaptation holiday test — 1–6 September 2026
 
 [`schedule-adaptation-holiday-test.yaml`](schedule-adaptation-holiday-test.yaml)
-is generated specifically from the ZEAL configuration exported on 31 August
+is generated specifically from the ZEAL-Heat configuration exported on 31 August
 2026. It targets one physical TRV in each test room and the schedule values in
 that export. Do not reuse it after changing those rooms, entity IDs or periods.
 
 Before enabling it:
 
-1. Update ZEAL to `0.14.7`, restart Home Assistant and hard-refresh the browser.
-2. Enable **Setup → ZEAL Learning → Enable Schedule Adaptation**.
+1. Update ZEAL-Heat to `0.14.7`, restart Home Assistant and hard-refresh the browser.
+2. Enable **Setup → ZEAL-Heat Learning → Enable Schedule Adaptation**.
 3. Confirm Home Assistant's time zone is Europe/London and these physical
    entities exist and are available: `climate.bathroom_trv`,
    `climate.master_bedroom_trv`, `climate.lounge_wall_trv` and
    `climate.dining_wall_trv`.
-4. Confirm the physical heat source is intentionally disabled. ZEAL may still
+4. Confirm the physical heat source is intentionally disabled. ZEAL-Heat may still
    show demand and operate the configured dummy actuator switches during the
    five-minute test changes.
 5. Do not edit a tested room's schedule during the six days. A schedule change
@@ -25,7 +25,7 @@ Before enabling it:
    audited as excluded evidence and must not count toward a proposal.
 
 The automation changes a physical TRV for five minutes and then restores the
-scheduled target through that same TRV. ZEAL should detect each external change,
+scheduled target through that same TRV. ZEAL-Heat should detect each external change,
 update its canonical room thermostat and synchronise any sibling TRV in the
 room. The Learning evidence source should therefore read `physical trv`, not
 `home assistant`. A restoration that matches the active schedule is ignored by

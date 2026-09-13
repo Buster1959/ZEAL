@@ -1,18 +1,18 @@
-# ZEAL Scheduler Architecture
+# ZEAL-Heat Scheduler Architecture
 
 Status: Block 2 model, Block 3 runtime, Block 6 visual editor, Block 7 Quick
 Change/audit and Block 8 Away mode complete.
 
 ## Independence boundary
 
-ZEAL owns every scheduler module under `custom_components/zeal/scheduler`.
+ZEAL-Heat owns every scheduler module under `custom_components/zeal/scheduler`.
 It does not import Visual Climate Scheduler and does not use that integration's
 domain, services or storage. The two integrations remain independently
 installable.
 
 ## Durable model
 
-Each schedule belongs to one stable ZEAL `room_id` and contains:
+Each schedule belongs to one stable ZEAL-Heat `room_id` and contains:
 
 - the room's current display name;
 - exactly seven named weekday lists;
@@ -20,11 +20,11 @@ Each schedule belongs to one stable ZEAL `room_id` and contains:
 - configuration-level JSON-safe settings and the Home Assistant temperature
   unit.
 
-Physical TRV entity IDs, zone switches and ZEAL climate entity IDs are not
-persisted in schedule records. That prevents a schedule from bypassing ZEAL's
+Physical TRV entity IDs, zone switches and ZEAL-Heat climate entity IDs are not
+persisted in schedule records. That prevents a schedule from bypassing ZEAL-Heat's
 canonical room thermostat and safety boundary.
 
-The schema is versioned independently from ZEAL's Coordinator runtime Store.
+The schema is versioned independently from ZEAL-Heat's Coordinator runtime Store.
 Its Store key is `zeal.scheduler.<config-entry-id>` and its current schema and
 Store versions are both 1. Pre-versioned prototype documents migrate to V1;
 unknown future versions fail closed.
@@ -37,7 +37,7 @@ unknown future versions fail closed.
   cross-midnight carry and empty days.
 - `editor.py`: validated day replacement and one-time schedule copying while
   retaining each destination room's identity.
-- `rooms.py`: reconciliation with the current ZEAL room registry. Renaming a
+- `rooms.py`: reconciliation with the current ZEAL-Heat room registry. Renaming a
   room preserves its schedule; a new stable ID gets empty days; a removed ID
   is removed from the schedule document.
 - `overrides.py`: temporary absolute/delta targets lasting two hours, four
@@ -50,7 +50,7 @@ unknown future versions fail closed.
 
 ## Runtime adapter
 
-On config-entry startup, ZEAL loads the independent schedule Store and
+On config-entry startup, ZEAL-Heat loads the independent schedule Store and
 reconciles it against the current configured room IDs. New schedulable rooms get
 empty schedules, renamed rooms keep their periods, and deleted room IDs are
 removed before the reconciled document is saved.
@@ -62,7 +62,7 @@ timer. Timers and Coordinator listeners are cancelled on unload.
 
 The runtime passes only `room_id`, temperature and cause to
 `ZealCoordinator.async_set_room_target`. The Coordinator resolves the canonical
-ZEAL room thermostat, clamps the requested temperature, updates that entity and
+ZEAL-Heat room thermostat, clamps the requested temperature, updates that entity and
 then uses its existing guarded propagation path for the room's physical TRVs.
 The runtime never reads, stores, selects or calls a physical TRV entity ID.
 
@@ -72,9 +72,9 @@ current period; successfully applied periods are not repeated.
 
 ## Visual editor
 
-The admin-only **ZEAL → Schedule** page uses the configured Zone/Floor hierarchy
+The admin-only **ZEAL-Heat → Schedule** page uses the configured Zone/Floor hierarchy
 for navigation, but every schedule is still keyed by its stable room ID. The
-page explicitly displays the room's canonical ZEAL thermostat. Physical TRV
+page explicitly displays the room's canonical ZEAL-Heat thermostat. Physical TRV
 entity IDs are neither selectable nor sent by schedule write requests.
 
 Each weekday has a step timeline and exact name, 24-hour time and setpoint
@@ -87,7 +87,7 @@ engine's cross-midnight selection.
 Source-day application changes only the browser-side week until **Save
 schedule** is selected. A room-to-room copy first saves that same source editor
 state, then replaces only the seven daily lists of selected rooms. Destination
-room IDs, names, zones, Areas, physical equipment and ZEAL thermostat entities
+room IDs, names, zones, Areas, physical equipment and ZEAL-Heat thermostat entities
 are retained.
 
 Both operations include the configuration revision received when the editor was
@@ -111,22 +111,22 @@ An override replaces only the effective runtime target. The immutable
 expiring a hold immediately re-evaluates the active schedule through the same
 canonical room boundary. Relative changes require an active scheduled target;
 an exact target remains available for an otherwise empty schedule. Every result
-still passes ZEAL's 5–30°C safety range.
+still passes ZEAL-Heat's 5–30°C safety range.
 
 Each canonical application attempt is appended to a separate versioned audit
-Store with timestamp, stable room identity, canonical ZEAL thermostat,
+Store with timestamp, stable room identity, canonical ZEAL-Heat thermostat,
 previous/requested target, cause and outcome. It records successful and skipped
 unavailable outcomes, contains no credentials or physical-TRV service payloads,
 survives integration restarts and retains only the newest 500 entries.
 
-**ZEAL Learning — Schedule Adaptation** adds a source-aware learning pipeline
+**ZEAL-Heat Learning — Schedule Adaptation** adds a source-aware learning pipeline
 above this boundary. It groups comparable manual/Quick Change events by room
 and exact schedule period across distinct dates, then creates an explainable
 schedule proposal after three qualifying dates in 21 days. The pipeline can
 recommend but cannot write `ScheduleConfiguration` directly.
 Accepting or editing a proposal uses the existing validated, revision-checked
 schedule API; dismissal and snooze outcomes are also retained to prevent
-repetitive prompting. The separate **ZEAL Learning — Room Thermal Response**
+repetitive prompting. The separate **ZEAL-Heat Learning — Room Thermal Response**
 workstream is defined in [the learning roadmap](LEARNING_ROADMAP.md).
 
 ## Away mode and precedence
@@ -152,10 +152,10 @@ Room-target precedence is:
 3. a manual thermostat change, respected until the next schedule transition;
 4. the active weekly schedule period.
 
-Away and Quick Change targets are reasserted if their canonical ZEAL room
+Away and Quick Change targets are reasserted if their canonical ZEAL-Heat room
 thermostat is manually changed. A normal scheduled target is deliberately not
 reasserted until the next transition. Quick Change cannot create a new hold
 while Away is active; a pre-existing hold remains in memory and resumes when
 Away ends if it has not expired. The separate per-zone Manual Override remains
-the highest actuator authority: it prevents ZEAL from changing that zone's
+the highest actuator authority: it prevents ZEAL-Heat from changing that zone's
 pump/relay and is not bypassed by Away.

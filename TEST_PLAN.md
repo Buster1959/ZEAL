@@ -1,4 +1,4 @@
-# ZEAL HVAC System — Test Plan
+# ZEAL-Heat HVAC System — Test Plan
 
 *For the current V1 feature build: minimal Config Flow, HTML Overview/Setup
 panel, Coordinator control loop and scheduler backend. Written to be usable
@@ -19,7 +19,7 @@ exact screen, tab, and field.*
 - **Heat source and re-enable delay are setup fields.** The heat-source choice
   supplies a recommendation; the stored delay remains user-editable. Future
   thermal learning is still outside V1.
-- **The ZEAL Overview is now the persistent configuration summary.** It shows
+- **The ZEAL-Heat Overview is now the persistent configuration summary.** It shows
   zones, Areas/rooms, heat source, actuator, delay and equipment counts. The
   standard diagnostics download remains useful for portable troubleshooting.
 - **Scheduling, Quick Change, downloads and Away mode are built.** Their pure,
@@ -28,12 +28,12 @@ exact screen, tab, and field.*
 
 ## 1. Where to see what you've configured
 
-**A. ZEAL Overview and Setup.** Open **ZEAL** from the Home Assistant sidebar,
+**A. ZEAL-Heat Overview and Setup.** Open **ZEAL-Heat** from the Home Assistant sidebar,
 or choose **Configure** on the integration card. **Overview** is the glanceable
 saved summary. **Setup** displays every editable field and pre-fills it from the
 current configuration.
 
-**B. Download diagnostics.** `Settings → Devices & Services → ZEAL HVAC System
+**B. Download diagnostics.** `Settings → Devices & Services → ZEAL-Heat HVAC System
 → ⋮ → Download diagnostics` produces a structured snapshot including live
 entity state for troubleshooting.
 
@@ -42,7 +42,7 @@ entity state for troubleshooting.
 shows the two entities it creates *per zone*: the manual override switch
 and the demand sensor. It does **not** show your own TRVs/sensors — those
 remain listed under whichever integration actually owns them (Zigbee2MQTT,
-deCONZ, etc.), not under ZEAL. Each zone also appears as its own **Device**
+deCONZ, etc.), not under ZEAL-Heat. Each zone also appears as its own **Device**
 (`Settings → Devices & Services → Devices`, filtered to this integration)
 containing those same two entities.
 
@@ -74,7 +74,7 @@ editing required anywhere in this section.
    - State template: `{{ states('number.test_room_temp') }}`
    - Device class: **Temperature**
    - Unit of measurement: `°C`
-   - This is the entity ZEAL will actually read — it mirrors whatever the
+   - This is the entity ZEAL-Heat will actually read — it mirrors whatever the
      Number helper above is set to, live.
 
 ### 2.2 Dummy TRV (a real `climate` entity with an adjustable setpoint)
@@ -96,7 +96,7 @@ editing required anywhere in this section.
    - Leave other fields at their defaults.
    - This creates `climate.test_trv` — a real climate entity whose target
      temperature you can set from its thermostat card, exactly like a real
-     TRV. ZEAL reads this entity's `temperature` attribute as the room's
+     TRV. ZEAL-Heat reads this entity's `temperature` attribute as the room's
      setpoint.
 
 ### 2.3 Dummy zone actuator switch
@@ -116,15 +116,15 @@ editing required anywhere in this section.
 2. For **both** `climate.test_trv` and `sensor.test_room_sensor`: open the
    entity's settings (gear icon on its more-info dialog, or via
    `Settings → Devices & Services → Entities`, click the entity, then the
-   cog) and assign it to the `Test Room` Area. This is required — ZEAL's
-   ZEAL Setup lists TRVs/sensors *by Area*, so anything not
+   cog) and assign it to the `Test Room` Area. This is required — ZEAL-Heat's
+   ZEAL-Heat Setup lists TRVs/sensors *by Area*, so anything not
    assigned to an Area won't show up as a pick.
 
-## 3. Configure a test zone in ZEAL
+## 3. Configure a test zone in ZEAL-Heat
 
-1. `Settings → Devices & Services → Add Integration → ZEAL HVAC System`.
+1. `Settings → Devices & Services → Add Integration → ZEAL-Heat HVAC System`.
    Give the instance any name and finish.
-2. Open **ZEAL** from the sidebar and select **Setup**.
+2. Open **ZEAL-Heat** from the sidebar and select **Setup**.
 3. Select **+ Add zone** and name it `Test Zone`.
 4. Set **Heating actuator switch** to `switch.test_zone_switch` (§2.3) —
    **not** the internal switch from §2.2.
@@ -171,7 +171,7 @@ editing required anywhere in this section.
      genuinely cold. This is the anti-short-cycling behaviour ported from
      the old `ashp_controller.py`, not a bug. If you didn't lower the
      delay in §3, this step will take longer to observe — open
-     **ZEAL → Setup** and lower the re-enable delay there rather
+     **ZEAL-Heat → Setup** and lower the re-enable delay there rather
      than editing any code.
 6. **Manual override check.** With the room cold (demand present, switch
    on), find the zone's **Manual override switch** (same Entities/Device
@@ -183,8 +183,8 @@ editing required anywhere in this section.
 
 ## 5. Check Schedule, Overrides and Away mode
 
-1. Open **ZEAL → Schedule**, select the test room, add at least two changes a
-   few minutes apart and save. Confirm the ZEAL room thermostat and dummy TRV
+1. Open **ZEAL-Heat → Schedule**, select the test room, add at least two changes a
+   few minutes apart and save. Confirm the ZEAL-Heat room thermostat and dummy TRV
    receive each target at the displayed time.
 2. Open **Overrides → Quick Change**, select the test room, apply an exact target for two
    hours, then cancel it. Confirm the room first uses the hold and then returns
@@ -207,7 +207,7 @@ editing required anywhere in this section.
 
 ## 6. Cleanup
 
-Once satisfied, remove the test zone via **ZEAL → Setup → Remove zone →
+Once satisfied, remove the test zone via **ZEAL-Heat → Setup → Remove zone →
 Save setup**, then delete the four Helpers (`Test Room Temp`, `Test Room
 Sensor`, `Test TRV Internal Heater`, `Test Zone Switch`) and the Generic
 Thermostat integration instance (`Test TRV`) from their respective

@@ -1,11 +1,11 @@
 ---
 name: zeal-project-workflow
-description: Apply ZEAL repository working conventions during code, documentation, testing, review, release, or maintenance changes in Buster1959/ZEAL.
+description: Apply ZEAL-Heat repository working conventions during code, documentation, testing, review, release, or maintenance changes in Buster1959/ZEAL-Heat.
 ---
 
-# ZEAL Project Workflow
+# ZEAL-Heat Project Workflow
 
-Use this skill for every change made in the ZEAL repository.
+Use this skill for every change made in the ZEAL-Heat repository.
 
 ## Commit discipline
 
@@ -33,5 +33,5 @@ reported behavior is not a defect or is not present in the reviewed revision.
 ## Sibling projects
 
 For fixes with a concrete sibling-project connection, also use
-`zeal-visual-scheduler-parity`. Authorization to change ZEAL does not authorize
+`zeal-visual-scheduler-parity`. Authorization to change ZEAL-Heat does not authorize
 changes in a sibling repository.
