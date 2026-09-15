@@ -46,3 +46,10 @@ The cap phrase is deliberately informal launch-team humour and is not the corpor
 ## Usage principle
 
 ZEAL-Heat should always remain visually dominant. FLOW, CONTROL and SCHEDULER identify parts of the platform; they should not be presented as unrelated stand-alone brands.
+
+## Sibling product
+
+ZEAL-Heat shares its brand family with [ZEAL-Dry](https://github.com/Buster1959/ZEAL-Dry)
+— airborne moisture and condensation protection for Home Assistant. See
+[ZEAL-Dry's brand assets](https://github.com/Buster1959/ZEAL-Dry/blob/main/docs/brand/README.md)
+for that product's own mark and tagline.
